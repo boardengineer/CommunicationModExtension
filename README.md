@@ -3,10 +3,10 @@ Additional Functionality for the STS communication mod that adds socket communic
 
 Installing this mods adds the commands
 
-savestate <statename> 
+savestate [statename]
 
 and
 
-loadstae <statename>
+loadstae [statename]
 
 save states remain in memory for as long as the the process is active
