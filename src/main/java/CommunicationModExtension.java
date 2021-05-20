@@ -13,7 +13,7 @@ import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class CommunicationModExtension {
-    public static boolean startSocketCommunication = true;
+    public static boolean startSocketCommunication = false;
     private static final int PORT = 8080;
 
     @SpirePatch(clz = CommunicationMod.class, method = "startExternalProcess", paramtypez = {})
