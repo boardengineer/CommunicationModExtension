@@ -59,7 +59,9 @@ public class SaveStateCommandPatches {
             throw new InvalidCommandException("Please specify a statename");
         }
 
-        savedStates.get(tokens[1]).loadState();
-        System.err.println("state loaded");
+        if (savedStates.containsKey(tokens[1])) {
+            savedStates.get(tokens[1]).loadState();
+            System.err.println("state loaded");
+        }
     }
 }
