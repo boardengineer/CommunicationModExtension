@@ -172,7 +172,6 @@ public class CommunicationModExtension {
 
                     while (true) {
                         if (!writeQueue.isEmpty()) {
-                            System.err.println("should be sending message");
                             String stateMessage = writeQueue.poll();
                             controller.startVote(stateMessage);
                         }
