@@ -22,13 +22,16 @@ import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.relics.Sozu;
 import com.megacrit.cardcrawl.rewards.RewardItem;
 import com.megacrit.cardcrawl.screens.CardRewardScreen;
+import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 import com.megacrit.cardcrawl.shop.ShopScreen;
 import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
 import com.megacrit.cardcrawl.ui.buttons.LargeDialogOptionButton;
+import com.megacrit.cardcrawl.ui.buttons.SingingBowlButton;
 import com.megacrit.cardcrawl.ui.buttons.SkipCardButton;
 import com.megacrit.cardcrawl.ui.campfire.AbstractCampfireOption;
 import communicationmod.ChoiceScreenUtils;
+import ludicrousspeed.LudicrousSpeedMod;
 
 import java.io.IOException;
 import java.util.*;
@@ -37,13 +40,31 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
-    private static final long NORMAL_VOTE_TIME_MILLIS = 15_000;
+    private static final long NORMAL_VOTE_TIME_MILLIS = 20_000;
 
+    public enum VoteType {
+        // THe first vote in each dungeon
+        CHARACTER("character", 25_000),
+        MAP_LONG("map_long", 30_000),
+        MAP_SHORT("map_short", 15_000),
+        CARD_SELECT_LONG("card_select_long", 30_000),
+        CARD_SELECT_SHORT("card_select_short", 20_000),
+        OTHER("other", 15_000);
+
+        String optionName;
+        int defaultTime;
+
+        VoteType(String optionName, int defaultTime) {
+            this.optionName = optionName;
+            this.defaultTime = defaultTime;
+        }
+    }
 
     /**
      * Used to count user votes during
      */
     private HashMap<String, String> voteByUsernameMap = null;
+    private VoteType currentVote = null;
 
     private String screenType = null;
 
@@ -70,6 +91,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     // Boss relic
     HashMap<String, AbstractRelic> messageToBossRelicMap;
 
+    HashMap<String, Integer> optionsMap;
+
     private long voteEndTimeMillis;
 
     private ArrayList<Choice> choices;
@@ -85,6 +108,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public TwitchController(LinkedBlockingQueue<String> readQueue) {
         this.readQueue = readQueue;
+
+        optionsMap = new HashMap<>();
+        optionsMap.put("asc", 0);
+
+        for (VoteType voteType : VoteType.values()) {
+            optionsMap.put(voteType.optionName, voteType.defaultTime);
+        }
     }
 
     @Override
@@ -95,10 +125,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             startAiClient();
         }
 
-        if (BattleAiMod.battleAiController != null) {
-            if (BattleAiMod.battleAiController.isDone) {
-                BattleAiMod.battleAiController = null;
+        if (BattleAiMod.battleAiController != null || LudicrousSpeedMod.mustRestart) {
+            if (BattleAiMod.battleAiController.isDone || LudicrousSpeedMod.mustRestart) {
+                LudicrousSpeedMod.controller = BattleAiMod.battleAiController = null;
                 inBattle = false;
+                if (LudicrousSpeedMod.mustRestart) {
+                    System.err.println("Desync detected, rerunning simluation");
+                    LudicrousSpeedMod.mustRestart = false;
+                    startAiClient();
+                }
             }
         }
 
@@ -109,10 +144,16 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 Choice result = getVoteResult();
 
                 for (String command : result.resultCommands) {
+                    if (currentVote == VoteType.CHARACTER &&
+                            optionsMap.getOrDefault("asc", 0) > 0 &&
+                            result.resultCommands.size() == 1) {
+                        command += String.format(" %d", optionsMap.get("asc"));
+                    }
                     readQueue.add(command);
                 }
 
                 voteByUsernameMap = null;
+                currentVote = null;
                 screenType = null;
                 messageToEventButtonMap = null;
                 messageToShopItemMap = null;
@@ -136,8 +177,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (consecutiveNoVotes >= 5) {
                     fastMode = true;
                 }
+
+                System.err.println("choosing random for no votes");
             }
-            System.err.println("choosing random for no votes");
             int randomResult = new Random().nextInt(viableChoices.size());
             return viableChoices.get(randomResult);
         } else {
@@ -192,23 +234,45 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         if (userName.equalsIgnoreCase("twitchslaysspire")) {
-            System.err.println("pasha wants something");
-            if (tokens.length >= 2 && tokens[0].equals("!admin")) {
+            // admin direct command override
+            if (tokens.length >= 2 && tokens[0].equals("!sudo")) {
                 String command = message.substring(message.indexOf(' ') + 1);
                 readQueue.add(command);
+            } else if (tokens.length >= 2 && tokens[0].equals("!admin")) {
+                if (tokens[1].equals("set")) {
+                    if (tokens.length >= 4) {
+                        String optionName = tokens[2];
+                        if (optionsMap.containsKey(optionName)) {
+                            try {
+                                int optionValue = Integer.parseInt(tokens[3]);
+                                optionsMap.put(optionName, optionValue);
+                                System.err
+                                        .format("%s successfully set to %d\n", optionName, optionValue);
+                            } catch (NumberFormatException e) {
 
-                System.err.println(command);
+                            }
+                        }
+                    }
+                }
             }
         }
 
         if (voteByUsernameMap != null) {
-            if (tokens.length >= 2 && tokens[0].equals("!vote")) {
-                String voteValue = tokens[1].toLowerCase();
+            if (tokens.length == 1 || (tokens.length >= 2 && VOTE_PREFIXES.contains(tokens[0]))) {
+                String voteValue = tokens[0].toLowerCase();
+                if (tokens.length >= 2 && VOTE_PREFIXES.contains(tokens[0])) {
+                    voteValue = tokens[1].toLowerCase();
+                }
+
+                // remove leading 0s
                 try {
                     voteValue = Integer.toString(Integer.parseInt(voteValue));
                 } catch (NumberFormatException e) {
                 }
-                voteByUsernameMap.put(userName, voteValue);
+
+                if (choicesMap.containsKey(voteValue)) {
+                    voteByUsernameMap.put(userName, voteValue);
+                }
             }
         }
     }
@@ -248,6 +312,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public void startChooseVote(JsonObject stateJson) {
         if (stateJson.has("game_state")) {
+            VoteType voteType = VoteType.OTHER;
+
             JsonArray choicesJson = stateJson.get("game_state").getAsJsonObject().get("choice_list")
                                              .getAsJsonArray();
             choices = new ArrayList<>();
@@ -261,13 +327,33 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             });
             viableChoices = getTrueChoices();
 
+            screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
+                                  .getAsString();
+
+            if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.GRID && shouldDedupeGrid()) {
+                HashMap<String, Choice> choicesDedupe = new HashMap<>();
+                viableChoices.forEach(choice -> {
+                    if (!choicesDedupe.containsKey(choice.choiceName))
+                        choicesDedupe.put(choice.choiceName, choice);
+                });
+                viableChoices = new ArrayList<>(choicesDedupe.values());
+                viableChoices.sort(Comparator.comparing(c -> {
+                    try {
+                        return String.format("%03d", Integer.parseInt(c.voteString));
+                    } catch (NumberFormatException e) {
+                    }
+                    return c.voteString;
+                }));
+
+                for (int i = 0; i < viableChoices.size(); i++) {
+                    viableChoices.get(i).voteString = Integer.toString(i);
+                }
+            }
+
             choicesMap = new HashMap<>();
             for (Choice choice : viableChoices) {
                 choicesMap.put(choice.voteString, choice);
             }
-
-            screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
-                                  .getAsString();
 
             if (screenType != null) {
                 if (screenType.equalsIgnoreCase("EVENT")) {
@@ -282,6 +368,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                 .getOptionName(button.msg.toLowerCase()), button);
                     });
                 } else if (screenType.equalsIgnoreCase("MAP")) {
+                    if (FIRST_FLOOR_NUMS.contains(AbstractDungeon.floorNum)) {
+                        voteType = VoteType.MAP_LONG;
+                    } else {
+                        voteType = VoteType.MAP_SHORT;
+                    }
+
                     messageToRoomNodeMap = new HashMap<>();
                     ArrayList<MapRoomNode> mapChoice = ChoiceScreenUtils.getMapScreenNodeChoices();
                     for (MapRoomNode node : mapChoice) {
@@ -297,6 +389,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         messageToShopItemMap.put(getShopItemString(item).toLowerCase(), item);
                     }
                 } else if (screenType.equalsIgnoreCase("CARD_REWARD")) {
+                    if (AbstractDungeon.floorNum == 1) {
+                        voteType = VoteType.CARD_SELECT_LONG;
+                    } else {
+                        voteType = VoteType.CARD_SELECT_SHORT;
+                    }
+
                     messageToCardReward = new HashMap<>();
                     for (AbstractCard card : AbstractDungeon.cardRewardScreen.rewardGroup) {
                         messageToCardReward.put(card.name.toLowerCase(), card);
@@ -328,9 +426,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }
 
-            System.err.println(messageToEventButtonMap);
 
-            stateVote();
+            startVote(voteType);
         } else {
             System.err.println("ERROR Missing game state");
         }
@@ -341,7 +438,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         choices.add(new Choice("Ironclad", "ironclad", "start ironclad"));
         choices.add(new Choice("Silent", "silent", "start silent"));
-        choices.add(new Choice("Defect (experimental)", "defect", "start defect"));
+        choices.add(new Choice("Defect", "defect", "start defect"));
 
         viableChoices = choices;
 
@@ -350,18 +447,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             choicesMap.put(choice.voteString, choice);
         }
 
-        stateVote();
+        startVote(VoteType.CHARACTER);
     }
 
-    private void stateVote() {
+    private void startVote(VoteType voteType) {
         voteByUsernameMap = new HashMap<>();
+        currentVote = voteType;
         voteEndTimeMillis = System.currentTimeMillis();
+
         if (viableChoices.isEmpty()) {
             viableChoices.add(new Choice("proceed", "proceed", "proceed"));
         }
 
         if (viableChoices.size() > 1) {
-            voteEndTimeMillis += fastMode ? FAST_VOTE_TIME_MILLIS : NORMAL_VOTE_TIME_MILLIS;
+            voteEndTimeMillis += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
+                    .get(voteType.optionName);
         } else {
             voteEndTimeMillis += NO_VOTE_TIME_MILLIS;
         }
@@ -369,6 +469,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     @Override
     public void receivePostRender(SpriteBatch spriteBatch) {
+        String topMessage = "";
         if (voteByUsernameMap != null && viableChoices != null && viableChoices.size() > 1) {
             HashMap<String, Integer> voteFrequencies = getVoteFrequencies();
             if (messageToEventButtonMap != null) {
@@ -378,7 +479,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     String message = choice.choiceName;
                     if (messageToEventButtonMap.containsKey(message)) {
                         messageToEventButtonMap.get(message).msg = String
-                                .format("%s [!vote %s] (%s)",
+                                .format("%s [vote %s] (%s)",
                                         messageToOriginalEventButtonMessageMap.get(message),
                                         choice.voteString,
                                         voteFrequencies.getOrDefault(choice.voteString, 0));
@@ -395,7 +496,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         MapRoomNode mapRoomNode = messageToRoomNodeMap.get(message);
                         Hitbox roomHitbox = mapRoomNode.hb;
 
-                        String mapMessage = String.format("[!vote %s] (%s)",
+                        String mapMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
@@ -416,24 +517,24 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                     String message = choice.choiceName;
                     if (message.equals("leave")) {
-                        String leaveMessage = String.format("[!vote %s] (%s)",
+                        String leaveMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
                         renderTextBelowHitbox(spriteBatch, leaveMessage, AbstractDungeon.overlayMenu.cancelButton.hb);
                     } else if (message.equals("purge")) {
-                        String purgeMessage = String.format("[!vote %s] (%s)",
+                        String purgeMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                        renderTextBelowHitbox(spriteBatch, purgeMessage, getShopPurgeHitbox());
+                        renderTextBelowHitbox(spriteBatch, purgeMessage, addGoldHitbox(getShopPurgeHitbox(), 1));
                     } else if (messageToShopItemMap.containsKey(message)) {
                         Hitbox shopItemHitbox = getShopItemHitbox(messageToShopItemMap
                                 .get(message));
 
 
                         if (shopItemHitbox != null) {
-                            String shopMessage = String.format("[!vote %s] (%s)",
+                            String shopMessage = String.format("[vote %s] (%s)",
                                     choice.voteString,
                                     voteFrequencies.getOrDefault(choice.voteString, 0));
 
@@ -451,22 +552,31 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                     String message = choice.choiceName;
                     if (message.equalsIgnoreCase("skip")) {
-                        String skipMessage = String.format("[!vote %s] (%s)",
+                        String skipMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
                         SkipCardButton skipCardButton = ReflectionHacks
                                 .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "skipButton");
 
-                        renderTextBelowHitbox(spriteBatch, skipMessage, skipCardButton.hb);
-                    } else if (messageToCardReward.containsKey(message)) {
-                        AbstractCard card = messageToCardReward.get(message);
-                        Hitbox cardHitbox = card.hb;
-                        String cardMessage = String.format("[!vote %s] (%s)",
+                        renderTextBelowHitbox(spriteBatch, skipMessage, cardRewardAdjust(skipCardButton.hb));
+                    } else if (message.equalsIgnoreCase("bowl")) {
+                        String bowlMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                        renderTextBelowHitbox(spriteBatch, cardMessage, cardHitbox);
+                        SingingBowlButton bowlButton = ReflectionHacks
+                                .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "bowlButton");
+
+                        renderTextBelowHitbox(spriteBatch, bowlMessage, cardRewardAdjust(bowlButton.hb));
+                    } else if (messageToCardReward.containsKey(message)) {
+                        AbstractCard card = messageToCardReward.get(message);
+                        Hitbox cardHitbox = card.hb;
+                        String cardMessage = String.format("[vote %s] (%s)",
+                                choice.voteString,
+                                voteFrequencies.getOrDefault(choice.voteString, 0));
+
+                        renderTextBelowHitbox(spriteBatch, cardMessage, cardRewardAdjust(cardHitbox));
                     } else {
                         System.err.println("no card button for " + choice.choiceName);
                     }
@@ -478,7 +588,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     String message = choice.choiceName;
                     if (messageToCombatRewardItem.containsKey(message)) {
                         RewardItem rewardItem = messageToCombatRewardItem.get(message);
-                        String rewardItemMessage = String.format("[!vote %s] (%s)",
+                        String rewardItemMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
@@ -497,7 +607,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     if (messageToBossRelicMap.containsKey(message)) {
                         AbstractRelic rewardItem = messageToBossRelicMap.get(message);
                         Hitbox rewardItemHitbox = rewardItem.hb;
-                        String rewardItemMessage = String.format("[!vote %s] (%s)",
+                        String rewardItemMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
@@ -514,7 +624,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     if (messageToRestOption.containsKey(message)) {
                         AbstractCampfireOption fireOption = messageToRestOption.get(message);
                         Hitbox hitbox = fireOption.hb;
-                        String voteMessage = String.format("[!vote %s] (%s)",
+                        String voteMessage = String.format("[vote %s] (%s)",
                                 choice.voteString,
                                 voteFrequencies.getOrDefault(choice.voteString, 0));
 
@@ -535,15 +645,18 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             long remainingTime = voteEndTimeMillis - System.currentTimeMillis();
 
-            String timeMessage = String
+            topMessage += String
                     .format("Vote Time Remaining: %s", remainingTime / 1000 + 1);
-            if (fastMode) {
-                timeMessage += "\nFast Mode active [!set slow] for more time";
-            }
 
+        }
+        if (fastMode) {
+            topMessage += "\nFast Mode active [!set slow] for more time";
+        }
+
+        if (!topMessage.isEmpty()) {
             BitmapFont font = FontHelper.buttonLabelFont;
             FontHelper
-                    .renderFont(spriteBatch, font, timeMessage, 15, Settings.HEIGHT * 7 / 8, Color.RED);
+                    .renderFont(spriteBatch, font, topMessage, 15, Settings.HEIGHT * 7 / 8, Color.RED);
         }
     }
 
@@ -555,7 +668,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             Choice choice = viableChoices.get(i);
 
             result += String
-                    .format("%s [!vote %s] (%s)",
+                    .format("%s [vote %s] (%s)",
                             choice.choiceName,
                             choice.voteString,
                             voteFrequencies.getOrDefault(choice.voteString, 0));
@@ -592,8 +705,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                                               .anyMatch(potion -> potion instanceof PotionSlot);
         boolean canTakePotion = hasPotionSlot && !hasSozu;
 
-        choices.stream().filter(choice -> canTakePotion || !choice.choiceName.toLowerCase()
-                                                                             .contains("potion"))
+
+        choices.stream()
+               .filter(choice -> canTakePotion || !isPotionChoice(choice))
                .forEach(choice -> result.add(choice));
 
         if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.SHOP) {
@@ -675,7 +789,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public static class Choice {
         final String choiceName;
-        final String voteString;
+        String voteString;
         final ArrayList<String> resultCommands;
 
         public Choice(String choiceName, String voteString, String... resultCommands) {
@@ -686,6 +800,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             for (String resultCommand : resultCommands) {
                 this.resultCommands.add(resultCommand);
             }
+        }
+
+        @Override
+        public String toString() {
+            return "Choice{" +
+                    "choiceName='" + choiceName + '\'' +
+                    ", voteString='" + voteString + '\'' +
+                    ", resultCommands=" + resultCommands +
+                    '}';
         }
     }
 
@@ -724,6 +847,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         System.err.println("no string can be made for " + item);
 
         return null;
+    }
+
+    private static Hitbox cardRewardAdjust(Hitbox hitbox) {
+        return new Hitbox(hitbox.x, hitbox.y - 15.0F * Settings.scale, hitbox.width, hitbox.height + 25 * Settings.scale);
     }
 
     private static Hitbox addGoldHitbox(Hitbox hitbox, int slot) {
@@ -768,4 +895,51 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         return new Hitbox(purgeCardX - CARD_W, purgeCardY - CARD_H, width, height);
     }
+
+    boolean shouldDedupeGrid() {
+        GridCardSelectScreen gridSelectScreen = AbstractDungeon.gridSelectScreen;
+        int numCards = ReflectionHacks
+                .getPrivate(gridSelectScreen, GridCardSelectScreen.class, "numCards");
+        if (numCards != 1) {
+            return false;
+        }
+
+        return gridSelectScreen.forPurge || gridSelectScreen.forUpgrade || gridSelectScreen.forTransform;
+    }
+
+    private static boolean isPotionChoice(Choice choice) {
+        if (choice.choiceName.equals("Fire Potion")) {
+            return true;
+        }
+
+        boolean potionLibraryMatch = POTION_NAMES.contains(choice.choiceName.toLowerCase());
+
+        return potionLibraryMatch || choice.choiceName.toLowerCase().contains("potion");
+    }
+
+    public static HashSet<String> POTION_NAMES = new HashSet<String>() {{
+        add("distilled chaos");
+        add("entropic brew");
+        add("smoke bomb");
+        add("snecko oil");
+        add("liquid memories");
+        add("essence of steel");
+        add("liquid bronze");
+        add("ambrosia");
+        add("bottled miracle");
+        add("ghost in a jar");
+        add("heart of iron");
+        add("essence of darkness");
+    }};
+
+    public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
+        add("!vote");
+        add("vote");
+    }};
+
+    public static HashSet<Integer> FIRST_FLOOR_NUMS = new HashSet<Integer>() {{
+        add(0);
+        add(17);
+        add(34);
+    }};
 }

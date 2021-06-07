@@ -8,16 +8,12 @@ import com.gikk.twirk.TwirkBuilder;
 import com.gikk.twirk.events.TwirkListener;
 import com.gikk.twirk.types.twitchMessage.TwitchMessage;
 import com.gikk.twirk.types.users.TwitchUser;
-import com.megacrit.cardcrawl.core.CardCrawlGame;
-import com.megacrit.cardcrawl.core.Settings;
 import communicationmod.CommandExecutor;
 import communicationmod.CommunicationMod;
 import communicationmod.GameStateConverter;
 import communicationmod.InvalidCommandException;
 import de.robojumper.ststwitch.TwitchConfig;
 import ludicrousspeed.Controller;
-import ludicrousspeed.LudicrousSpeedMod;
-import savestate.SaveStateMod;
 import twitch.TwitchController;
 
 import java.io.BufferedInputStream;
@@ -47,21 +43,21 @@ public class CommunicationModExtension {
             switch (communicationMethod) {
                 case SOCKET:
                     // THIS IS EXPERIMENTAL CODE
-                    BaseMod.subscribe(new LudicrousSpeedMod());
-                    Settings.MASTER_VOLUME = 0;
-                    CardCrawlGame.sound.update();
-                    Settings.isDemo = true;
-                    SaveStateMod.shouldGoFast = true;
-                    LudicrousSpeedMod.plaidMode = true;
-
-                    Settings.ACTION_DUR_XFAST = 0.001F;
-                    Settings.ACTION_DUR_FASTER = 0.002F;
-                    Settings.ACTION_DUR_FAST = 0.0025F;
-                    Settings.ACTION_DUR_MED = 0.005F;
-                    Settings.ACTION_DUR_LONG = .01F;
-                    Settings.ACTION_DUR_XLONG = .015F;
-
-                    LudicrousSpeedMod.controller = new ColonelSanders();
+//                    BaseMod.subscribe(new LudicrousSpeedMod());
+//                    Settings.MASTER_VOLUME = 0;
+//                    CardCrawlGame.sound.update();
+//                    Settings.isDemo = true;
+//                    SaveStateMod.shouldGoFast = true;
+//                    LudicrousSpeedMod.plaidMode = true;
+//
+//                    Settings.ACTION_DUR_XFAST = 0.001F;
+//                    Settings.ACTION_DUR_FASTER = 0.002F;
+//                    Settings.ACTION_DUR_FAST = 0.0025F;
+//                    Settings.ACTION_DUR_MED = 0.005F;
+//                    Settings.ACTION_DUR_LONG = .01F;
+//                    Settings.ACTION_DUR_XLONG = .015F;
+//
+//                    LudicrousSpeedMod.controller = new ColonelSanders();
 
                     setSocketThreads();
                     return SpireReturn.Return(true);
