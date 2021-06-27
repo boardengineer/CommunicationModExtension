@@ -17,7 +17,7 @@ public class EventVoteController implements VoteController {
     public EventVoteController(TwitchController twitchController) {
         voteStringToEventButtonMap = new HashMap<>();
         ArrayList<LargeDialogOptionButton> eventButtons = ChoiceScreenUtils
-                .getEventButtons();
+                .getActiveEventButtons();
         voteStringToOriginalEventButtonMessageMap = new HashMap<>();
 
         for (int i = 0; i < eventButtons.size(); i++) {

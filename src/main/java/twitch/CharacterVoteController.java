@@ -33,6 +33,8 @@ public class CharacterVoteController implements VoteController {
                 case "defect":
                     charButton = ImageMaster.CHAR_SELECT_DEFECT;
                     break;
+                case "watcher":
+                    charButton = ImageMaster.CHAR_SELECT_WATCHER;
             }
 
             spriteBatch.draw(charButton, 300 + 225 * i, 50, 200, 200);

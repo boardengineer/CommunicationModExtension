@@ -9,26 +9,38 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
+import com.gikk.twirk.Twirk;
+import com.gikk.twirk.types.users.TwitchUser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.AsyncSaver;
+import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.potions.PotionSlot;
 import com.megacrit.cardcrawl.relics.Sozu;
 import com.megacrit.cardcrawl.relics.WingBoots;
+import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
+import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import ludicrousspeed.LudicrousSpeedMod;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
+    private static final long DECK_DISPLAY_TIMEOUT = 300_000;
+    private static final long BOSS_DISPLAY_TIMEOUT = 60_000;
+
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
     private static final long NORMAL_VOTE_TIME_MILLIS = 20_000;
@@ -41,7 +53,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         CARD_SELECT_LONG("card_select_long", 30_000),
         CARD_SELECT_SHORT("card_select_short", 20_000),
         GAME_OVER("game_over", 15_000),
-        OTHER("other", 15_000),
+        OTHER("other", 25_000),
         REST("rest", 1_000),
         SKIP("skip", 1_000);
 
@@ -71,15 +83,20 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     ArrayList<Choice> viableChoices;
     private HashMap<String, Choice> choicesMap;
 
-    LinkedBlockingQueue<String> readQueue;
+    private final LinkedBlockingQueue<String> readQueue;
+    private final Twirk twirk;
 
     private boolean shouldStartClientOnUpdate = false;
     private boolean inBattle = false;
     private boolean fastMode = true;
     int consecutiveNoVotes = 0;
 
-    public TwitchController(LinkedBlockingQueue<String> readQueue) {
+    public static long lastDeckDisplayTimestamp = 0L;
+    public static long lastBossDisplayTimestamp = 0L;
+
+    public TwitchController(LinkedBlockingQueue<String> readQueue, Twirk twirk) {
         this.readQueue = readQueue;
+        this.twirk = twirk;
 
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
@@ -97,9 +114,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             startAiClient();
         }
 
-        if (BattleAiMod.battleAiController != null || LudicrousSpeedMod.mustRestart) {
-            if (BattleAiMod.battleAiController.isDone || LudicrousSpeedMod.mustRestart) {
-                LudicrousSpeedMod.controller = BattleAiMod.battleAiController = null;
+        if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
+            if (BattleAiMod.rerunController.isDone || LudicrousSpeedMod.mustRestart) {
+                LudicrousSpeedMod.controller = BattleAiMod.rerunController = null;
                 inBattle = false;
                 if (LudicrousSpeedMod.mustRestart) {
                     System.err.println("Desync detected, rerunning simluation");
@@ -109,34 +126,38 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             }
         }
 
-        if (voteByUsernameMap != null) {
-            long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
+        try {
+            if (voteByUsernameMap != null) {
+                long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
 
-            if (timeRemaining <= 0) {
-                Choice result = getVoteResult();
+                if (timeRemaining <= 0) {
+                    Choice result = getVoteResult();
 
-                System.err.println("selected " + result);
+                    System.err.println("selected " + result);
 
-                for (String command : result.resultCommands) {
-                    if (currentVote == VoteType.CHARACTER &&
-                            optionsMap.getOrDefault("asc", 0) > 0 &&
-                            result.resultCommands.size() == 1) {
-                        command += String.format(" %d", optionsMap.get("asc"));
+                    for (String command : result.resultCommands) {
+                        if (currentVote == VoteType.CHARACTER &&
+                                optionsMap.getOrDefault("asc", 0) > 0 &&
+                                result.resultCommands.size() == 1) {
+                            command += String.format(" %d", optionsMap.get("asc"));
+                        }
+                        readQueue.add(command);
                     }
-                    readQueue.add(command);
-                }
 
-                voteByUsernameMap = null;
-                voteController = null;
-                currentVote = null;
-                screenType = null;
+                    voteByUsernameMap = null;
+                    voteController = null;
+                    currentVote = null;
+                    screenType = null;
+                }
             }
+        } catch (NullPointerException e) {
+            System.err.println("Null pointer caught, clean up this crap");
         }
     }
 
-    public void receiveMessage(String userName, String message) {
+    public void receiveMessage(TwitchUser user, String message) {
+        String userName = user.getDisplayName();
         String[] tokens = message.split(" ");
-
 
         if (tokens.length == 1 && tokens[0].equals("07734")) {
             fastMode = false;
@@ -164,6 +185,32 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         }
                     }
                 }
+            }
+        }
+
+        if (tokens.length == 1) {
+            try {
+                if (tokens[0].equals("!deck")) {
+                    long now = System.currentTimeMillis();
+                    if (now > lastDeckDisplayTimestamp + DECK_DISPLAY_TIMEOUT) {
+                        lastDeckDisplayTimestamp = now;
+                        twirk.channelMessage("[BOT] " + AbstractDungeon.player.masterDeck.group
+                                .stream()
+                                .map(card -> card.name)
+                                .collect(Collectors
+                                        .joining(";")));
+                    }
+                }
+
+                if (tokens[0].equals("!boss")) {
+                    long now = System.currentTimeMillis();
+                    if (now > lastBossDisplayTimestamp + BOSS_DISPLAY_TIMEOUT) {
+                        lastBossDisplayTimestamp = now;
+                        twirk.channelMessage("[BOT] " + AbstractDungeon.bossKey);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -212,7 +259,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                                  .get("screen_type").getAsString();
                     delayProceed(screenType);
                 } else if (availableCommands.contains("confirm")) {
-                    System.err.println("choosing confirm " + stateMessage);
+                    System.err.println("choosing confirm");
                     readQueue.add("confirm");
                 } else if (availableCommands.contains("leave")) {
                     // exit shop hell
@@ -334,6 +381,19 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } else if (screenType.equals("COMBAT_REWARD")) {
             voteType = VoteType.SKIP;
         } else if (screenType.equals("GAME_OVER")) {
+            switch (AbstractDungeon.screen) {
+                case DEATH:
+                    ReturnToMenuButton deathReturnButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.deathScreen, GameOverScreen.class, "returnButton");
+                    deathReturnButton.hb.clicked = true;
+                    break;
+                case VICTORY:
+                    ReturnToMenuButton victoryReturnButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.victoryScreen, GameOverScreen.class, "returnButton");
+                    victoryReturnButton.hb.clicked = true;
+                    break;
+            }
+            System.err.println(AbstractDungeon.screen);
             voteType = VoteType.GAME_OVER;
         } else {
             System.err.println("unknown screen type proceed timer " + screenType);
@@ -350,6 +410,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         choices.add(new Choice("ironclad", "1", "start ironclad"));
         choices.add(new Choice("silent", "2", "start silent"));
         choices.add(new Choice("defect", "3", "start defect"));
+        choices.add(new Choice("watcher", "4", "start watcher"));
 
         viableChoices = choices;
 
@@ -603,6 +664,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         add("ghost in a jar");
         add("heart of iron");
         add("essence of darkness");
+        add("blessing of the forge");
+        add("fruit juice");
     }};
 
     public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
@@ -724,6 +787,20 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 return SpireReturn.Return(null);
             }
             return SpireReturn.Continue();
+        }
+    }
+
+    @SpirePatch(clz = AsyncSaver.class, method = "save")
+    public static class BackUpAllSavesPatch {
+        @SpirePostfixPatch
+        public static void backUpSave(String filePath, String data) {
+            BlockingQueue<File> saveQueue = ReflectionHacks
+                    .getPrivateStatic(AsyncSaver.class, "saveQueue");
+
+            String backupFilePath = String
+                    .format("savealls\\%s_%02d_%s", filePath, AbstractDungeon.floorNum, Settings.seed);
+
+            saveQueue.add(new File(backupFilePath, data));
         }
     }
 }

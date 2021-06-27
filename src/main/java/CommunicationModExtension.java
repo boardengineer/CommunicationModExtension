@@ -147,19 +147,18 @@ public class CommunicationModExtension {
                 LinkedBlockingQueue<String> readQueue = new LinkedBlockingQueue<>();
                 ReflectionHacks
                         .setPrivateStatic(CommunicationMod.class, "readQueue", readQueue);
-                TwitchController controller = new TwitchController(readQueue);
+                TwitchController controller = new TwitchController(readQueue, twirk);
                 BaseMod.subscribe(controller);
 
                 twirk.addIrcListener(new TwirkListener() {
                     @Override
                     public void onPrivMsg(TwitchUser sender, TwitchMessage message) {
-                        controller.receiveMessage(sender.getDisplayName(), message.getContent());
+                        controller.receiveMessage(sender, message.getContent());
                     }
                 });
 
                 twirk.connect();
                 System.err.println("connected as " + username);
-
 
                 Thread writeThread = new Thread(() -> {
                     LinkedBlockingQueue<String> writeQueue = new LinkedBlockingQueue<>();
@@ -173,6 +172,7 @@ public class CommunicationModExtension {
                         }
                     }
                 });
+
                 writeThread.start();
 
                 ReflectionHacks
