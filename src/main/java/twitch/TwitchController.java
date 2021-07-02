@@ -194,11 +194,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     long now = System.currentTimeMillis();
                     if (now > lastDeckDisplayTimestamp + DECK_DISPLAY_TIMEOUT) {
                         lastDeckDisplayTimestamp = now;
-                        twirk.channelMessage("[BOT] " + AbstractDungeon.player.masterDeck.group
-                                .stream()
-                                .map(card -> card.name)
-                                .collect(Collectors
-                                        .joining(";")));
+                        HashMap<String, Integer> cards = new HashMap<>();
+                        AbstractDungeon.player.masterDeck.group
+                                .forEach(c -> cards.merge(c.name, 1, Integer::sum));
+                        StringBuilder sb = new StringBuilder("[BOT] ");
+                        for(Map.Entry<String, Integer> entry : cards.entrySet()) {
+                            sb.append(entry.getKey());
+                            if(entry.getValue() > 1) {
+                                sb.append(" x").append(entry.getValue());
+                            }
+                            sb.append(";");
+                        }
+                        if(sb.length() > 0){
+                            sb.deleteCharAt(sb.length() - 1);
+                        }
+                        twirk.channelMessage(sb.toString());
                     }
                 }
 
