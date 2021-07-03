@@ -197,17 +197,23 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         HashMap<String, Integer> cards = new HashMap<>();
                         AbstractDungeon.player.masterDeck.group
                                 .forEach(c -> cards.merge(c.name, 1, Integer::sum));
+
                         StringBuilder sb = new StringBuilder("[BOT] ");
-                        for(Map.Entry<String, Integer> entry : cards.entrySet()) {
-                            sb.append(entry.getKey());
-                            if(entry.getValue() > 1) {
-                                sb.append(" x").append(entry.getValue());
+                        for (AbstractCard c : AbstractDungeon.player.masterDeck.group) {
+                            if (cards.containsKey(c.name)) {
+                                sb.append(c.name);
+                                int amt = cards.get(c.name);
+                                if (amt > 1) {
+                                    sb.append(" x").append(amt);
+                                }
+                                sb.append(";");
+                                cards.remove(c.name);
                             }
-                            sb.append(";");
                         }
-                        if(sb.length() > 0){
+                        if (sb.length() > 0) {
                             sb.deleteCharAt(sb.length() - 1);
                         }
+                        
                         twirk.channelMessage(sb.toString());
                     }
                 }
