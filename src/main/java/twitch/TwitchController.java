@@ -24,7 +24,7 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.AsyncSaver;
 import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.FontHelper;
-import com.megacrit.cardcrawl.potions.PotionSlot;
+import com.megacrit.cardcrawl.potions.*;
 import com.megacrit.cardcrawl.relics.Sozu;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
@@ -530,15 +530,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private ArrayList<Choice> getTrueChoices() {
         ArrayList<Choice> result = new ArrayList<>();
 
-        boolean hasSozu = AbstractDungeon.player.relics.stream()
-                                                       .anyMatch(relic -> relic instanceof Sozu);
+        boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
 
         boolean hasPotionSlot = AbstractDungeon.player.potions.stream()
                                                               .anyMatch(potion -> potion instanceof PotionSlot);
         boolean canTakePotion = hasPotionSlot && !hasSozu;
+        boolean shouldEvaluatePotions = !hasPotionSlot && !hasSozu;
 
         choices.stream()
-               .filter(choice -> canTakePotion || !isPotionChoice(choice))
+               .filter(choice -> (canTakePotion || shouldEvaluatePotions) || !isPotionChoice(choice))
                .forEach(choice -> result.add(choice));
 
         if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.SHOP) {
@@ -563,11 +563,45 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                                   .findAny();
 
             if (potionChoice.isPresent()) {
-                ArrayList<Choice> onlyPotion = new ArrayList<>();
-                onlyPotion.add(potionChoice.get());
+                boolean skipPotion = false;
+                //Can pick up a potion but has no slots
+                if (shouldEvaluatePotions) {
+                    AbstractPotion lowWeightPotion = null;
+                    int weightDifferential = 0;
+                    int choiceWeight = POTION_WEIGHTS.getOrDefault(potionChoice.get().choiceName, 5);
+                    //Iterate through player's potions and check if which one is the lower value, then discard that one to pick up the new one
+                    //Potions already in the player's inventory get priority
+                    for (AbstractPotion p : AbstractDungeon.player.potions) {
+                        int w = POTION_WEIGHTS.getOrDefault(p.ID, 5);
+                        if (choiceWeight > w) {
+                            if (lowWeightPotion != null) {
+                                int newWDiff = w - choiceWeight;
+                                if (newWDiff < weightDifferential) {
+                                    weightDifferential = newWDiff;
+                                    lowWeightPotion = p;
+                                }
+                            } else {
+                                weightDifferential = w - choiceWeight;
+                                lowWeightPotion = p;
+                            }
+                        }
+                    }
 
-                // Then the potion
-                return onlyPotion;
+                    if (lowWeightPotion != null) {
+                        AbstractDungeon.player.removePotion(lowWeightPotion);
+                    } else {
+                        //The incoming potion is of the lowest value
+                        skipPotion = true;
+                    }
+                }
+
+                if(!skipPotion) {
+                    ArrayList<Choice> onlyPotion = new ArrayList<>();
+                    onlyPotion.add(potionChoice.get());
+
+                    // Then the potion
+                    return onlyPotion;
+                }
             }
 
             Optional<Choice> relicChoice = result.stream()
@@ -660,26 +694,84 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             return true;
         }
 
-        boolean potionLibraryMatch = POTION_NAMES.contains(choice.choiceName.toLowerCase());
-
-        return potionLibraryMatch || choice.choiceName.toLowerCase().contains("potion");
+        return POTION_WEIGHTS.containsKey(choice.choiceName) || choice.choiceName.toLowerCase().contains("potion");
     }
 
-    public static HashSet<String> POTION_NAMES = new HashSet<String>() {{
-        add("distilled chaos");
-        add("entropic brew");
-        add("smoke bomb");
-        add("snecko oil");
-        add("liquid memories");
-        add("essence of steel");
-        add("liquid bronze");
-        add("ambrosia");
-        add("bottled miracle");
-        add("ghost in a jar");
-        add("heart of iron");
-        add("essence of darkness");
-        add("blessing of the forge");
-        add("fruit juice");
+    //TODO: Reweight potions and set blocked potions
+    private static final int BLOCKED_POTION = 0;
+    public static HashMap<String, Integer> POTION_WEIGHTS = new HashMap<String, Integer>() {{
+    //General weighting philosophy: Immediate effects outweigh build up potions in effectiveness because the bot tends to spam potions to end a combat.
+    // Potions that give the bot more choice or mitigate damage are preferable.
+    // Targetable potions are probably bad.
+        //Debuff
+        put(WeakenPotion.POTION_ID, 3);
+        put(FearPotion.POTION_ID, 3);
+
+        //Resource
+            //Energy
+        put(BottledMiracle.POTION_ID, 6);
+        put(EnergyPotion.POTION_ID, 5);
+
+            //Draw
+        put(SwiftPotion.POTION_ID, 5);
+        put(SneckoOil.POTION_ID, 8);
+        put(GamblersBrew.POTION_ID, BLOCKED_POTION);
+
+            //Block
+        put(BlockPotion.POTION_ID, 7);
+        put(EssenceOfSteel.POTION_ID, 5);
+        put(HeartOfIron.POTION_ID, 7);
+        put(GhostInAJar.POTION_ID, 8);
+
+            //HP
+        put(FruitJuice.POTION_ID, 10);
+        put(BloodPotion.POTION_ID, 10);
+        put(RegenPotion.POTION_ID, 8);
+        put(FairyPotion.POTION_ID, 11);
+
+        put(EntropicBrew.POTION_ID, 9);
+        put(Ambrosia.POTION_ID, 7);
+
+        //Stat
+        put(StrengthPotion.POTION_ID, 4);
+        put(CultistPotion.POTION_ID, 7);
+        put(DexterityPotion.POTION_ID, 5);
+        put(FocusPotion.POTION_ID, 6);
+        put(PotionOfCapacity.POTION_ID, 4);
+        put(AncientPotion.POTION_ID, 3);
+
+        //Temp stat
+        put(SpeedPotion.POTION_ID, 5);
+        put(SteroidPotion.POTION_ID, 4);
+
+        //Card choice
+        put(AttackPotion.POTION_ID, 5);
+        put(SkillPotion.POTION_ID, 5);
+        put(PowerPotion.POTION_ID, 5);
+        put(ColorlessPotion.POTION_ID, 5);
+
+        put(LiquidMemories.POTION_ID, 5);
+
+        //Damage
+            //Direct
+        put(FirePotion.POTION_ID, 6);
+        put(ExplosivePotion.POTION_ID, 6);
+        put(PoisonPotion.POTION_ID, 5);
+        put(CunningPotion.POTION_ID, 5);
+
+            //Indirect
+        put(EssenceOfDarkness.POTION_ID, 6);
+        put(LiquidBronze.POTION_ID, 4);
+
+        //Misc
+        put(SmokeBomb.POTION_ID, 5);
+        put(StancePotion.POTION_ID, BLOCKED_POTION);
+
+        //Cards
+        put(BlessingOfTheForge.POTION_ID, 2);
+        put(DuplicationPotion.POTION_ID, 5);
+        put(DistilledChaosPotion.POTION_ID, 5);
+        put(Elixir.POTION_ID, 4);
     }};
 
     public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
