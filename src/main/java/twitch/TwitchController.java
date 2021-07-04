@@ -18,6 +18,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.AsyncSaver;
@@ -31,15 +32,15 @@ import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import ludicrousspeed.LudicrousSpeedMod;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
 
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
-    private static final long DECK_DISPLAY_TIMEOUT = 300_000;
-    private static final long BOSS_DISPLAY_TIMEOUT = 60_000;
+    private static final long DECK_DISPLAY_TIMEOUT = 60_000;
+    private static final long BOSS_DISPLAY_TIMEOUT = 30_000;
 
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
@@ -71,6 +72,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      */
     private HashMap<String, String> voteByUsernameMap = null;
     private VoteType currentVote = null;
+    private String stateString = "";
 
     private String screenType = null;
     static VoteController voteController;
@@ -144,13 +146,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         readQueue.add(command);
                     }
 
+                    if (!voteByUsernameMap.isEmpty()) {
+                        String fileName = String
+                                .format("votelogs/%s.txt", System.currentTimeMillis());
+                        FileWriter writer = new FileWriter(fileName);
+                        writer.write(voteByUsernameMap.toString() + " " + stateString);
+                        writer.close();
+                    }
+
                     voteByUsernameMap = null;
                     voteController = null;
                     currentVote = null;
                     screenType = null;
                 }
             }
-        } catch (NullPointerException e) {
+        } catch (ConcurrentModificationException | NullPointerException | IOException e) {
             System.err.println("Null pointer caught, clean up this crap");
         }
     }
@@ -184,6 +194,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                             }
                         }
                     }
+                } else if (tokens[1].equals("disable")) {
+                    voteByUsernameMap = null;
+                    inBattle = false;
                 }
             }
         }
@@ -273,7 +286,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 } else if (availableCommands.contains("proceed")) {
                     String screenType = stateJson.get("game_state").getAsJsonObject()
                                                  .get("screen_type").getAsString();
-                    delayProceed(screenType);
+                    delayProceed(screenType, stateMessage);
                 } else if (availableCommands.contains("confirm")) {
                     System.err.println("choosing confirm");
                     readQueue.add("confirm");
@@ -308,26 +321,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
                                   .getAsString();
-
-//            if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.GRID && shouldDedupeGrid()) {
-//                HashMap<String, Choice> choicesDedupe = new HashMap<>();
-//                viableChoices.forEach(choice -> {
-//                    if (!choicesDedupe.containsKey(choice.choiceName))
-//                        choicesDedupe.put(choice.choiceName, choice);
-//                });
-//                viableChoices = new ArrayList<>(choicesDedupe.values());
-//                viableChoices.sort(Comparator.comparing(c -> {
-//                    try {
-//                        return String.format("%03d", Integer.parseInt(c.voteString));
-//                    } catch (NumberFormatException e) {
-//                    }
-//                    return c.voteString;
-//                }));
-//
-//                for (int i = 0; i < viableChoices.size(); i++) {
-//                    viableChoices.get(i).voteString = Integer.toString(i + 1);
-//                }
-//            }
 
             choicesMap = new HashMap<>();
             for (Choice choice : viableChoices) {
@@ -372,13 +365,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     System.err.println("Starting generic vote for " + screenType);
                 }
             }
-            startVote(voteType);
+            startVote(voteType, stateJson.toString());
         } else {
             System.err.println("ERROR Missing game state");
         }
     }
 
-    public void delayProceed(String screenType) {
+    public void delayProceed(String screenType, String stateMessage) {
         choices = new ArrayList<>();
 
         choices.add(new Choice("proceed", "proceed", "proceed"));
@@ -397,6 +390,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } else if (screenType.equals("COMBAT_REWARD")) {
             voteType = VoteType.SKIP;
         } else if (screenType.equals("GAME_OVER")) {
+
+            try {
+                String fileName = String
+                        .format("votelogs/gameover-%s.txt", System.currentTimeMillis());
+                FileWriter writer = new FileWriter(fileName);
+                writer.write(stateMessage);
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             switch (AbstractDungeon.screen) {
                 case DEATH:
                     ReturnToMenuButton deathReturnButton = ReflectionHacks
@@ -417,7 +421,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         System.err.println("delaying for " + screenType + " " + voteType);
 
-        startVote(voteType, true);
+        startVote(voteType, true, "");
     }
 
     public void startCharacterVote() {
@@ -437,13 +441,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         voteController = new CharacterVoteController(this);
 
-        startVote(VoteType.CHARACTER);
+        startVote(VoteType.CHARACTER, "");
     }
 
-    private void startVote(VoteType voteType, boolean forceWait) {
+    private void startVote(VoteType voteType, boolean forceWait, String stateString) {
         voteByUsernameMap = new HashMap<>();
         currentVote = voteType;
         voteEndTimeMillis = System.currentTimeMillis();
+        this.stateString = stateString;
 
         if (viableChoices.isEmpty()) {
             viableChoices.add(new Choice("proceed", "proceed", "proceed"));
@@ -457,8 +462,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
-    private void startVote(VoteType voteType) {
-        startVote(voteType, false);
+    private void startVote(VoteType voteType, String stateString) {
+        startVote(voteType, false, stateString);
     }
 
     @Override
@@ -817,6 +822,16 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     .format("savealls\\%s_%02d_%s", filePath, AbstractDungeon.floorNum, Settings.seed);
 
             saveQueue.add(new File(backupFilePath, data));
+        }
+    }
+
+
+    @SpirePatch(clz = AbstractDungeon.class, method = SpirePatch.CONSTRUCTOR, paramtypez = {String.class, String.class, AbstractPlayer.class, ArrayList.class})
+    public static class DisableEventsPatch {
+        @SpirePostfixPatch
+        public static void RemoveBadEvents(AbstractDungeon dungeon, String name, String levelId, AbstractPlayer p, ArrayList<String> newSpecialOneTimeEventList) {
+            AbstractDungeon.shrineList.remove("Match and Keep!");
+            AbstractDungeon.eventList.remove("SensoryStone");
         }
     }
 }
