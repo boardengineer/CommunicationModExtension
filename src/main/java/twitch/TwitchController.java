@@ -25,8 +25,7 @@ import com.megacrit.cardcrawl.helpers.AsyncSaver;
 import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.potions.*;
-import com.megacrit.cardcrawl.relics.Sozu;
-import com.megacrit.cardcrawl.relics.WingBoots;
+import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
@@ -37,6 +36,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Predicate;
 
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
     private static final long DECK_DISPLAY_TIMEOUT = 60_000;
@@ -564,6 +564,19 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 return onlyGold;
             }
 
+            Optional<Choice> stolenGoldChoice = result.stream()
+                    .filter(choice -> choice.choiceName
+                            .equals("stolen_gold"))
+                    .findAny();
+
+            if (stolenGoldChoice.isPresent()) {
+                ArrayList<Choice> onlyStolenGold = new ArrayList<>();
+                onlyStolenGold.add(stolenGoldChoice.get());
+
+                // Then the stolen gold
+                return onlyStolenGold;
+            }
+
             Optional<Choice> potionChoice = result.stream()
                                                   .filter(choice -> choice.choiceName
                                                           .equals("potion"))
@@ -622,25 +635,19 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                                        .findAny();
 
             if (relicChoice.isPresent() && !sapphireKeyChoice.isPresent()) {
-                ArrayList<Choice> onlyRelic = new ArrayList<>();
-                onlyRelic.add(relicChoice.get());
+                //For future modded support you could iterate through the relics in the reward screen and use "instanceOf CustomBottleRelic" to check
+                //Do not automatically pick up relics in the choosableRelics Map
+                String relicName = relicChoice.get().choiceName;
+                if(!choosableRelics.getOrDefault(relicName, r -> false).test(relicName)) {
+                    ArrayList<Choice> onlyRelic = new ArrayList<>();
+                    onlyRelic.add(relicChoice.get());
 
-                // Then the relic, as long as there's no key
-                return onlyRelic;
+                    // Then the relic, as long as there's no key
+                    return onlyRelic;
+                }
             }
 
-            Optional<Choice> stolenGoldChoice = result.stream()
-                                                      .filter(choice -> choice.choiceName
-                                                              .equals("stolen_gold"))
-                                                      .findAny();
 
-            if (stolenGoldChoice.isPresent()) {
-                ArrayList<Choice> onlyStolenGold = new ArrayList<>();
-                onlyStolenGold.add(stolenGoldChoice.get());
-
-                // Then the stolen gold
-                return onlyStolenGold;
-            }
 
             Optional<Choice> emeraldKeyChoice = result.stream()
                                                       .filter(choice -> choice.choiceName
@@ -695,6 +702,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         return gridSelectScreen.forPurge || gridSelectScreen.forUpgrade || gridSelectScreen.forTransform;
     }
+
+    //Map of relics with predicate on when to choose (true) or when to automatically pick up (false)
+    public static HashMap<String, Predicate<String>> choosableRelics = new HashMap<String, Predicate<String>>() {{
+        put(BottledFlame.ID, r -> true);
+        put(BottledLightning.ID, r -> true);
+        put(BottledTornado.ID, r -> true);
+        put(BlueCandle.ID, r-> true);
+        put(Omamori.ID, r -> AbstractDungeon.player.hasRelic(DarkstonePeriapt.ID) || AbstractDungeon.player.hasRelic(DuVuDoll.ID));
+    }};
 
     private static boolean isPotionChoice(Choice choice) {
         if (choice.choiceName.equals("Fire Potion")) {
