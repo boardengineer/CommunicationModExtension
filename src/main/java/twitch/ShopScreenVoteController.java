@@ -6,6 +6,8 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
+import com.megacrit.cardcrawl.potions.PotionSlot;
+import com.megacrit.cardcrawl.relics.Sozu;
 import com.megacrit.cardcrawl.shop.ShopScreen;
 import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
@@ -24,8 +26,13 @@ public class ShopScreenVoteController implements VoteController {
         ArrayList<Object> shopItems = ReflectionHacks
                 .privateStaticMethod(ChoiceScreenUtils.class, "getAvailableShopItems")
                 .invoke();
+        boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
+        boolean hasPotionSlot = AbstractDungeon.player.potions.stream().anyMatch(potion -> potion instanceof PotionSlot);
+
         for (Object item : shopItems) {
-            messageToShopItemMap.put(getShopItemString(item).toLowerCase(), item);
+            if(!(item instanceof StorePotion) || !hasSozu && hasPotionSlot) {
+                messageToShopItemMap.put(getShopItemString(item).toLowerCase(), item);
+            }
         }
     }
 
