@@ -25,6 +25,7 @@ import com.megacrit.cardcrawl.helpers.AsyncSaver;
 import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.helpers.PotionHelper;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.potions.*;
 import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
@@ -115,7 +116,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         if(shouldPopulateMaps) {
             shouldPopulateMaps = false;
             populatePotionMap();
-
+            populateRelicMap();
         }
 
         if (shouldStartClientOnUpdate) {
@@ -646,6 +647,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 //For future modded support you could iterate through the relics in the reward screen and use "instanceOf CustomBottleRelic" to check
                 //Do not automatically pick up relics in the choosableRelics Map
                 String relicName = relicChoice.get().choiceName;
+
                 if(!choosableRelics.getOrDefault(relicName, r -> false).test(relicName)) {
                     ArrayList<Choice> onlyRelic = new ArrayList<>();
                     onlyRelic.add(relicChoice.get());
@@ -712,13 +714,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     //Map of relics with predicate on when to choose (true) or when to automatically pick up (false)
-    public static HashMap<String, Predicate<String>> choosableRelics = new HashMap<String, Predicate<String>>() {{
-        put(BottledFlame.ID, r -> true);
-        put(BottledLightning.ID, r -> true);
-        put(BottledTornado.ID, r -> true);
-        put(BlueCandle.ID, r-> true);
-        put(Omamori.ID, r -> AbstractDungeon.player.hasRelic(DarkstonePeriapt.ID) || AbstractDungeon.player.hasRelic(DuVuDoll.ID));
-    }};
+    public static HashMap<String, Predicate<String>> choosableRelics = new HashMap<>();
+
+    private static void populateRelicMap() {
+        choosableRelics.put(RelicLibrary.getRelic(BottledFlame.ID).name, r -> true);
+        choosableRelics.put(RelicLibrary.getRelic(BottledLightning.ID).name, r -> true);
+        choosableRelics.put(RelicLibrary.getRelic(BottledTornado.ID).name, r -> true);
+        choosableRelics.put(RelicLibrary.getRelic(BlueCandle.ID).name, r-> true);
+        choosableRelics.put(RelicLibrary.getRelic(Omamori.ID).name, r -> AbstractDungeon.player.hasRelic(DarkstonePeriapt.ID) || AbstractDungeon.player.hasRelic(DuVuDoll.ID));
+    }
 
     private static boolean isPotionChoice(Choice choice) {
         if (choice.choiceName.equals("Fire Potion")) {
