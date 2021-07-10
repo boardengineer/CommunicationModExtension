@@ -35,6 +35,10 @@ public class CharacterVoteController implements VoteController {
                     break;
                 case "watcher":
                     charButton = ImageMaster.CHAR_SELECT_WATCHER;
+                    break;
+                case "marisa":
+                    charButton = ImageMaster.loadImage("img/charSelect/MarisaButton.png");
+                    break;
             }
 
             spriteBatch.draw(charButton, 300 + 225 * i, 50, 200, 200);
