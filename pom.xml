@@ -66,6 +66,20 @@
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/CommunicationMod.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>marisa</groupId>
+            <artifactId>marisa</artifactId>
+            <version>0.15.4</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/TS05_Marisa.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>marisa</groupId>
+            <artifactId>MarisaState</artifactId>
+            <version>0.15.4</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/MarisaState.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

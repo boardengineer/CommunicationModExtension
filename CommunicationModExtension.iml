@@ -74,5 +74,23 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="Maven: marisa:marisa:0.15.4">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../_ModTheSpire/mods/TS05_Marisa.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="Maven: marisa:MarisaState:0.15.4">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../_ModTheSpire/mods/MarisaState.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>

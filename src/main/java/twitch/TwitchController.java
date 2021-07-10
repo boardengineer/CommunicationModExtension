@@ -431,6 +431,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         choices.add(new Choice("silent", "2", "start silent"));
         choices.add(new Choice("defect", "3", "start defect"));
         choices.add(new Choice("watcher", "4", "start watcher"));
+//        choices.add(new Choice("marisa", "5", "start marisa"));
 
         viableChoices = choices;
 
