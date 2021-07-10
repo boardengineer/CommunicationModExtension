@@ -710,11 +710,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             return true;
         }
 
-        return POTION_WEIGHTS.containsKey(choice.choiceName) || choice.choiceName.toLowerCase().contains("potion");
+        return POTION_NAMES.contains(choice.choiceName.toLowerCase()) || choice.choiceName.toLowerCase().contains("potion");
     }
 
     private static final int BLOCKED_POTION = 0;
     public static HashMap<String, Integer> POTION_WEIGHTS = new HashMap<>();
+    public static HashSet<String> POTION_NAMES = new HashSet<>();
     //TODO: Reweight potions and set blocked potions
     private static void populatePotionMap() {
         //General weighting philosophy: Immediate effects outweigh build up potions in effectiveness because the bot tends to spam potions to end a combat.
@@ -788,6 +789,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         POTION_WEIGHTS.put(PotionHelper.getPotion(DuplicationPotion.POTION_ID).name, 5);
         POTION_WEIGHTS.put(PotionHelper.getPotion(DistilledChaosPotion.POTION_ID).name, 5);
         POTION_WEIGHTS.put(PotionHelper.getPotion(Elixir.POTION_ID).name, 4);
+
+        POTION_WEIGHTS.keySet().forEach(key -> POTION_NAMES.add(key.toLowerCase()));
     }
 
     public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
