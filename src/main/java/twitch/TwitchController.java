@@ -112,7 +112,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     @Override
     public void receivePostUpdate() {
-        if(shouldPopulateMaps) {
+        if (shouldPopulateMaps) {
             shouldPopulateMaps = false;
             populatePotionMap();
 
@@ -234,7 +234,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         if (sb.length() > 0) {
                             sb.deleteCharAt(sb.length() - 1);
                         }
-                        
+
                         twirk.channelMessage(sb.toString());
                     }
                 }
@@ -311,20 +311,46 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         if (stateJson.has("game_state")) {
             VoteType voteType = VoteType.OTHER;
 
-            JsonArray choicesJson = stateJson.get("game_state").getAsJsonObject().get("choice_list")
-                                             .getAsJsonArray();
-            choices = new ArrayList<>();
-            choicesJson.forEach(choice -> {
-                String choiceString = choice.getAsString();
-                String choiceCommand = String.format("choose %s", choices.size());
+            JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
+            String screenType = gameState.get("screen_type").getAsString();
+            JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
 
-                // the voteString will start at 1
-                String voteString = Integer.toString(choices.size() + 1);
+            if (screenType.equals("COMBAT_REWARD")) {
+                JsonArray rewardsArray = gameState.get("screen_state").getAsJsonObject()
+                                                  .get("rewards").getAsJsonArray();
 
-                Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
-                choices.add(toAdd);
+                if (choicesJson.size() == rewardsArray.size()) {
+                    choices = new ArrayList<>();
+                    for (int i = 0; i < choicesJson.size(); i++) {
+                        String choiceString = choicesJson.get(i).getAsString();
+                        JsonObject rewardJson = rewardsArray.get(i).getAsJsonObject();
+                        String choiceCommand = String.format("choose %s", choices.size());
 
-            });
+                        // the voteString will start at 1
+                        String voteString = Integer.toString(choices.size() + 1);
+
+                        Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
+                        toAdd.rewardInfo = Optional.of(new RewardInfo(rewardJson));
+                        choices.add(toAdd);
+                    }
+                } else {
+                    System.err.println("What are you doing susan???????");
+                }
+            } else {
+                choices = new ArrayList<>();
+                choicesJson.forEach(choice -> {
+                    String choiceString = choice.getAsString();
+                    String choiceCommand = String.format("choose %s", choices.size());
+
+                    // the voteString will start at 1
+                    String voteString = Integer.toString(choices.size() + 1);
+
+                    Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
+                    choices.add(toAdd);
+
+                });
+            }
+
             viableChoices = getTrueChoices();
 
             screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
@@ -584,11 +610,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (shouldEvaluatePotions) {
                     AbstractPotion lowWeightPotion = null;
                     int weightDifferential = 0;
-                    int choiceWeight = POTION_WEIGHTS.getOrDefault(potionChoice.get().choiceName, 5);
+                    int choiceWeight = POTION_WEIGHTS
+                            .getOrDefault(potionChoice.get().rewardInfo.get().potionName, 5);
                     //Iterate through player's potions and check if which one is the lower value, then discard that one to pick up the new one
                     //Potions already in the player's inventory get priority
                     for (AbstractPotion p : AbstractDungeon.player.potions) {
-                        int w = POTION_WEIGHTS.getOrDefault(p.ID, 5);
+                        int w = POTION_WEIGHTS.getOrDefault(p.name, 5);
                         if (choiceWeight > w) {
                             if (lowWeightPotion != null) {
                                 int newWDiff = w - choiceWeight;
@@ -611,12 +638,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     }
                 }
 
-                if(!skipPotion) {
+                if (!skipPotion) {
                     ArrayList<Choice> onlyPotion = new ArrayList<>();
                     onlyPotion.add(potionChoice.get());
 
                     // Then the potion
                     return onlyPotion;
+                } else {
+                    result.remove(potionChoice.get());
                 }
             }
 
@@ -671,6 +700,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static class Choice {
         final String choiceName;
         String voteString;
+        Optional<RewardInfo> rewardInfo = Optional.empty();
         final ArrayList<String> resultCommands;
 
         public Choice(String choiceName, String voteString, String... resultCommands) {
@@ -693,6 +723,18 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
+    public static class RewardInfo {
+        final String rewardType;
+        String potionName;
+
+        RewardInfo(JsonObject rewardJson) {
+            rewardType = rewardJson.get("reward_type").getAsString();
+            if (rewardType.equals("POTION")) {
+                potionName = rewardJson.get("potion").getAsJsonObject().get("name").getAsString();
+            }
+        }
+    }
+
 
     boolean shouldDedupeGrid() {
         GridCardSelectScreen gridSelectScreen = AbstractDungeon.gridSelectScreen;
@@ -710,12 +752,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             return true;
         }
 
-        return POTION_NAMES.contains(choice.choiceName.toLowerCase()) || choice.choiceName.toLowerCase().contains("potion");
+        return POTION_NAMES.contains(choice.choiceName.toLowerCase()) || choice.choiceName
+                .toLowerCase().contains("potion");
     }
 
     private static final int BLOCKED_POTION = 0;
     public static HashMap<String, Integer> POTION_WEIGHTS = new HashMap<>();
     public static HashSet<String> POTION_NAMES = new HashSet<>();
+
     //TODO: Reweight potions and set blocked potions
     private static void populatePotionMap() {
         //General weighting philosophy: Immediate effects outweigh build up potions in effectiveness because the bot tends to spam potions to end a combat.
@@ -726,8 +770,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         POTION_WEIGHTS.put(PotionHelper.getPotion(FearPotion.POTION_ID).name, 3);
         //Resource
         //Energy
-        POTION_WEIGHTS.put(PotionHelper.getPotion(BottledMiracle.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(EnergyPotion.POTION_ID).name, 5);
+        POTION_WEIGHTS.put(PotionHelper.getPotion(BottledMiracle.POTION_ID).name, 7);
+        POTION_WEIGHTS.put(PotionHelper.getPotion(EnergyPotion.POTION_ID).name, 6);
 
         //Draw
         POTION_WEIGHTS.put(PotionHelper.getPotion(SwiftPotion.POTION_ID).name, 5);
