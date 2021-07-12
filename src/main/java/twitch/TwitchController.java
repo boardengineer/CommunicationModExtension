@@ -26,8 +26,7 @@ import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.helpers.PotionHelper;
 import com.megacrit.cardcrawl.potions.*;
-import com.megacrit.cardcrawl.relics.Sozu;
-import com.megacrit.cardcrawl.relics.WingBoots;
+import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
@@ -92,7 +91,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean shouldStartClientOnUpdate = false;
     private boolean inBattle = false;
     private boolean fastMode = true;
-    private boolean shouldPopulateMaps = true;
     int consecutiveNoVotes = 0;
 
     public static long lastDeckDisplayTimestamp = 0L;
@@ -112,12 +110,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     @Override
     public void receivePostUpdate() {
-        if (shouldPopulateMaps) {
-            shouldPopulateMaps = false;
-            populatePotionMap();
-
-        }
-
         if (shouldStartClientOnUpdate) {
             shouldStartClientOnUpdate = false;
             inBattle = true;
@@ -316,6 +308,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
 
             if (screenType.equals("COMBAT_REWARD")) {
+                System.err.println(stateJson);
                 JsonArray rewardsArray = gameState.get("screen_state").getAsJsonObject()
                                                   .get("rewards").getAsJsonArray();
 
@@ -663,8 +656,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 ArrayList<Choice> onlyRelic = new ArrayList<>();
                 onlyRelic.add(relicChoice.get());
 
-                // Then the relic, as long as there's no key
-                return onlyRelic;
+                if (OPTIONAL_RELICS.contains(relicChoice.get().rewardInfo.get().relicName)) {
+                    result.add(new Choice("leave", "0", "leave", "proceed"));
+                } else {
+                    return onlyRelic;
+                }
             }
 
             Optional<Choice> stolenGoldChoice = result.stream()
@@ -726,11 +722,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static class RewardInfo {
         final String rewardType;
         String potionName;
+        String relicName;
 
         RewardInfo(JsonObject rewardJson) {
             rewardType = rewardJson.get("reward_type").getAsString();
             if (rewardType.equals("POTION")) {
                 potionName = rewardJson.get("potion").getAsJsonObject().get("name").getAsString();
+            } else if (rewardType.equals("RELIC")) {
+                relicName = rewardJson.get("relic").getAsJsonObject().get("name").getAsString();
             }
         }
     }
@@ -757,89 +756,98 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     private static final int BLOCKED_POTION = 0;
-    public static HashMap<String, Integer> POTION_WEIGHTS = new HashMap<>();
     public static HashSet<String> POTION_NAMES = new HashSet<>();
 
-    //TODO: Reweight potions and set blocked potions
-    private static void populatePotionMap() {
+    public static HashMap<String, Integer> POTION_WEIGHTS = new HashMap<String, Integer>() {{
         //General weighting philosophy: Immediate effects outweigh build up potions in effectiveness because the bot tends to spam potions to end a combat.
         // Potions that give the bot more choice or mitigate damage are preferable.
         // Targetable potions are probably bad.
         //Debuff
-        POTION_WEIGHTS.put(PotionHelper.getPotion(WeakenPotion.POTION_ID).name, 3);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(FearPotion.POTION_ID).name, 3);
+        put(PotionHelper.getPotion(WeakenPotion.POTION_ID).name, 3);
+        put(PotionHelper.getPotion(FearPotion.POTION_ID).name, 3);
         //Resource
         //Energy
-        POTION_WEIGHTS.put(PotionHelper.getPotion(BottledMiracle.POTION_ID).name, 7);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(EnergyPotion.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(BottledMiracle.POTION_ID).name, 7);
+        put(PotionHelper.getPotion(EnergyPotion.POTION_ID).name, 6);
 
         //Draw
-        POTION_WEIGHTS.put(PotionHelper.getPotion(SwiftPotion.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(SneckoOil.POTION_ID).name, 8);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(GamblersBrew.POTION_ID).name, BLOCKED_POTION);
+        put(PotionHelper.getPotion(SwiftPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(SneckoOil.POTION_ID).name, 8);
+        put(PotionHelper.getPotion(GamblersBrew.POTION_ID).name, BLOCKED_POTION);
 
         //BlockPotion
-        POTION_WEIGHTS.put(PotionHelper.getPotion(BlockPotion.POTION_ID).name, 7);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(EssenceOfSteel.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(HeartOfIron.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(GhostInAJar.POTION_ID).name, 8);
+        put(PotionHelper.getPotion(BlockPotion.POTION_ID).name, 7);
+        put(PotionHelper.getPotion(EssenceOfSteel.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(HeartOfIron.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(GhostInAJar.POTION_ID).name, 8);
 
         //HP
-        POTION_WEIGHTS.put(PotionHelper.getPotion(FruitJuice.POTION_ID).name, 10);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(BloodPotion.POTION_ID).name, 10);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(RegenPotion.POTION_ID).name, 8);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(FairyPotion.POTION_ID).name, 11);
+        put(PotionHelper.getPotion(FruitJuice.POTION_ID).name, 10);
+        put(PotionHelper.getPotion(BloodPotion.POTION_ID).name, 10);
+        put(PotionHelper.getPotion(RegenPotion.POTION_ID).name, 8);
+        put(PotionHelper.getPotion(FairyPotion.POTION_ID).name, 11);
 
-        POTION_WEIGHTS.put(PotionHelper.getPotion(EntropicBrew.POTION_ID).name, 9);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(Ambrosia.POTION_ID).name, 7);
+        put(PotionHelper.getPotion(EntropicBrew.POTION_ID).name, 9);
+        put(PotionHelper.getPotion(Ambrosia.POTION_ID).name, 7);
 
         //Stat
-        POTION_WEIGHTS.put(PotionHelper.getPotion(StrengthPotion.POTION_ID).name, 4);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(CultistPotion.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(DexterityPotion.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(FocusPotion.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(PotionOfCapacity.POTION_ID).name, 4);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(AncientPotion.POTION_ID).name, 3);
+        put(PotionHelper.getPotion(StrengthPotion.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(CultistPotion.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(DexterityPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(FocusPotion.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(PotionOfCapacity.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(AncientPotion.POTION_ID).name, 3);
 
         //Temp stat
-        POTION_WEIGHTS.put(PotionHelper.getPotion(SpeedPotion.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(SteroidPotion.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(SpeedPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(SteroidPotion.POTION_ID).name, 4);
 
         //Card choice
-        POTION_WEIGHTS.put(PotionHelper.getPotion(AttackPotion.POTION_ID).name, 4);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(SkillPotion.POTION_ID).name, 4);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(PowerPotion.POTION_ID).name, 4);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(ColorlessPotion.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(AttackPotion.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(SkillPotion.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(PowerPotion.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(ColorlessPotion.POTION_ID).name, 4);
 
-        POTION_WEIGHTS.put(PotionHelper.getPotion(LiquidMemories.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(LiquidMemories.POTION_ID).name, 5);
 
         //Damage
         //Direct
-        POTION_WEIGHTS.put(PotionHelper.getPotion(FirePotion.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(ExplosivePotion.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(PoisonPotion.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(CunningPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(FirePotion.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(ExplosivePotion.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(PoisonPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(CunningPotion.POTION_ID).name, 5);
 
         //Indirect
-        POTION_WEIGHTS.put(PotionHelper.getPotion(EssenceOfDarkness.POTION_ID).name, 6);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(LiquidBronze.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(EssenceOfDarkness.POTION_ID).name, 6);
+        put(PotionHelper.getPotion(LiquidBronze.POTION_ID).name, 4);
 
         //Misc
-        POTION_WEIGHTS.put(PotionHelper.getPotion(SmokeBomb.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(StancePotion.POTION_ID).name, BLOCKED_POTION);
+        put(PotionHelper.getPotion(SmokeBomb.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(StancePotion.POTION_ID).name, BLOCKED_POTION);
         //Cards
 
-        POTION_WEIGHTS.put(PotionHelper.getPotion(BlessingOfTheForge.POTION_ID).name, 2);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(DuplicationPotion.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(DistilledChaosPotion.POTION_ID).name, 5);
-        POTION_WEIGHTS.put(PotionHelper.getPotion(Elixir.POTION_ID).name, 4);
+        put(PotionHelper.getPotion(BlessingOfTheForge.POTION_ID).name, 2);
+        put(PotionHelper.getPotion(DuplicationPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(DistilledChaosPotion.POTION_ID).name, 5);
+        put(PotionHelper.getPotion(Elixir.POTION_ID).name, 4);
 
-        POTION_WEIGHTS.keySet().forEach(key -> POTION_NAMES.add(key.toLowerCase()));
-    }
+        keySet().forEach(key -> POTION_NAMES.add(key.toLowerCase()));
+    }};
 
     public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
         add("!vote");
         add("vote");
+    }};
+
+    public static HashSet<String> OPTIONAL_RELICS = new HashSet<String>() {{
+        add(new BottledFlame().name);
+        add(new BottledLightning().name);
+        add(new BottledTornado().name);
+        add(new DeadBranch().name);
+        add(new Omamori().name);
+        add(new TinyChest().name);
+        add(new WarPaint().name);
+        add(new Whetstone().name);
     }};
 
     public static HashSet<Integer> FIRST_FLOOR_NUMS = new HashSet<Integer>() {{

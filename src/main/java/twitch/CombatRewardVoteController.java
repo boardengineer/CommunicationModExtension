@@ -1,8 +1,10 @@
 package twitch;
 
+import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.rewards.RewardItem;
+import com.megacrit.cardcrawl.ui.buttons.ProceedButton;
 
 import java.util.HashMap;
 
@@ -30,7 +32,15 @@ public class CombatRewardVoteController implements VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             String message = choice.choiceName;
-            if (messageToCombatRewardItem.containsKey(message)) {
+            if (message.equals("leave")) {
+                String leaveMessage = String.format("[vote %s] (%s)",
+                        choice.voteString,
+                        voteFrequencies.getOrDefault(choice.voteString, 0));
+
+                RenderHelpers
+                        .renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
+                                .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb"));
+            } else if (messageToCombatRewardItem.containsKey(message)) {
                 RewardItem rewardItem = messageToCombatRewardItem.get(message);
                 String rewardItemMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
