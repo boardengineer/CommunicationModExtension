@@ -424,6 +424,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 FileWriter writer = new FileWriter(fileName);
                 writer.write(stateMessage);
                 writer.close();
+                new Thread(() -> {
+                    try {
+                        Slayboard.postScore(stateMessage);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
