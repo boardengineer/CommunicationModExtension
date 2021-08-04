@@ -1,11 +1,13 @@
 package twitch;
 
+import ThMod.event.OrinTheCat;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
 import battleaimod.BattleAiMod;
 import battleaimod.networking.AiClient;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
@@ -37,9 +39,13 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
+    private static final Texture HEART_IMAGE = new Texture("heart.png");
+
     private static final long DECK_DISPLAY_TIMEOUT = 60_000;
+    private static final long RELIC_DISPLAY_TIMEOUT = 60_000;
     private static final long BOSS_DISPLAY_TIMEOUT = 30_000;
 
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
@@ -71,6 +77,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      * Used to count user votes during
      */
     private HashMap<String, String> voteByUsernameMap = null;
+
+    /**
+     * Tallies the votes by user for a given run. Increments at the end of each vote and gets
+     * reset when the character vote starts.
+     */
+    private HashMap<String, Integer> voteFrequencies = new HashMap<>();
+
     private VoteType currentVote = null;
     private String stateString = "";
 
@@ -94,6 +107,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     int consecutiveNoVotes = 0;
 
     public static long lastDeckDisplayTimestamp = 0L;
+    public static long lastRelicDisplayTimestamp = 0L;
     public static long lastBossDisplayTimestamp = 0L;
 
     public TwitchController(LinkedBlockingQueue<String> readQueue, Twirk twirk) {
@@ -102,6 +116,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
+        optionsMap.put("lives", 0);
 
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
@@ -133,6 +148,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
 
                 if (timeRemaining <= 0) {
+                    voteByUsernameMap.keySet().forEach(userName -> {
+                        if (!voteFrequencies.containsKey(userName)) {
+                            voteFrequencies.put(userName, 0);
+                        }
+                        voteFrequencies.put(userName, voteFrequencies.get(userName) + 1);
+                    });
+
                     Choice result = getVoteResult();
 
                     System.err.println("selected " + result);
@@ -238,6 +260,20 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         twirk.channelMessage("[BOT] " + AbstractDungeon.bossKey);
                     }
                 }
+
+                if (tokens[0].equals("!relics")) {
+                    long now = System.currentTimeMillis();
+                    if (now > lastRelicDisplayTimestamp + RELIC_DISPLAY_TIMEOUT) {
+                        lastRelicDisplayTimestamp = now;
+
+                        String relics = AbstractDungeon.player.relics.stream()
+                                                                     .map(relic -> relic.relicId)
+                                                                     .collect(Collectors
+                                                                             .joining(";"));
+
+                        twirk.channelMessage("[BOT] " + relics);
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -308,7 +344,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
 
             if (screenType.equals("COMBAT_REWARD")) {
-                System.err.println(stateJson);
                 JsonArray rewardsArray = gameState.get("screen_state").getAsJsonObject()
                                                   .get("rewards").getAsJsonArray();
 
@@ -424,13 +459,39 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 FileWriter writer = new FileWriter(fileName);
                 writer.write(stateMessage);
                 writer.close();
+
+                // send game over stats to slayboard in another thread
                 new Thread(() -> {
                     try {
-                        Slayboard.postScore(stateMessage);
+                        Slayboard.postScore(stateMessage, voteFrequencies);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }).start();
+
+
+                JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
+                                                       .get("game_state").getAsJsonObject();
+                boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
+                                                   .get("victory").getAsBoolean();
+                int floor = gameState.get("floor").getAsInt();
+                if (reportedVictory || floor > 51) {
+                    optionsMap.put("asc", optionsMap.getOrDefault("asc", 0) + 1);
+                    if (reportedVictory && floor > 51) {
+                        // Heart kills get an extra life
+                        optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) + 1);
+                    }
+                } else {
+                    optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) - 1);
+                }
+
+
+                // Changes lives/ascension level
+                if (optionsMap.getOrDefault("lives", 0) > 0) {
+                    int lives = optionsMap.get("lives");
+                }
+
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -447,7 +508,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     victoryReturnButton.hb.clicked = true;
                     break;
             }
-            System.err.println(AbstractDungeon.screen);
             voteType = VoteType.GAME_OVER;
         } else {
             System.err.println("unknown screen type proceed timer " + screenType);
@@ -465,7 +525,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         choices.add(new Choice("silent", "2", "start silent"));
         choices.add(new Choice("defect", "3", "start defect"));
         choices.add(new Choice("watcher", "4", "start watcher"));
-//        choices.add(new Choice("marisa", "5", "start marisa"));
+        choices.add(new Choice("marisa", "5", "start marisa"));
 
         viableChoices = choices;
 
@@ -475,6 +535,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         voteController = new CharacterVoteController(this);
+
+        voteFrequencies = new HashMap<>();
 
         startVote(VoteType.CHARACTER, "");
     }
@@ -531,6 +593,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             BitmapFont font = FontHelper.buttonLabelFont;
             FontHelper
                     .renderFont(spriteBatch, font, topMessage, 15, Settings.HEIGHT * 7 / 8, Color.RED);
+        }
+
+        if (optionsMap.getOrDefault("lives", 0) > 0) {
+            spriteBatch.draw(HEART_IMAGE, 1275, Settings.HEIGHT - 50, 37, 37);
+            FontHelper
+                    .renderFont(spriteBatch, FontHelper.panelNameFont, Integer.toString(optionsMap
+                            .get("lives")), 1320, Settings.HEIGHT - 19, Color.GREEN);
         }
     }
 
@@ -995,6 +1064,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         public static void RemoveBadEvents(AbstractDungeon dungeon, String name, String levelId, AbstractPlayer p, ArrayList<String> newSpecialOneTimeEventList) {
             AbstractDungeon.shrineList.remove("Match and Keep!");
             AbstractDungeon.eventList.remove("SensoryStone");
+            AbstractDungeon.eventList.remove(OrinTheCat.ID);
+
+
+            System.err.println("Boss Relic Pool:" + AbstractDungeon.bossRelicPool);
         }
     }
 }
