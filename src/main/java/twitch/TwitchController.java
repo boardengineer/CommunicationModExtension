@@ -105,6 +105,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean inBattle = false;
     private boolean fastMode = true;
     int consecutiveNoVotes = 0;
+    private boolean skipAfterCard = true;
 
     public static long lastDeckDisplayTimestamp = 0L;
     public static long lastRelicDisplayTimestamp = 0L;
@@ -117,6 +118,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
+        optionsMap.put("turns", 10_000);
 
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
@@ -148,6 +150,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
 
                 if (timeRemaining <= 0) {
+                    if (voteController != null) {
+                        voteController.endVote();
+                    }
+
                     voteByUsernameMap.keySet().forEach(userName -> {
                         if (!voteFrequencies.containsKey(userName)) {
                             voteFrequencies.put(userName, 0);
@@ -379,7 +385,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 });
             }
 
-            viableChoices = getTrueChoices();
+            viableChoices = getTrueChoices(stateJson);
 
             screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
                                   .getAsString();
@@ -416,7 +422,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                     voteController = new CardRewardVoteController(this);
                 } else if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
-                    voteController = new CombatRewardVoteController(this);
+                    voteController = new CombatRewardVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("REST")) {
                     voteController = new RestVoteController(this);
                 } else if (screenType.equalsIgnoreCase("BOSS_REWARD")) {
@@ -634,11 +640,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         if (BattleAiMod.aiClient != null) {
-            BattleAiMod.aiClient.sendState();
+            BattleAiMod.aiClient.sendState(optionsMap.get("turns"));
         }
     }
 
-    private ArrayList<Choice> getTrueChoices() {
+    private ArrayList<Choice> getTrueChoices(JsonObject stateJson) {
+        String screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
+                                     .getAsString();
         ArrayList<Choice> result = new ArrayList<>();
 
         boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
@@ -652,11 +660,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                .filter(choice -> (canTakePotion || shouldEvaluatePotions) || !isPotionChoice(choice))
                .forEach(choice -> result.add(choice));
 
-        if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.SHOP) {
+        if (screenType.equals("CHEST") && AbstractDungeon.player.hasRelic(CursedKey.ID)) {
+            twirk.channelMessage("[BOT] Cursed Key allows skipping relics, [vote 0] to skip, [vote 1] to open");
+            result.add(new Choice("leave", "0", "leave", "proceed"));
+        } else if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.SHOP) {
             result.add(new Choice("leave", "0", "leave", "proceed"));
         } else if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.CARD_REWARD) {
-            result.add(new Choice("Skip", "0", "skip", "proceed"));
+            if (skipAfterCard) {
+                result.add(new Choice("Skip", "0", "skip", "proceed"));
+            } else {
+                result.add(new Choice("Skip", "0", "skip"));
+            }
         } else if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.COMBAT_REWARD) {
+            skipAfterCard = true;
+            boolean shouldAllowLeave = false;
+
             Optional<Choice> goldChoice = result.stream()
                                                 .filter(choice -> choice.choiceName.equals("gold"))
                                                 .findAny();
@@ -732,8 +750,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 ArrayList<Choice> onlyRelic = new ArrayList<>();
                 onlyRelic.add(relicChoice.get());
 
-                if (OPTIONAL_RELICS.contains(relicChoice.get().rewardInfo.get().relicName)) {
-                    result.add(new Choice("leave", "0", "leave", "proceed"));
+                if (OPTIONAL_RELICS
+                        .contains(relicChoice.get().rewardInfo.get().relicName)) {
+                    shouldAllowLeave = true;
                 } else {
                     return onlyRelic;
                 }
@@ -764,7 +783,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 // Then the emerald key
                 return onlyEmeraldKey;
             }
+
+            if (result.size() > 1) {
+                skipAfterCard = false;
+                shouldAllowLeave = true;
+            }
+
+            if (shouldAllowLeave) {
+                result.add(new Choice("leave", "0", "leave", "proceed"));
+            }
         }
+
 
         return result;
     }
@@ -1063,9 +1092,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         @SpirePostfixPatch
         public static void RemoveBadEvents(AbstractDungeon dungeon, String name, String levelId, AbstractPlayer p, ArrayList<String> newSpecialOneTimeEventList) {
             AbstractDungeon.shrineList.remove("Match and Keep!");
-            AbstractDungeon.eventList.remove("SensoryStone");
             AbstractDungeon.eventList.remove(OrinTheCat.ID);
-
 
             System.err.println("Boss Relic Pool:" + AbstractDungeon.bossRelicPool);
         }

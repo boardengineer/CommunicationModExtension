@@ -47,4 +47,9 @@ public class GridVoteController implements VoteController {
             }
         }
     }
+
+    @Override
+    public void endVote() {
+
+    }
 }

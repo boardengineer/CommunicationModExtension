@@ -44,4 +44,9 @@ public class BossRewardVoteController implements VoteController {
             }
         }
     }
+
+    @Override
+    public void endVote() {
+
+    }
 }

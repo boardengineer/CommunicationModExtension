@@ -49,4 +49,9 @@ public class EventVoteController implements VoteController {
             }
         }
     }
+
+    @Override
+    public void endVote() {
+
+    }
 }

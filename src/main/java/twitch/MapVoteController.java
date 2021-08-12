@@ -50,4 +50,9 @@ public class MapVoteController implements VoteController {
             }
         }
     }
+
+    @Override
+    public void endVote() {
+
+    }
 }

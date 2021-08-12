@@ -51,4 +51,9 @@ public class CharacterVoteController implements VoteController {
             renderTextBelowHitbox(spriteBatch, voteMessage, hitbox);
         }
     }
+
+    @Override
+    public void endVote() {
+
+    }
 }

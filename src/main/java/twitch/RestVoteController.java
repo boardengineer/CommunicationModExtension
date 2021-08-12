@@ -51,6 +51,11 @@ public class RestVoteController implements VoteController {
         }
     }
 
+    @Override
+    public void endVote() {
+
+    }
+
     private static String getCampfireOptionName(AbstractCampfireOption option) {
         String classname = option.getClass().getSimpleName();
         String nameWithoutOption = classname.substring(0, classname.length() - "Option".length());

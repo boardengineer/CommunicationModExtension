@@ -70,6 +70,11 @@ public class ShopScreenVoteController implements VoteController {
         }
     }
 
+    @Override
+    public void endVote() {
+
+    }
+
     private static String getShopItemString(Object item) {
         if (item instanceof String) {
             return (String) item;

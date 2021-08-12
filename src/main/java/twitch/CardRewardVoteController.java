@@ -67,6 +67,11 @@ public class CardRewardVoteController implements VoteController {
         }
     }
 
+    @Override
+    public void endVote() {
+
+    }
+
     private static Hitbox cardRewardAdjust(Hitbox hitbox) {
         return new Hitbox(hitbox.x, hitbox.y - 15.0F * Settings.scale, hitbox.width, hitbox.height + 25 * Settings.scale);
     }
