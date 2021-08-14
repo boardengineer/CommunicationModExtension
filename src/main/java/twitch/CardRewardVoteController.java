@@ -2,6 +2,7 @@ package twitch;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -14,17 +15,30 @@ import java.util.HashMap;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
-public class CardRewardVoteController implements VoteController {
+public class CardRewardVoteController extends VoteController {
     // Card reward rendering references
     private final HashMap<String, AbstractCard> messageToCardReward;
-
     private final TwitchController twitchController;
+    private final JsonObject stateJson;
 
-    CardRewardVoteController(TwitchController twitchController) {
+    CardRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         messageToCardReward = new HashMap<>();
         for (AbstractCard card : AbstractDungeon.cardRewardScreen.rewardGroup) {
             messageToCardReward.put(card.name.toLowerCase(), card);
+        }
+
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+        twitchController.setUpDefaultVoteOptions(stateJson);
+
+        if (twitchController.skipAfterCard) {
+            twitchController.viableChoices.add(new TwitchController.Choice("Skip", "0", "skip", "proceed"));
+        } else {
+            twitchController.viableChoices.add(new TwitchController.Choice("Skip", "0", "skip"));
         }
     }
 

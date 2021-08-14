@@ -1,6 +1,7 @@
 package twitch;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.map.MapRoomNode;
 import communicationmod.ChoiceScreenUtils;
@@ -8,11 +9,12 @@ import communicationmod.ChoiceScreenUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class MapVoteController implements VoteController {
+public class MapVoteController extends VoteController {
     private final TwitchController twitchController;
     private final HashMap<String, MapRoomNode> messageToRoomNodeMap;
+    private final JsonObject stateJson;
 
-    public MapVoteController(TwitchController twitchController) {
+    public MapVoteController(TwitchController twitchController, JsonObject stateJson) {
         messageToRoomNodeMap = new HashMap<>();
         ArrayList<MapRoomNode> mapChoice = ChoiceScreenUtils.getMapScreenNodeChoices();
         for (MapRoomNode node : mapChoice) {
@@ -21,6 +23,12 @@ public class MapVoteController implements VoteController {
         }
 
         this.twitchController = twitchController;
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+        twitchController.setUpDefaultVoteOptions(stateJson);
     }
 
     @Override

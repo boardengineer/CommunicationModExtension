@@ -2,6 +2,7 @@ package twitch;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.ui.campfire.AbstractCampfireOption;
@@ -12,12 +13,13 @@ import java.util.HashMap;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
-public class RestVoteController implements VoteController {
+public class RestVoteController extends VoteController {
 
     private final HashMap<String, AbstractCampfireOption> messageToRestOption;
     private final TwitchController twitchController;
+    private final JsonObject stateJson;
 
-    RestVoteController(TwitchController twitchController) {
+    RestVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         messageToRestOption = new HashMap<>();
 
@@ -28,6 +30,13 @@ public class RestVoteController implements VoteController {
         for (AbstractCampfireOption restOption : restOptions) {
             messageToRestOption.put(getCampfireOptionName(restOption), restOption);
         }
+
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+        twitchController.setUpDefaultVoteOptions(stateJson);
     }
 
     @Override

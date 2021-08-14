@@ -2,10 +2,13 @@ package twitch;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
+import com.megacrit.cardcrawl.potions.PotionSlot;
+import com.megacrit.cardcrawl.relics.Sozu;
 import com.megacrit.cardcrawl.shop.ShopScreen;
 import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
@@ -13,12 +16,14 @@ import communicationmod.ChoiceScreenUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
-public class ShopScreenVoteController implements VoteController {
+public class ShopScreenVoteController extends VoteController {
     private final HashMap<String, Object> messageToShopItemMap;
     private final TwitchController twitchController;
+    private final JsonObject stateJson;
 
-    ShopScreenVoteController(TwitchController twitchController) {
+    ShopScreenVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         messageToShopItemMap = new HashMap<>();
         ArrayList<Object> shopItems = ReflectionHacks
@@ -27,6 +32,27 @@ public class ShopScreenVoteController implements VoteController {
         for (Object item : shopItems) {
             messageToShopItemMap.put(getShopItemString(item).toLowerCase(), item);
         }
+
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+        twitchController.setUpDefaultVoteOptions(stateJson);
+
+        boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
+
+        boolean hasPotionSlot = AbstractDungeon.player.potions.stream()
+                                                              .anyMatch(potion -> potion instanceof PotionSlot);
+        boolean canTakePotion = hasPotionSlot && !hasSozu;
+
+        twitchController.viableChoices = twitchController.viableChoices.stream()
+                                                                       .filter(choice -> (canTakePotion) || !isPotionChoice(choice))
+                                                                       .collect(Collectors
+                                                                               .toCollection(ArrayList::new));
+
+        twitchController.viableChoices
+                .add(new TwitchController.Choice("leave", "0", "leave", "proceed"));
     }
 
     @Override
@@ -127,5 +153,15 @@ public class ShopScreenVoteController implements VoteController {
         System.err.println("no string can be made for " + item);
 
         return null;
+    }
+
+    private static boolean isPotionChoice(TwitchController.Choice choice) {
+        if (choice.choiceName.equals("Fire Potion")) {
+            return true;
+        }
+
+        return CombatRewardVoteController.POTION_NAMES
+                .contains(choice.choiceName.toLowerCase()) || choice.choiceName
+                .toLowerCase().contains("potion");
     }
 }

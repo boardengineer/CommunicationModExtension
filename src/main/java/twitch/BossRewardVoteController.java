@@ -1,6 +1,7 @@
 package twitch;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
@@ -10,11 +11,12 @@ import java.util.Locale;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
-public class BossRewardVoteController implements VoteController {
+public class BossRewardVoteController extends VoteController {
     private final TwitchController twitchController;
     private final HashMap<String, AbstractRelic> messageToBossRelicMap;
+    private final JsonObject stateJson;
 
-    BossRewardVoteController(TwitchController twitchController) {
+    BossRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
 
         messageToBossRelicMap = new HashMap<>();
@@ -22,6 +24,15 @@ public class BossRewardVoteController implements VoteController {
         for (AbstractRelic relic : AbstractDungeon.bossRelicScreen.relics) {
             messageToBossRelicMap.put(relic.name.toLowerCase(), relic);
         }
+
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+
+
+        twitchController.setUpDefaultVoteOptions(stateJson);
     }
 
     @Override

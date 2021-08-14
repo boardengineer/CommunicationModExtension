@@ -1,20 +1,22 @@
 package twitch;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.ui.buttons.LargeDialogOptionButton;
 import communicationmod.ChoiceScreenUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class EventVoteController implements VoteController {
+public class EventVoteController extends VoteController {
     // Event rendering references
     private final HashMap<String, LargeDialogOptionButton> voteStringToEventButtonMap;
     private final HashMap<String, String> voteStringToOriginalEventButtonMessageMap;
 
     private final TwitchController twitchController;
+    private final JsonObject stateJson;
 
-    public EventVoteController(TwitchController twitchController) {
+    public EventVoteController(TwitchController twitchController, JsonObject stateJson) {
         voteStringToEventButtonMap = new HashMap<>();
         ArrayList<LargeDialogOptionButton> eventButtons = ChoiceScreenUtils
                 .getActiveEventButtons();
@@ -30,6 +32,12 @@ public class EventVoteController implements VoteController {
         }
 
         this.twitchController = twitchController;
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+        twitchController.setUpDefaultVoteOptions(stateJson);
     }
 
     @Override

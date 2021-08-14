@@ -1,6 +1,5 @@
 package twitch;
 
-import ThMod.event.OrinTheCat;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
@@ -10,34 +9,24 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
-import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
-import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
-import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
 import com.gikk.twirk.Twirk;
 import com.gikk.twirk.types.users.TwitchUser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
-import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
-import com.megacrit.cardcrawl.helpers.AsyncSaver;
-import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.FontHelper;
-import com.megacrit.cardcrawl.helpers.PotionHelper;
-import com.megacrit.cardcrawl.potions.*;
-import com.megacrit.cardcrawl.relics.*;
+import com.megacrit.cardcrawl.relics.CursedKey;
+import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
-import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import ludicrousspeed.LudicrousSpeedMod;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -88,13 +77,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private String stateString = "";
 
     private String screenType = null;
-    static VoteController voteController;
+    public static VoteController voteController;
 
-    HashMap<String, Integer> optionsMap;
+    public static HashMap<String, Integer> optionsMap;
 
     private long voteEndTimeMillis;
 
-    private ArrayList<Choice> choices;
+    ArrayList<Choice> choices;
     ArrayList<Choice> viableChoices;
     private HashMap<String, Choice> choicesMap;
 
@@ -105,7 +94,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean inBattle = false;
     private boolean fastMode = true;
     int consecutiveNoVotes = 0;
-    private boolean skipAfterCard = true;
+    boolean skipAfterCard = true;
 
     public static long lastDeckDisplayTimestamp = 0L;
     public static long lastRelicDisplayTimestamp = 0L;
@@ -324,7 +313,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     }
                     shouldStartClientOnUpdate = true;
                 } else if (availableCommands.contains("start")) {
-                    startCharacterVote();
+                    startCharacterVote(new JsonParser().parse(stateMessage).getAsJsonObject());
                 } else if (availableCommands.contains("proceed")) {
                     String screenType = stateJson.get("game_state").getAsJsonObject()
                                                  .get("screen_type").getAsString();
@@ -347,57 +336,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
             String screenType = gameState.get("screen_type").getAsString();
-            JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
-
-            if (screenType.equals("COMBAT_REWARD")) {
-                JsonArray rewardsArray = gameState.get("screen_state").getAsJsonObject()
-                                                  .get("rewards").getAsJsonArray();
-
-                if (choicesJson.size() == rewardsArray.size()) {
-                    choices = new ArrayList<>();
-                    for (int i = 0; i < choicesJson.size(); i++) {
-                        String choiceString = choicesJson.get(i).getAsString();
-                        JsonObject rewardJson = rewardsArray.get(i).getAsJsonObject();
-                        String choiceCommand = String.format("choose %s", choices.size());
-
-                        // the voteString will start at 1
-                        String voteString = Integer.toString(choices.size() + 1);
-
-                        Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
-                        toAdd.rewardInfo = Optional.of(new RewardInfo(rewardJson));
-                        choices.add(toAdd);
-                    }
-                } else {
-                    System.err.println("What are you doing susan???????");
-                }
-            } else {
-                choices = new ArrayList<>();
-                choicesJson.forEach(choice -> {
-                    String choiceString = choice.getAsString();
-                    String choiceCommand = String.format("choose %s", choices.size());
-
-                    // the voteString will start at 1
-                    String voteString = Integer.toString(choices.size() + 1);
-
-                    Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
-                    choices.add(toAdd);
-
-                });
-            }
-
-            viableChoices = getTrueChoices(stateJson);
-
-            screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
-                                  .getAsString();
-
-            choicesMap = new HashMap<>();
-            for (Choice choice : viableChoices) {
-                choicesMap.put(choice.voteString, choice);
-            }
 
             if (screenType != null) {
                 if (screenType.equalsIgnoreCase("EVENT")) {
-                    voteController = new EventVoteController(this);
+                    voteController = new EventVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("MAP")) {
                     if (FIRST_FLOOR_NUMS.contains(AbstractDungeon.floorNum)) {
                         voteType = VoteType.MAP_LONG;
@@ -410,9 +352,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         voteType = VoteType.MAP_SHORT;
                     }
 
-                    voteController = new MapVoteController(this);
+                    voteController = new MapVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("SHOP_SCREEN")) {
-                    voteController = new ShopScreenVoteController(this);
+                    voteController = new ShopScreenVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("CARD_REWARD")) {
                     if (AbstractDungeon.floorNum == 1) {
                         voteType = VoteType.CARD_SELECT_LONG;
@@ -420,19 +362,31 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         voteType = VoteType.CARD_SELECT_SHORT;
                     }
 
-                    voteController = new CardRewardVoteController(this);
+                    voteController = new CardRewardVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
                     voteController = new CombatRewardVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("REST")) {
-                    voteController = new RestVoteController(this);
+                    voteController = new RestVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("BOSS_REWARD")) {
-                    voteController = new BossRewardVoteController(this);
+                    voteController = new BossRewardVoteController(this, stateJson);
                 } else if (screenType.equals("GRID")) {
-                    voteController = new GridVoteController(this);
+                    voteController = new GridVoteController(this, stateJson);
                 } else {
                     System.err.println("Starting generic vote for " + screenType);
                 }
             }
+
+            if (voteController != null) {
+                voteController.setUpChoices();
+            } else {
+                setUpDefaultVoteOptions(stateJson);
+            }
+
+            choicesMap = new HashMap<>();
+            for (Choice choice : viableChoices) {
+                choicesMap.put(choice.voteString, choice);
+            }
+
             startVote(voteType, stateJson.toString());
         } else {
             System.err.println("ERROR Missing game state");
@@ -524,7 +478,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         startVote(voteType, true, "");
     }
 
-    public void startCharacterVote() {
+    public void startCharacterVote(JsonObject stateJson) {
         choices = new ArrayList<>();
 
         choices.add(new Choice("ironclad", "1", "start ironclad"));
@@ -540,7 +494,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             choicesMap.put(choice.voteString, choice);
         }
 
-        voteController = new CharacterVoteController(this);
+        voteController = new CharacterVoteController(this, stateJson);
 
         voteFrequencies = new HashMap<>();
 
@@ -600,13 +554,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             FontHelper
                     .renderFont(spriteBatch, font, topMessage, 15, Settings.HEIGHT * 7 / 8, Color.RED);
         }
-
-        if (optionsMap.getOrDefault("lives", 0) > 0) {
-            spriteBatch.draw(HEART_IMAGE, 1275, Settings.HEIGHT - 50, 37, 37);
-            FontHelper
-                    .renderFont(spriteBatch, FontHelper.panelNameFont, Integer.toString(optionsMap
-                            .get("lives")), 1320, Settings.HEIGHT - 19, Color.GREEN);
-        }
     }
 
     private String buildDisplayString() {
@@ -642,160 +589,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         if (BattleAiMod.aiClient != null) {
             BattleAiMod.aiClient.sendState(optionsMap.get("turns"));
         }
-    }
-
-    private ArrayList<Choice> getTrueChoices(JsonObject stateJson) {
-        String screenType = stateJson.get("game_state").getAsJsonObject().get("screen_type")
-                                     .getAsString();
-        ArrayList<Choice> result = new ArrayList<>();
-
-        boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
-
-        boolean hasPotionSlot = AbstractDungeon.player.potions.stream()
-                                                              .anyMatch(potion -> potion instanceof PotionSlot);
-        boolean canTakePotion = hasPotionSlot && !hasSozu;
-        boolean shouldEvaluatePotions = !hasPotionSlot && !hasSozu;
-
-        choices.stream()
-               .filter(choice -> (canTakePotion || shouldEvaluatePotions) || !isPotionChoice(choice))
-               .forEach(choice -> result.add(choice));
-
-        if (screenType.equals("CHEST") && AbstractDungeon.player.hasRelic(CursedKey.ID)) {
-            twirk.channelMessage("[BOT] Cursed Key allows skipping relics, [vote 0] to skip, [vote 1] to open");
-            result.add(new Choice("leave", "0", "leave", "proceed"));
-        } else if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.SHOP) {
-            result.add(new Choice("leave", "0", "leave", "proceed"));
-        } else if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.CARD_REWARD) {
-            if (skipAfterCard) {
-                result.add(new Choice("Skip", "0", "skip", "proceed"));
-            } else {
-                result.add(new Choice("Skip", "0", "skip"));
-            }
-        } else if (AbstractDungeon.screen == AbstractDungeon.CurrentScreen.COMBAT_REWARD) {
-            skipAfterCard = true;
-            boolean shouldAllowLeave = false;
-
-            Optional<Choice> goldChoice = result.stream()
-                                                .filter(choice -> choice.choiceName.equals("gold"))
-                                                .findAny();
-            if (goldChoice.isPresent()) {
-                ArrayList<Choice> onlyGold = new ArrayList<>();
-                onlyGold.add(goldChoice.get());
-
-                // In the reward screen, always take the gold first if the option exists
-                return onlyGold;
-            }
-
-            Optional<Choice> potionChoice = result.stream()
-                                                  .filter(choice -> choice.choiceName
-                                                          .equals("potion"))
-                                                  .findAny();
-
-            if (potionChoice.isPresent()) {
-                boolean skipPotion = false;
-                //Can pick up a potion but has no slots
-                if (shouldEvaluatePotions) {
-                    AbstractPotion lowWeightPotion = null;
-                    int weightDifferential = 0;
-                    int choiceWeight = POTION_WEIGHTS
-                            .getOrDefault(potionChoice.get().rewardInfo.get().potionName, 5);
-                    //Iterate through player's potions and check if which one is the lower value, then discard that one to pick up the new one
-                    //Potions already in the player's inventory get priority
-                    for (AbstractPotion p : AbstractDungeon.player.potions) {
-                        int w = POTION_WEIGHTS.getOrDefault(p.name, 5);
-                        if (choiceWeight > w) {
-                            if (lowWeightPotion != null) {
-                                int newWDiff = w - choiceWeight;
-                                if (newWDiff < weightDifferential) {
-                                    weightDifferential = newWDiff;
-                                    lowWeightPotion = p;
-                                }
-                            } else {
-                                weightDifferential = w - choiceWeight;
-                                lowWeightPotion = p;
-                            }
-                        }
-                    }
-
-                    if (lowWeightPotion != null) {
-                        AbstractDungeon.player.removePotion(lowWeightPotion);
-                    } else {
-                        //The incoming potion is of the lowest value
-                        skipPotion = true;
-                    }
-                }
-
-                if (!skipPotion) {
-                    ArrayList<Choice> onlyPotion = new ArrayList<>();
-                    onlyPotion.add(potionChoice.get());
-
-                    // Then the potion
-                    return onlyPotion;
-                } else {
-                    result.remove(potionChoice.get());
-                }
-            }
-
-            Optional<Choice> relicChoice = result.stream()
-                                                 .filter(choice -> choice.choiceName
-                                                         .equals("relic"))
-                                                 .findAny();
-
-            Optional<Choice> sapphireKeyChoice = result.stream()
-                                                       .filter(choice -> choice.choiceName
-                                                               .equals("sapphire_key"))
-                                                       .findAny();
-
-            if (relicChoice.isPresent() && !sapphireKeyChoice.isPresent()) {
-                ArrayList<Choice> onlyRelic = new ArrayList<>();
-                onlyRelic.add(relicChoice.get());
-
-                if (OPTIONAL_RELICS
-                        .contains(relicChoice.get().rewardInfo.get().relicName)) {
-                    shouldAllowLeave = true;
-                } else {
-                    return onlyRelic;
-                }
-            }
-
-            Optional<Choice> stolenGoldChoice = result.stream()
-                                                      .filter(choice -> choice.choiceName
-                                                              .equals("stolen_gold"))
-                                                      .findAny();
-
-            if (stolenGoldChoice.isPresent()) {
-                ArrayList<Choice> onlyStolenGold = new ArrayList<>();
-                onlyStolenGold.add(stolenGoldChoice.get());
-
-                // Then the stolen gold
-                return onlyStolenGold;
-            }
-
-            Optional<Choice> emeraldKeyChoice = result.stream()
-                                                      .filter(choice -> choice.choiceName
-                                                              .equals("emerald_key"))
-                                                      .findAny();
-
-            if (emeraldKeyChoice.isPresent()) {
-                ArrayList<Choice> onlyEmeraldKey = new ArrayList<>();
-                onlyEmeraldKey.add(emeraldKeyChoice.get());
-
-                // Then the emerald key
-                return onlyEmeraldKey;
-            }
-
-            if (result.size() > 1) {
-                skipAfterCard = false;
-                shouldAllowLeave = true;
-            }
-
-            if (shouldAllowLeave) {
-                result.add(new Choice("leave", "0", "leave", "proceed"));
-            }
-        }
-
-
-        return result;
     }
 
     public static class Choice {
@@ -839,120 +632,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
-
-    boolean shouldDedupeGrid() {
-        GridCardSelectScreen gridSelectScreen = AbstractDungeon.gridSelectScreen;
-        int numCards = ReflectionHacks
-                .getPrivate(gridSelectScreen, GridCardSelectScreen.class, "numCards");
-        if (numCards != 1) {
-            return false;
-        }
-
-        return gridSelectScreen.forPurge || gridSelectScreen.forUpgrade || gridSelectScreen.forTransform;
-    }
-
-    private static boolean isPotionChoice(Choice choice) {
-        if (choice.choiceName.equals("Fire Potion")) {
-            return true;
-        }
-
-        return POTION_NAMES.contains(choice.choiceName.toLowerCase()) || choice.choiceName
-                .toLowerCase().contains("potion");
-    }
-
-    private static final int BLOCKED_POTION = 0;
-    public static HashSet<String> POTION_NAMES = new HashSet<>();
-
-    public static HashMap<String, Integer> POTION_WEIGHTS = new HashMap<String, Integer>() {{
-        //General weighting philosophy: Immediate effects outweigh build up potions in effectiveness because the bot tends to spam potions to end a combat.
-        // Potions that give the bot more choice or mitigate damage are preferable.
-        // Targetable potions are probably bad.
-        //Debuff
-        put(PotionHelper.getPotion(WeakenPotion.POTION_ID).name, 3);
-        put(PotionHelper.getPotion(FearPotion.POTION_ID).name, 3);
-        //Resource
-        //Energy
-        put(PotionHelper.getPotion(BottledMiracle.POTION_ID).name, 7);
-        put(PotionHelper.getPotion(EnergyPotion.POTION_ID).name, 6);
-
-        //Draw
-        put(PotionHelper.getPotion(SwiftPotion.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(SneckoOil.POTION_ID).name, 8);
-        put(PotionHelper.getPotion(GamblersBrew.POTION_ID).name, BLOCKED_POTION);
-
-        //BlockPotion
-        put(PotionHelper.getPotion(BlockPotion.POTION_ID).name, 7);
-        put(PotionHelper.getPotion(EssenceOfSteel.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(HeartOfIron.POTION_ID).name, 6);
-        put(PotionHelper.getPotion(GhostInAJar.POTION_ID).name, 8);
-
-        //HP
-        put(PotionHelper.getPotion(FruitJuice.POTION_ID).name, 10);
-        put(PotionHelper.getPotion(BloodPotion.POTION_ID).name, 10);
-        put(PotionHelper.getPotion(RegenPotion.POTION_ID).name, 8);
-        put(PotionHelper.getPotion(FairyPotion.POTION_ID).name, 11);
-
-        put(PotionHelper.getPotion(EntropicBrew.POTION_ID).name, 9);
-        put(PotionHelper.getPotion(Ambrosia.POTION_ID).name, 7);
-
-        //Stat
-        put(PotionHelper.getPotion(StrengthPotion.POTION_ID).name, 4);
-        put(PotionHelper.getPotion(CultistPotion.POTION_ID).name, 6);
-        put(PotionHelper.getPotion(DexterityPotion.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(FocusPotion.POTION_ID).name, 6);
-        put(PotionHelper.getPotion(PotionOfCapacity.POTION_ID).name, 4);
-        put(PotionHelper.getPotion(AncientPotion.POTION_ID).name, 3);
-
-        //Temp stat
-        put(PotionHelper.getPotion(SpeedPotion.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(SteroidPotion.POTION_ID).name, 4);
-
-        //Card choice
-        put(PotionHelper.getPotion(AttackPotion.POTION_ID).name, 4);
-        put(PotionHelper.getPotion(SkillPotion.POTION_ID).name, 4);
-        put(PotionHelper.getPotion(PowerPotion.POTION_ID).name, 4);
-        put(PotionHelper.getPotion(ColorlessPotion.POTION_ID).name, 4);
-
-        put(PotionHelper.getPotion(LiquidMemories.POTION_ID).name, 5);
-
-        //Damage
-        //Direct
-        put(PotionHelper.getPotion(FirePotion.POTION_ID).name, 6);
-        put(PotionHelper.getPotion(ExplosivePotion.POTION_ID).name, 6);
-        put(PotionHelper.getPotion(PoisonPotion.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(CunningPotion.POTION_ID).name, 5);
-
-        //Indirect
-        put(PotionHelper.getPotion(EssenceOfDarkness.POTION_ID).name, 6);
-        put(PotionHelper.getPotion(LiquidBronze.POTION_ID).name, 4);
-
-        //Misc
-        put(PotionHelper.getPotion(SmokeBomb.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(StancePotion.POTION_ID).name, BLOCKED_POTION);
-        //Cards
-
-        put(PotionHelper.getPotion(BlessingOfTheForge.POTION_ID).name, 2);
-        put(PotionHelper.getPotion(DuplicationPotion.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(DistilledChaosPotion.POTION_ID).name, 5);
-        put(PotionHelper.getPotion(Elixir.POTION_ID).name, 4);
-
-        keySet().forEach(key -> POTION_NAMES.add(key.toLowerCase()));
-    }};
-
     public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
         add("!vote");
         add("vote");
-    }};
-
-    public static HashSet<String> OPTIONAL_RELICS = new HashSet<String>() {{
-        add(new BottledFlame().name);
-        add(new BottledLightning().name);
-        add(new BottledTornado().name);
-        add(new DeadBranch().name);
-        add(new Omamori().name);
-        add(new TinyChest().name);
-        add(new WarPaint().name);
-        add(new Whetstone().name);
     }};
 
     public static HashSet<Integer> FIRST_FLOOR_NUMS = new HashSet<Integer>() {{
@@ -1030,71 +712,29 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         return choicesMap.get(bestResult.toLowerCase());
     }
 
-    @SpirePatch(clz = GridCardSelectScreen.class, method = "updateCardPositionsAndHoverLogic")
-    public static class GridRenderPatch {
-        @SpirePrefixPatch
-        public static SpireReturn messWithGridSelect(GridCardSelectScreen gridCardSelectScreen) {
-            if (TwitchController.voteController != null && TwitchController.voteController instanceof GridVoteController) {
-                ArrayList<AbstractCard> cards = gridCardSelectScreen.targetGroup.group;
+    void setUpDefaultVoteOptions(JsonObject stateJson) {
+        JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
+        JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
 
-                int lineNum = 0;
-                for (int i = 0; i < cards.size(); i++) {
-                    int mod = i % 8;
-                    if (mod == 0 && i != 0) {
-                        ++lineNum;
-                    }
+        choices = new ArrayList<>();
+        choicesJson.forEach(choice -> {
+            String choiceString = choice.getAsString();
+            String choiceCommand = String.format("choose %s", choices.size());
 
-                    AbstractCard card = cards.get(i);
+            // the voteString will start at 1
+            String voteString = Integer.toString(choices.size() + 1);
 
-                    float drawStartX = ReflectionHacks
-                            .getPrivate(gridCardSelectScreen, GridCardSelectScreen.class, "drawStartX");
-                    float drawStartY = ReflectionHacks
-                            .getPrivate(gridCardSelectScreen, GridCardSelectScreen.class, "drawStartY");
-                    float currentDiffY = ReflectionHacks
-                            .getPrivate(gridCardSelectScreen, GridCardSelectScreen.class, "currentDiffY");
+            Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
+            choices.add(toAdd);
+        });
 
-                    float padX = ReflectionHacks
-                            .getPrivate(gridCardSelectScreen, GridCardSelectScreen.class, "padX");
-                    float padY = ReflectionHacks
-                            .getPrivate(gridCardSelectScreen, GridCardSelectScreen.class, "padY");
+        viableChoices = choices;
 
-
-                    card.drawScale = .45F;
-                    card.target_x = card.current_x = drawStartX + (float) mod * (padX / 2.F * 1.5F) - 300;
-                    card.target_y = card.current_y = drawStartY + currentDiffY - (float) lineNum * (padY / 2.F * 1.4F) + 75;
-
-                    AbstractDungeon.overlayMenu.cancelButton.hide();
-                }
-
-                return SpireReturn.Return(null);
-            }
-            return SpireReturn.Continue();
-        }
-    }
-
-    @SpirePatch(clz = AsyncSaver.class, method = "save")
-    public static class BackUpAllSavesPatch {
-        @SpirePostfixPatch
-        public static void backUpSave(String filePath, String data) {
-            BlockingQueue<File> saveQueue = ReflectionHacks
-                    .getPrivateStatic(AsyncSaver.class, "saveQueue");
-
-            String backupFilePath = String
-                    .format("savealls\\%s_%02d_%s", filePath, AbstractDungeon.floorNum, Settings.seed);
-
-            saveQueue.add(new File(backupFilePath, data));
-        }
-    }
-
-
-    @SpirePatch(clz = AbstractDungeon.class, method = SpirePatch.CONSTRUCTOR, paramtypez = {String.class, String.class, AbstractPlayer.class, ArrayList.class})
-    public static class DisableEventsPatch {
-        @SpirePostfixPatch
-        public static void RemoveBadEvents(AbstractDungeon dungeon, String name, String levelId, AbstractPlayer p, ArrayList<String> newSpecialOneTimeEventList) {
-            AbstractDungeon.shrineList.remove("Match and Keep!");
-            AbstractDungeon.eventList.remove(OrinTheCat.ID);
-
-            System.err.println("Boss Relic Pool:" + AbstractDungeon.bossRelicPool);
+        if (screenType != null && screenType
+                .equals("CHEST") && AbstractDungeon.player != null && AbstractDungeon.player
+                .hasRelic(CursedKey.ID)) {
+            twirk.channelMessage("[BOT] Cursed Key allows skipping relics, [vote 0] to skip, [vote 1] to open");
+            viableChoices.add(new Choice("leave", "0", "leave", "proceed"));
         }
     }
 }

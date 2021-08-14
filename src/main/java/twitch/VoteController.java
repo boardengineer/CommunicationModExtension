@@ -2,8 +2,10 @@ package twitch;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
-public interface VoteController {
-    void render(SpriteBatch spriteBatch);
+public abstract class VoteController {
+    abstract void setUpChoices();
 
-    void endVote();
+    abstract void render(SpriteBatch spriteBatch);
+
+    abstract void endVote();
 }

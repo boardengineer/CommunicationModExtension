@@ -2,6 +2,7 @@ package twitch;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
 
@@ -9,11 +10,18 @@ import java.util.HashMap;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
-public class CharacterVoteController implements VoteController {
+public class CharacterVoteController extends VoteController {
     private final TwitchController twitchController;
+    private final JsonObject stateJson;
 
-    public CharacterVoteController(TwitchController twitchController) {
+    public CharacterVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
+        this.stateJson = stateJson;
+    }
+
+    @Override
+    public void setUpChoices() {
+        twitchController.setUpDefaultVoteOptions(stateJson);
     }
 
     @Override
