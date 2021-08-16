@@ -335,7 +335,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             VoteType voteType = VoteType.OTHER;
 
             JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
-            String screenType = gameState.get("screen_type").getAsString();
+            screenType = gameState.get("screen_type").getAsString();
 
             if (screenType != null) {
                 if (screenType.equalsIgnoreCase("EVENT")) {
