@@ -35,10 +35,17 @@ public class CardRewardVoteController extends VoteController {
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
 
-        if (twitchController.skipAfterCard) {
-            twitchController.viableChoices.add(new TwitchController.Choice("Skip", "0", "skip", "proceed"));
-        } else {
-            twitchController.viableChoices.add(new TwitchController.Choice("Skip", "0", "skip"));
+        boolean skippable = ReflectionHacks
+                .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "skippable");
+
+        if (skippable) {
+            if (twitchController.skipAfterCard) {
+                twitchController.viableChoices
+                        .add(new TwitchController.Choice("Skip", "0", "skip", "proceed"));
+            } else {
+                twitchController.viableChoices
+                        .add(new TwitchController.Choice("Skip", "0", "skip"));
+            }
         }
     }
 

@@ -108,6 +108,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
         optionsMap.put("turns", 10_000);
+        optionsMap.put("verbose", 0);
 
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
@@ -509,6 +510,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         if (viableChoices.isEmpty()) {
             viableChoices.add(new Choice("proceed", "proceed", "proceed"));
+        }
+
+        if (optionsMap.getOrDefault("verbose", 0) > 0) {
+            if (viableChoices
+                    .size() > 1 && !(voteType == VoteType.MAP_LONG || voteType == VoteType.MAP_SHORT)) {
+                String messageString = viableChoices.stream().map(choice -> String
+                        .format("[vote %s for %s]", choice.voteString, choice.choiceName))
+                                                    .collect(Collectors.joining("          "));
+
+                twirk.priorityChannelMessage("[BOT]" + messageString);
+            }
         }
 
         if (viableChoices.size() > 1 || forceWait) {
