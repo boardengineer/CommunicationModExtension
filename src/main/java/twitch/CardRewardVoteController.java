@@ -56,7 +56,8 @@ public class CardRewardVoteController extends VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             String message = choice.choiceName;
-            if (message.equalsIgnoreCase("skip")) {
+            if (message.equalsIgnoreCase("skip") && !AbstractDungeon.player
+                    .hasRelic("PrismaticBranch")) {
                 String skipMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
@@ -83,7 +84,7 @@ public class CardRewardVoteController extends VoteController {
 
                 renderTextBelowHitbox(spriteBatch, cardMessage, cardRewardAdjust(cardHitbox));
             } else {
-                System.err.println("no card button for " + choice.choiceName);
+//                System.err.println("no card button for " + choice.choiceName);
             }
         }
     }

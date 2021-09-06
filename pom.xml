@@ -80,6 +80,13 @@
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/MarisaState.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>mintyspire</groupId>
+            <artifactId>MintySpire</artifactId>
+            <version>2.5.3</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/mintySpire.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

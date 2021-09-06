@@ -30,8 +30,6 @@ public class BossRewardVoteController extends VoteController {
 
     @Override
     public void setUpChoices() {
-
-
         twitchController.setUpDefaultVoteOptions(stateJson);
     }
 

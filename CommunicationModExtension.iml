@@ -92,5 +92,14 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="Maven: mintyspire:MintySpire:2.5.3">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../_ModTheSpire/mods/mintySpire.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>

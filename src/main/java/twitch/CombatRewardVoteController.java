@@ -9,14 +9,16 @@ import com.megacrit.cardcrawl.helpers.PotionHelper;
 import com.megacrit.cardcrawl.potions.*;
 import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.rewards.RewardItem;
+import com.megacrit.cardcrawl.ui.buttons.CancelButton;
 import com.megacrit.cardcrawl.ui.buttons.ProceedButton;
+import communicationmod.CommandExecutor;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class CombatRewardVoteController extends VoteController {
-    private final HashMap<String, RewardItem> messageToCombatRewardItem;
-    private final HashMap<String, String> messageToOriginalRewardTextMap;
+    private final HashMap<String, RewardItem> voteStringToCombatRewardItem;
+    private final HashMap<String, String> voteStringToOriginalRewardTextMap;
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
@@ -27,16 +29,16 @@ public class CombatRewardVoteController extends VoteController {
         JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
         JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
 
-        messageToCombatRewardItem = new HashMap<>();
-        messageToOriginalRewardTextMap = new HashMap<>();
+        voteStringToCombatRewardItem = new HashMap<>();
+        voteStringToOriginalRewardTextMap = new HashMap<>();
 
         for (int i = 0; i < choicesJson.size(); i++) {
             String voteString = Integer.toString(i + 1);
 
             RewardItem reward = AbstractDungeon.combatRewardScreen.rewards.get(i);
 
-            messageToCombatRewardItem.put(voteString, reward);
-            messageToOriginalRewardTextMap.put(voteString, reward.text);
+            voteStringToCombatRewardItem.put(voteString, reward);
+            voteStringToOriginalRewardTextMap.put(voteString, reward.text);
         }
     }
 
@@ -208,7 +210,11 @@ public class CombatRewardVoteController extends VoteController {
         }
 
         if (shouldAllowLeave) {
-            result.add(new TwitchController.Choice("leave", "0", "leave", "proceed"));
+            if (CommandExecutor.isCancelCommandAvailable()) {
+                result.add(new TwitchController.Choice("cancel", "0", "cancel"));
+            } else {
+                result.add(new TwitchController.Choice("leave", "0", "leave", "proceed"));
+            }
         }
 
         twitchController.viableChoices = result;
@@ -229,13 +235,21 @@ public class CombatRewardVoteController extends VoteController {
                 RenderHelpers
                         .renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
                                 .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb"));
-            } else if (messageToCombatRewardItem.containsKey(choice.voteString)) {
-                RewardItem rewardItem = messageToCombatRewardItem.get(choice.voteString);
+            } else if (message.equals("cancel")) {
+                String leaveMessage = String.format("[vote %s] (%s)",
+                        choice.voteString,
+                        voteFrequencies.getOrDefault(choice.voteString, 0));
+
+                RenderHelpers
+                        .renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
+                                .getPrivate(AbstractDungeon.overlayMenu.cancelButton, CancelButton.class, "hb"));
+            } else if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
+                RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
                 String rewardItemMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                rewardItem.text = messageToOriginalRewardTextMap
+                rewardItem.text = voteStringToOriginalRewardTextMap
                         .get(choice.voteString) + rewardItemMessage;
             } else {
                 System.err.println("no card button for " + choice.choiceName);
@@ -248,11 +262,29 @@ public class CombatRewardVoteController extends VoteController {
         // Reset the text to avoid duped vote strings
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
-            if (messageToCombatRewardItem.containsKey(choice.voteString)) {
-                RewardItem rewardItem = messageToCombatRewardItem.get(choice.voteString);
-                rewardItem.text = messageToOriginalRewardTextMap.get(choice.voteString);
+            if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
+                RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
+                rewardItem.text = voteStringToOriginalRewardTextMap.get(choice.voteString);
             }
         }
+    }
+
+    @Override
+    Optional<String> getTipString() {
+        if (!twitchController.skipAfterCard) {
+            String resultString = "Card Reward Listing: ";
+            for (Map.Entry<String, RewardItem> entry : voteStringToCombatRewardItem.entrySet()) {
+                RewardItem reward = entry.getValue();
+                if (reward.type == RewardItem.RewardType.CARD) {
+                    resultString += String.format("[ %s | %s ]", entry.getKey(),
+                            reward.cards.stream().map(card -> card.name)
+                                        .collect(Collectors.joining(" , ")));
+                }
+            }
+
+            return Optional.of(resultString);
+        }
+        return super.getTipString();
     }
 
     public static HashSet<String> POTION_NAMES = new HashSet<String>();

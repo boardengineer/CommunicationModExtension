@@ -1,12 +1,15 @@
 package twitch;
 
+import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
+import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
@@ -32,6 +35,14 @@ public class GridVoteController extends VoteController {
     @Override
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
+    }
+
+    @Override
+    Optional<String> getTipString() {
+        String tipMsg = ReflectionHacks
+                .getPrivate(AbstractDungeon.gridSelectScreen, GridCardSelectScreen.class, "tipMsg");
+
+        return Optional.of(tipMsg);
     }
 
     @Override

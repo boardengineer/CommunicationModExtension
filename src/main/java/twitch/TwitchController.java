@@ -22,6 +22,7 @@ import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
+import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import ludicrousspeed.LudicrousSpeedMod;
 
 import java.io.FileWriter;
@@ -109,6 +110,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap.put("lives", 0);
         optionsMap.put("turns", 10_000);
         optionsMap.put("verbose", 0);
+        optionsMap.put("marisa", 0);
 
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
@@ -215,6 +217,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 } else if (tokens[1].equals("disable")) {
                     voteByUsernameMap = null;
                     inBattle = false;
+                }
+            } else if (tokens.length >= 3 && tokens[0].equals("!beta")) {
+                try {
+                    String cardId = tokens[1].replace("_", " ");
+                    boolean enable = Boolean.parseBoolean(tokens[2]);
+                    UnlockTracker.betaCardPref.putBoolean(cardId, enable);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -486,7 +496,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         choices.add(new Choice("silent", "2", "start silent"));
         choices.add(new Choice("defect", "3", "start defect"));
         choices.add(new Choice("watcher", "4", "start watcher"));
-        choices.add(new Choice("marisa", "5", "start marisa"));
+
+        if (optionsMap.getOrDefault("marisa", 0) > 0) {
+            choices.add(new Choice("marisa", "5", "start marisa"));
+        }
 
         viableChoices = choices;
 
@@ -513,13 +526,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         if (optionsMap.getOrDefault("verbose", 0) > 0) {
+            if (voteController != null) {
+                Optional<String> message = voteController.getTipString();
+
+                if (message.isPresent()) {
+                    twirk.priorityChannelMessage("[BOT] " + message.get());
+                }
+            }
+
             if (viableChoices
                     .size() > 1 && !(voteType == VoteType.MAP_LONG || voteType == VoteType.MAP_SHORT)) {
                 String messageString = viableChoices.stream().map(choice -> String
-                        .format("[vote %s for %s]", choice.voteString, choice.choiceName))
-                                                    .collect(Collectors.joining("          "));
+                        .format("[%s| %s]", choice.voteString, choice.choiceName))
+                                                    .collect(Collectors.joining(" "));
 
-                twirk.priorityChannelMessage("[BOT]" + messageString);
+                twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
             }
         }
 
