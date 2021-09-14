@@ -273,9 +273,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         lastRelicDisplayTimestamp = now;
 
                         String relics = AbstractDungeon.player.relics.stream()
-                                                                     .map(relic -> relic.relicId)
-                                                                     .collect(Collectors
-                                                                             .joining(";"));
+                                .map(relic -> relic.relicId)
+                                .collect(Collectors
+                                        .joining(";"));
 
                         twirk.channelMessage("[BOT] " + relics);
                     }
@@ -327,7 +327,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     startCharacterVote(new JsonParser().parse(stateMessage).getAsJsonObject());
                 } else if (availableCommands.contains("proceed")) {
                     String screenType = stateJson.get("game_state").getAsJsonObject()
-                                                 .get("screen_type").getAsString();
+                            .get("screen_type").getAsString();
                     delayProceed(screenType, stateMessage);
                 } else if (availableCommands.contains("confirm")) {
                     System.err.println("choosing confirm");
@@ -442,9 +442,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
 
                 JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
-                                                       .get("game_state").getAsJsonObject();
+                        .get("game_state").getAsJsonObject();
                 boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
-                                                   .get("victory").getAsBoolean();
+                        .get("victory").getAsBoolean();
                 int floor = gameState.get("floor").getAsInt();
                 if (reportedVictory || floor > 51) {
                     optionsMap.put("asc", optionsMap.getOrDefault("asc", 0) + 1);
@@ -537,8 +537,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             if (viableChoices
                     .size() > 1 && !(voteType == VoteType.MAP_LONG || voteType == VoteType.MAP_SHORT)) {
                 String messageString = viableChoices.stream().map(choice -> String
-                        .format("[%s| %s]", choice.voteString, choice.choiceName))
-                                                    .collect(Collectors.joining(" "));
+                                .format("[%s| %s]", choice.voteString, choice.choiceName))
+                        .collect(Collectors.joining(" "));
 
                 twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
             }
@@ -682,6 +682,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         add(48);
     }};
 
+    public static HashSet<Integer> BOSS_CHEST_FLOOR_NUMS = new HashSet<Integer>() {{
+        add(17);
+        add(34);
+    }};
+
     HashMap<String, Integer> getVoteFrequencies() {
         if (voteByUsernameMap == null) {
             return new HashMap<>();
@@ -763,11 +768,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         viableChoices = choices;
 
-        if (screenType != null && screenType
+        // TODO separate into a separate voting controller class
+        if (!isBossFloor() && screenType != null && screenType
                 .equals("CHEST") && AbstractDungeon.player != null && AbstractDungeon.player
                 .hasRelic(CursedKey.ID)) {
             twirk.channelMessage("[BOT] Cursed Key allows skipping relics, [vote 0] to skip, [vote 1] to open");
             viableChoices.add(new Choice("leave", "0", "leave", "proceed"));
         }
+    }
+
+    private static boolean isBossFloor() {
+        System.err.println("sanity check");
+        return BOSS_CHEST_FLOOR_NUMS.contains(AbstractDungeon.floorNum);
     }
 }
