@@ -19,18 +19,21 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 public class ShopScreenVoteController extends VoteController {
-    private final HashMap<String, Object> messageToShopItemMap;
+    private final HashMap<String, Object> voteStringToShopItemMap;
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     ShopScreenVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
-        messageToShopItemMap = new HashMap<>();
+        voteStringToShopItemMap = new HashMap<>();
         ArrayList<Object> shopItems = ReflectionHacks
                 .privateStaticMethod(ChoiceScreenUtils.class, "getAvailableShopItems")
                 .invoke();
-        for (Object item : shopItems) {
-            messageToShopItemMap.put(getShopItemString(item).toLowerCase(), item);
+
+        for(int i = 0; i < shopItems.size(); i++) {
+            String voteString = Integer.toString(i + 1);
+
+            voteStringToShopItemMap.put(voteString, shopItems.get(i));
         }
 
         this.stateJson = stateJson;
@@ -62,6 +65,8 @@ public class ShopScreenVoteController extends VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             String message = choice.choiceName;
+            String voteString = choice.voteString;
+
             if (message.equals("leave")) {
                 String leaveMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
@@ -76,9 +81,9 @@ public class ShopScreenVoteController extends VoteController {
 
                 RenderHelpers
                         .renderTextBelowHitbox(spriteBatch, purgeMessage, addGoldHitbox(getShopPurgeHitbox(), 1));
-            } else if (messageToShopItemMap.containsKey(message)) {
-                Hitbox shopItemHitbox = getShopItemHitbox(messageToShopItemMap
-                        .get(message));
+            } else if (voteStringToShopItemMap.containsKey(voteString)) {
+                Hitbox shopItemHitbox = getShopItemHitbox(voteStringToShopItemMap
+                        .get(voteString));
 
 
                 if (shopItemHitbox != null) {
