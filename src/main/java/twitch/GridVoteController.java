@@ -54,10 +54,7 @@ public class GridVoteController extends VoteController {
             if (voteStringToCardMap.containsKey(message)) {
                 AbstractCard card = voteStringToCardMap.get(message);
 
-                float drawX = card.current_x - 25;
-                float drawY = card.current_y - 110;
-
-                Hitbox hitbox = new Hitbox(drawX, card.current_y - 65, 50, 50);
+                Hitbox hitbox = new Hitbox(card.current_x - 25, card.current_y - 110, 50, 50);
 
                 String voteMessage = String.format("[vote %s](%s)",
                         choice.voteString,

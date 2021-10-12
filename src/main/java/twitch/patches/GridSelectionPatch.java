@@ -45,7 +45,8 @@ public class GridSelectionPatch {
                     card.drawScale = .45F;
 
                     // TODO make this adjust with scale
-                    card.target_x = card.current_x = drawStartX + (float) mod * (padX / 2.F * 1.5F) - 200;
+//                    card.target_x = card.current_x = drawStartX + (float) mod * (padX / 2.F * 1.5F) - 200;
+                    card.target_x = card.current_x = drawStartX + (float) mod * (padX / 2.F * 1.5F) - 300;
                     card.target_y = card.current_y = drawStartY + currentDiffY - (float) lineNum * (padY / 2.F * 1.4F) + 75;
 
                     AbstractDungeon.overlayMenu.cancelButton.hide();

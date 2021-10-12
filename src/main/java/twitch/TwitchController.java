@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
 import battleaimod.BattleAiMod;
@@ -20,10 +21,12 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.WingBoots;
+import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import ludicrousspeed.LudicrousSpeedMod;
+import savestate.SaveState;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -31,7 +34,7 @@ import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
-public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
+public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber {
     private static final Texture HEART_IMAGE = new Texture("heart.png");
 
     private static final long DECK_DISPLAY_TIMEOUT = 60_000;
@@ -41,6 +44,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
     private static final long NORMAL_VOTE_TIME_MILLIS = 20_000;
+
+    private static int startingHP = 0;
+    private static int runId = 0;
 
     public enum VoteType {
         // THe first vote in each dungeon
@@ -273,9 +279,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         lastRelicDisplayTimestamp = now;
 
                         String relics = AbstractDungeon.player.relics.stream()
-                                .map(relic -> relic.relicId)
-                                .collect(Collectors
-                                        .joining(";"));
+                                                                     .map(relic -> relic.relicId)
+                                                                     .collect(Collectors
+                                                                             .joining(";"));
 
                         twirk.channelMessage("[BOT] " + relics);
                     }
@@ -317,6 +323,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (availableCommands.contains("choose")) {
                     startChooseVote(stateJson);
                 } else if (availableCommands.contains("play")) {
+                    // BATTLE STARTS HERE
+                    startingHP = AbstractDungeon.player.currentHealth;
+
                     try {
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
@@ -327,7 +336,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     startCharacterVote(new JsonParser().parse(stateMessage).getAsJsonObject());
                 } else if (availableCommands.contains("proceed")) {
                     String screenType = stateJson.get("game_state").getAsJsonObject()
-                            .get("screen_type").getAsString();
+                                                 .get("screen_type").getAsString();
                     delayProceed(screenType, stateMessage);
                 } else if (availableCommands.contains("confirm")) {
                     System.err.println("choosing confirm");
@@ -432,19 +441,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 writer.close();
 
                 // send game over stats to slayboard in another thread
-                new Thread(() -> {
-                    try {
-                        Slayboard.postScore(stateMessage, voteFrequencies);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
+                // TODO add run results
+
+//                new Thread(() -> {
+//                    try {
+//                        Slayboard.postScore(stateMessage, voteFrequencies);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }).start();
 
 
                 JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
-                        .get("game_state").getAsJsonObject();
+                                                       .get("game_state").getAsJsonObject();
                 boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
-                        .get("victory").getAsBoolean();
+                                                   .get("victory").getAsBoolean();
                 int floor = gameState.get("floor").getAsInt();
                 if (reportedVictory || floor > 51) {
                     optionsMap.put("asc", optionsMap.getOrDefault("asc", 0) + 1);
@@ -492,6 +503,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public void startCharacterVote(JsonObject stateJson) {
         choices = new ArrayList<>();
 
+        // HERE
+        new Thread(() -> {
+            try {
+                runId = Slayboard.startRun();
+
+                System.err.println("LOOK HERE LOOK HERE RUN ID " + runId);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
         choices.add(new Choice("ironclad", "1", "start ironclad"));
         choices.add(new Choice("silent", "2", "start silent"));
         choices.add(new Choice("defect", "3", "start defect"));
@@ -537,8 +559,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             if (viableChoices
                     .size() > 1 && !(voteType == VoteType.MAP_LONG || voteType == VoteType.MAP_SHORT)) {
                 String messageString = viableChoices.stream().map(choice -> String
-                                .format("[%s| %s]", choice.voteString, choice.choiceName))
-                        .collect(Collectors.joining(" "));
+                        .format("[%s| %s]", choice.voteString, choice.choiceName))
+                                                    .collect(Collectors.joining(" "));
 
                 twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
             }
@@ -621,6 +643,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         if (BattleAiMod.aiClient != null) {
             BattleAiMod.aiClient.sendState(optionsMap.get("turns"));
+
+            SaveState toSend = new SaveState();
+
+            // send game over stats to slayboard in another thread
+            new Thread(() -> {
+                try {
+                    Slayboard.postBattleState(toSend.encode(), runId);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
         }
     }
 
@@ -780,5 +813,22 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private static boolean isBossFloor() {
         System.err.println("sanity check");
         return BOSS_CHEST_FLOOR_NUMS.contains(AbstractDungeon.floorNum);
+    }
+
+    @Override
+    public void receivePostBattle(AbstractRoom battleRoom) {
+        System.err.println("post battle, trying to send");
+
+        // send game over stats to slayboard in another thread
+        new Thread(() -> {
+            try {
+                int floorNum = AbstractDungeon.floorNum;
+                int hpChange = AbstractDungeon.player.currentHealth - startingHP;
+
+                Slayboard.postFloorResult(floorNum, hpChange, runId);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

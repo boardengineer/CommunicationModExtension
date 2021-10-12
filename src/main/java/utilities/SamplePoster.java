@@ -12,8 +12,11 @@ import java.net.URL;
 
 public class SamplePoster {
     private static final String USER_AGENT = "Mozilla/5.0";
-//    private static final String URL = "http://54.221.53.86:8000/runhistory/runs/";
-    private static final String URL = "http://127.0.0.1:8000/runhistory/runs/";
+//    private static final String URL_BASE = "http://54.221.53.86:8000";
+    private static final String URL_BASE = "http://127.0.0.1:8000";
+
+    private static final String RUNS_URL = URL_BASE + "/runhistory/runs/";
+    private static final String FLOORS_URL = URL_BASE + "/runhistory/floor_results/";
 //    private static final String POST_PARAMS = "victory=true&score=Pass@123";
 
     public static void main(String[] args) {
@@ -24,8 +27,8 @@ public class SamplePoster {
         }
     }
 
-    private static void postScore() throws IOException {
-        URL url = new URL (URL);
+    private static void postFloorResult() throws IOException {
+        URL url = new URL (FLOORS_URL);
         HttpURLConnection con = (HttpURLConnection)url.openConnection();
         con.setRequestMethod("POST");
         con.setRequestProperty("Content-Type", "application/json; utf-8");
@@ -34,8 +37,41 @@ public class SamplePoster {
 
         JsonObject requestBody = new JsonObject();
 
+        requestBody.addProperty("floor_num", 1);
+        requestBody.addProperty("hp_change", 3);
+        requestBody.addProperty("run", 61);
+
+        String jsonInputString = requestBody.toString();
+        System.out.println(jsonInputString);
+
+        try(OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        try(BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream(), "utf-8"))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.out.println(response.toString());
+        }
+    }
+
+    private static void postScore() throws IOException {
+        URL url = new URL (RUNS_URL + "56/");
+        HttpURLConnection con = (HttpURLConnection)url.openConnection();
+        con.setRequestMethod("PUT");
+        con.setRequestProperty("Content-Type", "application/json; utf-8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setDoOutput(true);
+
+        JsonObject requestBody = new JsonObject();
+
         requestBody.addProperty("victory", true);
-        requestBody.addProperty("score", 123);
+        requestBody.addProperty("score", 310);
 
         // Add players
         JsonArray players = new JsonArray();

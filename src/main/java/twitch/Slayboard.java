@@ -14,8 +14,119 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 public class Slayboard {
-    private static final String URL = "http://tss.boardengineer.net";
+      private static final String URL = "http://tss.boardengineer.net";
 //    private static final String URL = "http://127.0.0.1:8000";
+
+    public static void postBattleState(String state, int runId) throws IOException {
+        URL url = new URL(URL + "/runhistory/battles/");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("POST");
+        con.setRequestProperty("Content-Type", "application/json; utf-8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setDoOutput(true);
+
+        JsonObject requestBody = new JsonObject();
+
+        requestBody.addProperty("run", runId);
+        requestBody.addProperty("start_state", state);
+
+        String jsonInputString = requestBody.toString();
+
+        try (OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+        }
+    }
+
+    public static void postFloorResult(int floorNum, int hpChange, int runId) throws IOException {
+        URL url = new URL(URL + "/runhistory/floor_results/");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("POST");
+        con.setRequestProperty("Content-Type", "application/json; utf-8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setDoOutput(true);
+
+        JsonObject requestBody = new JsonObject();
+
+        requestBody.addProperty("floor_num", floorNum);
+        requestBody.addProperty("hp_change", hpChange);
+        requestBody.addProperty("run", runId);
+
+        String jsonInputString = requestBody.toString();
+
+        try (OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.out.println(response.toString());
+        }
+    }
+
+    public static int startRun() throws IOException {
+        URL url = new URL(URL + "/runhistory/runs/");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("POST");
+        con.setRequestProperty("Content-Type", "application/json; utf-8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setDoOutput(true);
+
+        JsonObject requestBody = new JsonObject();
+
+        requestBody.addProperty("victory", false);
+        requestBody.addProperty("score", 0);
+
+        requestBody.addProperty("character_class", "TODO");
+        requestBody.addProperty("ascension", 0);
+
+        JsonArray players = new JsonArray();
+        requestBody.add("players", players);
+
+        JsonArray deck = new JsonArray();
+        requestBody.add("deck", deck);
+
+        JsonArray relics = new JsonArray();
+        requestBody.add("relics", relics);
+
+        String jsonInputString = requestBody.toString();
+
+        try (OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.err.println("Started new run " + response.toString());
+
+            return new JsonParser().parse(response.toString()).getAsJsonObject().get("id")
+                                   .getAsInt();
+        }
+    }
 
     public static void postScore(String stateMessage, HashMap<String, Integer> voteFrequencies)
             throws IOException {
@@ -70,8 +181,6 @@ public class Slayboard {
 
         String jsonInputString = requestBody.toString();
 
-        System.err.println(jsonInputString);
-
         try (OutputStream os = con.getOutputStream()) {
             byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
             os.write(input, 0, input.length);
@@ -84,7 +193,6 @@ public class Slayboard {
             while ((responseLine = br.readLine()) != null) {
                 response.append(responseLine.trim());
             }
-            System.out.println(response.toString());
         }
     }
 }
