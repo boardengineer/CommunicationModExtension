@@ -17,13 +17,47 @@ public class SamplePoster {
 
     private static final String RUNS_URL = URL_BASE + "/runhistory/runs/";
     private static final String FLOORS_URL = URL_BASE + "/runhistory/floor_results/";
+    private static final String COMMANDS_URL = URL_BASE + "/runhistory/battle_commands/";
 //    private static final String POST_PARAMS = "victory=true&score=Pass@123";
 
     public static void main(String[] args) {
         try {
-            postScore();
+            postBattleCommands();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void postBattleCommands() throws IOException {
+        URL url = new URL (COMMANDS_URL);
+        HttpURLConnection con = (HttpURLConnection)url.openConnection();
+        con.setRequestMethod("POST");
+        con.setRequestProperty("Content-Type", "application/json; utf-8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setDoOutput(true);
+
+        JsonObject requestBody = new JsonObject();
+
+        requestBody.addProperty("index", 1);
+        requestBody.addProperty("command_string", "kill the thing");
+        requestBody.addProperty("floor_result", 17);
+
+        String jsonInputString = requestBody.toString();
+        System.out.println(jsonInputString);
+
+        try(OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        try(BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream(), "utf-8"))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.out.println("response " + response.toString());
         }
     }
 
@@ -56,7 +90,7 @@ public class SamplePoster {
             while ((responseLine = br.readLine()) != null) {
                 response.append(responseLine.trim());
             }
-            System.out.println(response.toString());
+            System.out.println("response " + response.toString());
         }
     }
 

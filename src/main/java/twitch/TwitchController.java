@@ -26,6 +26,7 @@ import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import ludicrousspeed.LudicrousSpeedMod;
+import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
 
 import java.io.FileWriter;
@@ -115,7 +116,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
         optionsMap.put("turns", 10_000);
-        optionsMap.put("verbose", 0);
+        optionsMap.put("verbose", 1);
         optionsMap.put("marisa", 0);
 
         for (VoteType voteType : VoteType.values()) {
@@ -133,12 +134,32 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
             if (BattleAiMod.rerunController.isDone || LudicrousSpeedMod.mustRestart) {
+                // BATTLE END
+                if (BattleAiMod.rerunController.isDone) {
+                    // send game over stats to slayboard in another thread
+
+                    final List<Command> path = BattleAiMod.rerunController.bestPath;
+                    new Thread(() -> {
+                        try {
+                            // TODO, calc hp change
+                            int floorResult = Slayboard
+                                    .postFloorResult(AbstractDungeon.floorNum, 0, runId);
+
+                            Slayboard.postCommands(floorResult, path);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
+                }
+
                 LudicrousSpeedMod.controller = BattleAiMod.rerunController = null;
                 inBattle = false;
                 if (LudicrousSpeedMod.mustRestart) {
                     System.err.println("Desync detected, rerunning simluation");
                     LudicrousSpeedMod.mustRestart = false;
                     startAiClient();
+                } else {
+                    System.err.println("Rerun Controller finished sequence");
                 }
             }
         }
@@ -162,6 +183,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     Choice result = getVoteResult();
 
                     System.err.println("selected " + result);
+                    if (!voteByUsernameMap.isEmpty()) {
+                        twirk.channelMessage(String
+                                .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
+                    }
 
                     for (String command : result.resultCommands) {
                         if (currentVote == VoteType.CHARACTER &&
@@ -495,8 +520,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             System.err.println("unknown screen type proceed timer " + screenType);
         }
 
-        System.err.println("delaying for " + screenType + " " + voteType);
-
         startVote(voteType, true, "");
     }
 
@@ -558,11 +581,32 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             if (viableChoices
                     .size() > 1 && !(voteType == VoteType.MAP_LONG || voteType == VoteType.MAP_SHORT)) {
-                String messageString = viableChoices.stream().map(choice -> String
-                        .format("[%s| %s]", choice.voteString, choice.choiceName))
-                                                    .collect(Collectors.joining(" "));
 
-                twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
+                int appendedSize = 0;
+                ArrayList<Choice> toSend = new ArrayList<>();
+                for (int i = 0; i < viableChoices.size(); i++) {
+                    toSend.add(viableChoices.get(i));
+                    appendedSize++;
+
+                    if (appendedSize % 20 == 0) {
+                        String messageString = toSend.stream().map(choice -> String
+                                .format("[%s| %s]", choice.voteString, choice.choiceName))
+                                                     .collect(Collectors.joining(" "));
+
+                        twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
+
+                        toSend = new ArrayList<>();
+                        appendedSize = 0;
+                    }
+                }
+
+                if (!toSend.isEmpty()) {
+                    String messageString = toSend.stream().map(choice -> String
+                            .format("[%s| %s]", choice.voteString, choice.choiceName))
+                                                 .collect(Collectors.joining(" "));
+
+                    twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
+                }
             }
         }
 
@@ -811,7 +855,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     private static boolean isBossFloor() {
-        System.err.println("sanity check");
         return BOSS_CHEST_FLOOR_NUMS.contains(AbstractDungeon.floorNum);
     }
 

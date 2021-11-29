@@ -3,6 +3,7 @@ package twitch;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import ludicrousspeed.simulator.commands.Command;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,10 +13,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 
 public class Slayboard {
-      private static final String URL = "http://tss.boardengineer.net";
-//    private static final String URL = "http://127.0.0.1:8000";
+//      private static final String URL = "http://tss.boardengineer.net";
+    private static final String URL = "http://127.0.0.1:8000";
 
     public static void postBattleState(String state, int runId) throws IOException {
         URL url = new URL(URL + "/runhistory/battles/");
@@ -48,7 +50,7 @@ public class Slayboard {
         }
     }
 
-    public static void postFloorResult(int floorNum, int hpChange, int runId) throws IOException {
+    public static int postFloorResult(int floorNum, int hpChange, int runId) throws IOException {
         URL url = new URL(URL + "/runhistory/floor_results/");
 
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -77,7 +79,8 @@ public class Slayboard {
             while ((responseLine = br.readLine()) != null) {
                 response.append(responseLine.trim());
             }
-            System.out.println(response.toString());
+            return new JsonParser().parse(response.toString()).getAsJsonObject().get("id")
+                                   .getAsInt();
         }
     }
 
@@ -125,6 +128,46 @@ public class Slayboard {
 
             return new JsonParser().parse(response.toString()).getAsJsonObject().get("id")
                                    .getAsInt();
+        }
+    }
+
+    public static void postCommands(int floorResult, List<Command> commands) throws IOException {
+        URL url = new URL(URL + "/runhistory/battle_commands/");
+
+        JsonObject requestBody = new JsonObject();
+
+        for(int i = 0; i < commands.size(); i++) {
+            if(commands.get(i) == null) {
+                continue;
+            }
+
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json; utf-8");
+            con.setRequestProperty("Accept", "application/json");
+            con.setDoOutput(true);
+
+            requestBody.addProperty("index", i);
+            requestBody.addProperty("floor_result", floorResult);
+
+            requestBody.addProperty("command_string", commands.get(i).encode());
+
+            String jsonInputString = requestBody.toString();
+
+            try (OutputStream os = con.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine = null;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+            }
+
         }
     }
 
