@@ -4,6 +4,7 @@ import basemod.ReflectionHacks;
 import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
+import basemod.interfaces.StartGameSubscriber;
 import battleaimod.BattleAiMod;
 import battleaimod.networking.AiClient;
 import com.badlogic.gdx.graphics.Color;
@@ -19,6 +20,7 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
+import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
@@ -35,7 +37,7 @@ import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
-public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber {
+public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber, StartGameSubscriber {
     private static final Texture HEART_IMAGE = new Texture("heart.png");
 
     private static final long DECK_DISPLAY_TIMEOUT = 60_000;
@@ -43,11 +45,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private static final long BOSS_DISPLAY_TIMEOUT = 30_000;
 
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
+    private static final long RECALL_VOTE_TIME_MILLIS = 250;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
     private static final long NORMAL_VOTE_TIME_MILLIS = 20_000;
 
     private static int startingHP = 0;
-    private static int runId = 0;
+    public static int runId = 0;
 
     public enum VoteType {
         // THe first vote in each dungeon
@@ -108,6 +111,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static long lastRelicDisplayTimestamp = 0L;
     public static long lastBossDisplayTimestamp = 0L;
 
+    private int previousLevel = -1;
+    private int votePerFloorIndex = 0;
+
     public TwitchController(LinkedBlockingQueue<String> readQueue, Twirk twirk) {
         this.readQueue = readQueue;
         this.twirk = twirk;
@@ -115,6 +121,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
+        optionsMap.put("recall", 0);
         optionsMap.put("turns", 10_000);
         optionsMap.put("verbose", 1);
         optionsMap.put("marisa", 0);
@@ -138,18 +145,22 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (BattleAiMod.rerunController.isDone) {
                     // send game over stats to slayboard in another thread
 
-                    final List<Command> path = BattleAiMod.rerunController.bestPath;
-                    new Thread(() -> {
-                        try {
-                            // TODO, calc hp change
-                            int floorResult = Slayboard
-                                    .postFloorResult(AbstractDungeon.floorNum, 0, runId);
+                    if (!shouldRecall()) {
+                        final List<Command> path = BattleAiMod.rerunController.bestPath;
+                        new Thread(() -> {
+                            if (!shouldRecall()) {
+                                try {
+                                    // TODO, calc hp change
+                                    int floorResult = Slayboard
+                                            .postFloorResult(AbstractDungeon.floorNum, 0, runId);
 
-                            Slayboard.postCommands(floorResult, path);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }).start();
+                                    Slayboard.postCommands(floorResult, path);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
+                    }
                 }
 
                 LudicrousSpeedMod.controller = BattleAiMod.rerunController = null;
@@ -169,6 +180,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
 
                 if (timeRemaining <= 0) {
+
+                    if (AbstractDungeon.floorNum != previousLevel) {
+                        previousLevel = AbstractDungeon.floorNum;
+                        votePerFloorIndex = 0;
+                    }
+
                     if (voteController != null) {
                         voteController.endVote();
                     }
@@ -180,19 +197,37 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         voteFrequencies.put(userName, voteFrequencies.get(userName) + 1);
                     });
 
-                    Choice result = getVoteResult();
+                    Choice result;
 
-                    System.err.println("selected " + result);
+                    if (!shouldRecall()) {
+                        result = getVoteResult();
+                        new Thread(() -> {
+                            try {
+                                int floorNum = AbstractDungeon.floorNum;
+                                Slayboard
+                                        .postVoteResult(runId, floorNum, votePerFloorIndex++, result.voteString);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+                    } else {
+                        String winningVote = Slayboard
+                                .queryVoteResult(AbstractDungeon.floorNum, runId, votePerFloorIndex++);
+                        result = choicesMap.get(winningVote);
+                        System.err.println("winning vote: " + winningVote);
+                    }
+
                     if (!voteByUsernameMap.isEmpty()) {
                         twirk.channelMessage(String
                                 .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
                     }
 
                     for (String command : result.resultCommands) {
+                        String seedString = SeedHelper.getString(new Random().nextLong());
                         if (currentVote == VoteType.CHARACTER &&
                                 optionsMap.getOrDefault("asc", 0) > 0 &&
                                 result.resultCommands.size() == 1) {
-                            command += String.format(" %d", optionsMap.get("asc"));
+                            command += String.format(" %d %s", optionsMap.get("asc"), seedString);
                         }
                         readQueue.add(command);
                     }
@@ -248,6 +283,27 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 } else if (tokens[1].equals("disable")) {
                     voteByUsernameMap = null;
                     inBattle = false;
+                } else if (tokens[1].equals("recall")) {
+                    System.err.println("starting recall");
+                    voteByUsernameMap = null;
+                    inBattle = false;
+                    optionsMap.put("recall", 1);
+                    previousLevel = 0;
+                    votePerFloorIndex = 1;
+
+                    if (tokens.length >= 3) {
+                        new Thread(() -> {
+                            try {
+                                runId = Integer.parseInt(tokens[2]);
+                                String command = Slayboard.queryRunCommand(runId);
+                                readQueue.add(command);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
+                    }
+
+
                 }
             } else if (tokens.length >= 3 && tokens[0].equals("!beta")) {
                 try {
@@ -526,7 +582,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public void startCharacterVote(JsonObject stateJson) {
         choices = new ArrayList<>();
 
-        // HERE
+        // reset recall option back to playing
+        optionsMap.put("recall", 0);
+
         new Thread(() -> {
             try {
                 runId = Slayboard.startRun();
@@ -610,11 +668,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             }
         }
 
-        if (viableChoices.size() > 1 || forceWait) {
-            voteEndTimeMillis += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
-                    .get(voteType.optionName);
-        } else {
+        if (shouldRecall()) {
             voteEndTimeMillis += NO_VOTE_TIME_MILLIS;
+        } else {
+            if (viableChoices.size() > 1 || forceWait) {
+                voteEndTimeMillis += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
+                        .get(voteType.optionName);
+            } else {
+                voteEndTimeMillis += NO_VOTE_TIME_MILLIS;
+            }
         }
     }
 
@@ -648,7 +710,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             topMessage += "\nDemo Mode (Random picks) type 07734 in chat to start playing";
         }
 
-        if (!topMessage.isEmpty()) {
+        if (!topMessage.isEmpty() && !shouldRecall()) {
             BitmapFont font = FontHelper.buttonLabelFont;
             FontHelper
                     .renderFont(spriteBatch, font, topMessage, 15, Settings.HEIGHT * 7 / 8, Color.RED);
@@ -677,27 +739,40 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     private void startAiClient() {
-        if (BattleAiMod.aiClient == null) {
-            try {
-                BattleAiMod.aiClient = new AiClient();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (BattleAiMod.aiClient != null) {
-            BattleAiMod.aiClient.sendState(optionsMap.get("turns"));
-
-            SaveState toSend = new SaveState();
-
-            // send game over stats to slayboard in another thread
-            new Thread(() -> {
+        if (!shouldRecall()) {
+            if (BattleAiMod.aiClient == null) {
                 try {
-                    Slayboard.postBattleState(toSend.encode(), runId);
+                    BattleAiMod.aiClient = new AiClient();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }).start();
+            }
+
+
+            if (BattleAiMod.aiClient != null) {
+                BattleAiMod.aiClient.sendState(optionsMap.get("turns"));
+                SaveState toSend = new SaveState();
+
+                // send game over stats to slayboard in another thread
+                new Thread(() -> {
+                    try {
+                        Slayboard.postBattleState(toSend.encode(), runId);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+            }
+        } else {
+            try {
+                int floorResultId = Slayboard.queryFloorResult(AbstractDungeon.floorNum, runId)
+                                             .get(0);
+                List<Command> commands = Slayboard.queryBattleCommandResult(floorResultId);
+
+                BattleAiMod.aiClient = new AiClient(false);
+                BattleAiMod.aiClient.runQueriedCommands(commands);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -862,16 +937,39 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public void receivePostBattle(AbstractRoom battleRoom) {
         System.err.println("post battle, trying to send");
 
-        // send game over stats to slayboard in another thread
-        new Thread(() -> {
-            try {
-                int floorNum = AbstractDungeon.floorNum;
-                int hpChange = AbstractDungeon.player.currentHealth - startingHP;
+        if (!shouldRecall()) {
+            // send game over stats to slayboard in another thread
+            new Thread(() -> {
+                try {
+                    int floorNum = AbstractDungeon.floorNum;
+                    int hpChange = AbstractDungeon.player.currentHealth - startingHP;
 
-                Slayboard.postFloorResult(floorNum, hpChange, runId);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
+                    Slayboard.postFloorResult(floorNum, hpChange, runId);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
+    private static boolean shouldRecall() {
+        return optionsMap.get("recall") != 0;
+    }
+
+    @Override
+    public void receiveStartGame() {
+        if (!shouldRecall()) {
+            // Update the run seed once its set
+            new Thread(() -> {
+                try {
+                    int ascensionLevel = AbstractDungeon.ascensionLevel;
+                    Slayboard.updateRunSeedAndAscension(runId, SeedHelper
+                            .getString(Settings.seed), ascensionLevel, AbstractDungeon.player.chosenClass
+                            .name());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
     }
 }
