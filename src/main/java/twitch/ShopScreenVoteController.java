@@ -13,6 +13,7 @@ import com.megacrit.cardcrawl.shop.ShopScreen;
 import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
 import communicationmod.ChoiceScreenUtils;
+import tssrelics.relics.DiceOfFate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +31,7 @@ public class ShopScreenVoteController extends VoteController {
                 .privateStaticMethod(ChoiceScreenUtils.class, "getAvailableShopItems")
                 .invoke();
 
-        for(int i = 0; i < shopItems.size(); i++) {
+        for (int i = 0; i < shopItems.size(); i++) {
             String voteString = Integer.toString(i + 1);
 
             voteStringToShopItemMap.put(voteString, shopItems.get(i));
@@ -115,6 +116,8 @@ public class ShopScreenVoteController extends VoteController {
             return ((StoreRelic) item).relic.name;
         } else if (item instanceof StorePotion) {
             return ((StorePotion) item).potion.name;
+        } else if (item instanceof DiceOfFate.RerollStoreChoice) {
+            return "Reroll";
         }
 
         System.err.println("no string can be made for " + item);
@@ -153,6 +156,8 @@ public class ShopScreenVoteController extends VoteController {
             StorePotion storePotion = (StorePotion) item;
             return addGoldHitbox(storePotion.potion.hb, ReflectionHacks
                     .getPrivate(storePotion, StorePotion.class, "slot"));
+        } else if (item instanceof DiceOfFate.RerollStoreChoice) {
+            return DiceOfFate.rerollChoice.hb;
         }
 
         System.err.println("no string can be made for " + item);

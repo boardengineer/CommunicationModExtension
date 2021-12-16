@@ -67,6 +67,13 @@
             <systemPath>${basedir}/../_ModTheSpire/mods/CommunicationMod.jar</systemPath>
         </dependency>
         <dependency>
+            <groupId>autoplay</groupId>
+            <artifactId>TSSRelics</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/TSSRelics.jar</systemPath>
+        </dependency>
+        <dependency>
             <groupId>marisa</groupId>
             <artifactId>marisa</artifactId>
             <version>0.15.4</version>

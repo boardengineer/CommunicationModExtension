@@ -45,12 +45,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private static final long BOSS_DISPLAY_TIMEOUT = 30_000;
 
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
-    private static final long RECALL_VOTE_TIME_MILLIS = 250;
+    private static final long RECALL_VOTE_TIME_MILLIS = 2_500;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
     private static final long NORMAL_VOTE_TIME_MILLIS = 20_000;
 
     private static int startingHP = 0;
     public static int runId = 0;
+
+    private static Queue<Integer> recallQueue;
 
     public enum VoteType {
         // THe first vote in each dungeon
@@ -217,7 +219,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         System.err.println("winning vote: " + winningVote);
                     }
 
-                    if (!voteByUsernameMap.isEmpty()) {
+                    boolean shouldChannelMessageForRecall = viableChoices
+                            .size() > 1 && shouldRecall();
+                    if (!voteByUsernameMap.isEmpty() || shouldChannelMessageForRecall) {
                         twirk.channelMessage(String
                                 .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
                     }
@@ -294,7 +298,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     if (tokens.length >= 3) {
                         new Thread(() -> {
                             try {
-                                runId = Integer.parseInt(tokens[2]);
+                                recallQueue = new LinkedList<>();
+                                Arrays.stream(tokens[2].split(","))
+                                      .forEach(runId -> recallQueue.add(Integer.parseInt(runId)));
+                                runId = recallQueue.poll();
                                 String command = Slayboard.queryRunCommand(runId);
                                 readQueue.add(command);
                             } catch (IOException e) {
@@ -583,6 +590,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         choices = new ArrayList<>();
 
         // reset recall option back to playing
+        if (shouldRecall() && !recallQueue.isEmpty()) {
+            runId = recallQueue.poll();
+            String command = null;
+            try {
+                command = Slayboard.queryRunCommand(runId);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (command != null) {
+                previousLevel = 0;
+                votePerFloorIndex = 1;
+                readQueue.add(command);
+                return;
+            }
+        }
         optionsMap.put("recall", 0);
 
         new Thread(() -> {
@@ -628,12 +650,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             viableChoices.add(new Choice("proceed", "proceed", "proceed"));
         }
 
-        if (optionsMap.getOrDefault("verbose", 0) > 0) {
+        if (!shouldRecall() && optionsMap.getOrDefault("verbose", 0) > 0) {
             if (voteController != null) {
                 Optional<String> message = voteController.getTipString();
 
                 if (message.isPresent()) {
-                    twirk.priorityChannelMessage("[BOT] " + message.get());
+                    twirk.channelMessage("[BOT] " + message.get());
                 }
             }
 
@@ -651,7 +673,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                 .format("[%s| %s]", choice.voteString, choice.choiceName))
                                                      .collect(Collectors.joining(" "));
 
-                        twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
+                        twirk.channelMessage("[BOT] Vote: " + messageString);
 
                         toSend = new ArrayList<>();
                         appendedSize = 0;
@@ -663,13 +685,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                             .format("[%s| %s]", choice.voteString, choice.choiceName))
                                                  .collect(Collectors.joining(" "));
 
-                    twirk.priorityChannelMessage("[BOT] Vote: " + messageString);
+                    twirk.channelMessage("[BOT] Vote: " + messageString);
                 }
             }
         }
 
         if (shouldRecall()) {
-            voteEndTimeMillis += NO_VOTE_TIME_MILLIS;
+            voteEndTimeMillis += viableChoices.size() > 1 ? RECALL_VOTE_TIME_MILLIS : 250L;
         } else {
             if (viableChoices.size() > 1 || forceWait) {
                 voteEndTimeMillis += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
@@ -952,7 +974,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
-    private static boolean shouldRecall() {
+    public static boolean shouldRecall() {
         return optionsMap.get("recall") != 0;
     }
 
