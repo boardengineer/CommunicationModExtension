@@ -7,6 +7,7 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
+import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.CardRewardScreen;
 import com.megacrit.cardcrawl.ui.buttons.SingingBowlButton;
 import com.megacrit.cardcrawl.ui.buttons.SkipCardButton;
@@ -40,8 +41,10 @@ public class CardRewardVoteController extends VoteController {
 
         if (skippable) {
             if (twitchController.skipAfterCard) {
+                String skipCommand = AbstractDungeon
+                        .getCurrRoom() instanceof ShopRoom ? "cancel" : "proceed";
                 twitchController.viableChoices
-                        .add(new TwitchController.Choice("Skip", "0", "skip", "proceed"));
+                        .add(new TwitchController.Choice("Skip", "0", "skip", skipCommand));
             } else {
                 twitchController.viableChoices
                         .add(new TwitchController.Choice("Skip", "0", "skip"));

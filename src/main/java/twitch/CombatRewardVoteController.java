@@ -12,6 +12,8 @@ import com.megacrit.cardcrawl.rewards.RewardItem;
 import com.megacrit.cardcrawl.ui.buttons.CancelButton;
 import com.megacrit.cardcrawl.ui.buttons.ProceedButton;
 import communicationmod.CommandExecutor;
+import tssrelics.relics.SneckoCharm;
+import tssrelics.relics.SneckoSkinBoots;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -62,6 +64,9 @@ public class CombatRewardVoteController extends VoteController {
 
                 TwitchController.Choice toAdd = new TwitchController.Choice(choiceString, voteString, choiceCommand);
                 toAdd.rewardInfo = Optional.of(new TwitchController.RewardInfo(rewardJson));
+                if (toAdd.rewardInfo.isPresent() && toAdd.rewardInfo.get().relicName != null) {
+                    toAdd.choiceName = toAdd.rewardInfo.get().relicName;
+                }
                 twitchController.choices.add(toAdd);
             }
         } else {
@@ -77,17 +82,21 @@ public class CombatRewardVoteController extends VoteController {
         twitchController.choices.stream()
                                 .forEach(choice -> result.add(choice));
 
-        Optional<TwitchController.Choice> goldChoice = result.stream()
-                                                             .filter(choice -> choice.choiceName
-                                                                     .equals("gold"))
-                                                             .findAny();
-        if (goldChoice.isPresent()) {
-            ArrayList<TwitchController.Choice> onlyGold = new ArrayList<>();
-            onlyGold.add(goldChoice.get());
 
-            // In the reward screen, always take the gold first if the option exists
-            twitchController.viableChoices = onlyGold;
-            return;
+        // If anything from the auto choice list is in the reward list, product a list with it
+        // as the only choice
+        for (String choiceName : AUTO_CHOICE_NAMES) {
+            Optional<TwitchController.Choice> autoChoice = result.stream()
+                                                                 .filter(choice -> choice.choiceName
+                                                                         .equals(choiceName))
+                                                                 .findAny();
+
+            if (autoChoice.isPresent()) {
+                ArrayList<TwitchController.Choice> onlyOption = new ArrayList<>();
+                onlyOption.add(autoChoice.get());
+                twitchController.viableChoices = onlyOption;
+                return;
+            }
         }
 
         Collection<TwitchController.Choice> potionChoices = result.stream()
@@ -104,16 +113,16 @@ public class CombatRewardVoteController extends VoteController {
         boolean shouldEvaluatePotions = !hasPotionSlot && !hasSozu;
 
         for (TwitchController.Choice potionChoice : potionChoices) {
-            System.err.println("found potion choice for consideration" + potionChoice.choiceName);
             boolean skipPotion = false;
-            //Can pick up a potion but has no slots
+
+            // Can pick up a potion but has no slots.
             if (shouldEvaluatePotions) {
                 AbstractPotion lowWeightPotion = null;
                 int weightDifferential = 0;
                 int choiceWeight = POTION_WEIGHTS
                         .getOrDefault(potionChoice.rewardInfo.get().potionName, 5);
-                //Iterate through player's potions and check if which one is the lower value, then discard that one to pick up the new one
-                //Potions already in the player's inventory get priority
+
+                // Discard the lowest value potion
                 for (AbstractPotion p : AbstractDungeon.player.potions) {
                     int w = POTION_WEIGHTS.getOrDefault(p.name, 5);
                     if (choiceWeight > w) {
@@ -133,14 +142,12 @@ public class CombatRewardVoteController extends VoteController {
                 if (lowWeightPotion != null) {
                     AbstractDungeon.player.removePotion(lowWeightPotion);
                 } else {
-                    //The incoming potion is of the lowest value
+                    // The incoming potion is of the lowest value
                     skipPotion = true;
                 }
             }
 
             if (!skipPotion) {
-                System.err.println("trying to pick up potion " + potionChoice.choiceName);
-
                 ArrayList<TwitchController.Choice> onlyPotion = new ArrayList<>();
                 onlyPotion.add(potionChoice);
 
@@ -148,14 +155,14 @@ public class CombatRewardVoteController extends VoteController {
                 twitchController.viableChoices = onlyPotion;
                 return;
             } else {
-                System.err.println("trying to pick up potion " + potionChoice.choiceName);
                 result.remove(potionChoice);
             }
         }
 
         Optional<TwitchController.Choice> relicChoice = result.stream()
-                                                              .filter(choice -> choice.choiceName
-                                                                      .equals("relic"))
+                                                              .filter(choice -> choice.rewardInfo
+                                                                      .isPresent() && choice.rewardInfo
+                                                                      .get().relicName != null)
                                                               .findAny();
 
         Optional<TwitchController.Choice> sapphireKeyChoice = result.stream()
@@ -163,6 +170,8 @@ public class CombatRewardVoteController extends VoteController {
                                                                             .equals("sapphire_key"))
                                                                     .findAny();
 
+        // Automatically take relics unless there's a sapphire key attached.
+        // TODO: Relics not attached to sapphire keys should be taken before the sapphire key vote.
         if (relicChoice.isPresent() && !sapphireKeyChoice.isPresent()) {
             ArrayList<TwitchController.Choice> onlyRelic = new ArrayList<>();
             onlyRelic.add(relicChoice.get());
@@ -176,39 +185,10 @@ public class CombatRewardVoteController extends VoteController {
             }
         }
 
-        Optional<TwitchController.Choice> stolenGoldChoice = result.stream()
-                                                                   .filter(choice -> choice.choiceName
-                                                                           .equals("stolen_gold"))
-                                                                   .findAny();
-
-        if (stolenGoldChoice.isPresent()) {
-            ArrayList<TwitchController.Choice> onlyStolenGold = new ArrayList<>();
-            onlyStolenGold.add(stolenGoldChoice.get());
-
-            // Then the stolen gold
-            twitchController.viableChoices = onlyStolenGold;
-            return;
-        }
-
-        Optional<TwitchController.Choice> emeraldKeyChoice = result.stream()
-                                                                   .filter(choice -> choice.choiceName
-                                                                           .equals("emerald_key"))
-                                                                   .findAny();
-
-        if (emeraldKeyChoice.isPresent()) {
-            ArrayList<TwitchController.Choice> onlyEmeraldKey = new ArrayList<>();
-            onlyEmeraldKey.add(emeraldKeyChoice.get());
-
-            // Then the emerald key
-            twitchController.viableChoices = onlyEmeraldKey;
-            return;
-        }
-
         if (result.size() > 1) {
             twitchController.skipAfterCard = false;
             shouldAllowLeave = true;
         }
-
         if (shouldAllowLeave) {
             if (CommandExecutor.isCancelCommandAvailable()) {
                 result.add(new TwitchController.Choice("cancel", "0", "cancel"));
@@ -374,5 +354,14 @@ public class CombatRewardVoteController extends VoteController {
         add(new TinyChest().name);
         add(new WarPaint().name);
         add(new Whetstone().name);
+
+        add(SneckoSkinBoots.ID);
+        add(SneckoCharm.ID);
+    }};
+
+    public static HashSet<String> AUTO_CHOICE_NAMES = new HashSet<String>() {{
+        add("gold");
+        add("stolen_gold");
+        add("emerald_key");
     }};
 }

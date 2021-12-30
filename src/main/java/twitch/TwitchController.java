@@ -22,8 +22,10 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
+import com.megacrit.cardcrawl.relics.RunicDome;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
+import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
@@ -94,6 +96,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public static HashMap<String, Integer> optionsMap;
 
+    private boolean inVote = false;
     private long voteEndTimeMillis;
 
     ArrayList<Choice> choices;
@@ -171,8 +174,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     System.err.println("Desync detected, rerunning simluation");
                     LudicrousSpeedMod.mustRestart = false;
                     startAiClient();
-                } else {
-                    System.err.println("Rerun Controller finished sequence");
                 }
             }
         }
@@ -181,7 +182,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             if (voteByUsernameMap != null) {
                 long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
 
-                if (timeRemaining <= 0) {
+                if (timeRemaining <= 0 && inVote) {
+                    inVote = false;
 
                     if (AbstractDungeon.floorNum != previousLevel) {
                         previousLevel = AbstractDungeon.floorNum;
@@ -408,6 +410,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             availableCommandsArray.forEach(command -> availableCommands.add(command.getAsString()));
 
             if (!inBattle) {
+                if (stateJson.has("game_state")) {
+                    JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
+                    screenType = gameState.get("screen_type").getAsString();
+                    if (screenType != null) {
+
+                        if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
+                            if (AbstractDungeon
+                                    .getCurrRoom() instanceof ShopRoom && AbstractDungeon.combatRewardScreen.rewards
+                                    .isEmpty()) {
+                                readQueue.add("cancel");
+                            }
+                        }
+                    }
+                }
+
                 if (availableCommands.contains("choose")) {
                     startChooseVote(stateJson);
                 } else if (availableCommands.contains("play")) {
@@ -451,7 +468,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 } else if (screenType.equalsIgnoreCase("MAP")) {
                     if (FIRST_FLOOR_NUMS.contains(AbstractDungeon.floorNum)) {
                         voteType = VoteType.MAP_LONG;
-                    } else if (NO_OPT_REST_SITE
+                    } else if (NO_OPT_REST_SITE_FLOORS
                             .contains(AbstractDungeon.floorNum) && !AbstractDungeon.player.relics
                             .stream()
                             .anyMatch(relic -> relic instanceof WingBoots && relic.counter > 0)) {
@@ -644,6 +661,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         voteByUsernameMap = new HashMap<>();
         currentVote = voteType;
         voteEndTimeMillis = System.currentTimeMillis();
+        long voteStart = System.currentTimeMillis();
         this.stateString = stateString;
 
         if (viableChoices.isEmpty()) {
@@ -669,7 +687,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     appendedSize++;
 
                     if (appendedSize % 20 == 0) {
-                        String messageString = toSend.stream().map(choice -> String
+                        // TODO kill print
+                        String messageString = toSend.stream().peek(choice -> System.err
+                                .println(choice.rewardInfo.isPresent() ? choice.rewardInfo
+                                        .get().relicName : " ")).map(choice -> String
                                 .format("[%s| %s]", choice.voteString, choice.choiceName))
                                                      .collect(Collectors.joining(" "));
 
@@ -681,7 +702,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
 
                 if (!toSend.isEmpty()) {
-                    String messageString = toSend.stream().map(choice -> String
+                    String messageString = toSend.stream().peek(choice -> System.err
+                            .println(choice.rewardInfo.isPresent() ? choice.rewardInfo
+                                    .get().relicName : " ")).map(choice -> String
                             .format("[%s| %s]", choice.voteString, choice.choiceName))
                                                  .collect(Collectors.joining(" "));
 
@@ -691,15 +714,17 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         if (shouldRecall()) {
-            voteEndTimeMillis += viableChoices.size() > 1 ? RECALL_VOTE_TIME_MILLIS : 250L;
+            voteStart += viableChoices.size() > 1 ? RECALL_VOTE_TIME_MILLIS : 250L;
         } else {
             if (viableChoices.size() > 1 || forceWait) {
-                voteEndTimeMillis += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
+                voteStart += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
                         .get(voteType.optionName);
             } else {
-                voteEndTimeMillis += NO_VOTE_TIME_MILLIS;
+                voteStart += NO_VOTE_TIME_MILLIS;
             }
         }
+        voteEndTimeMillis = voteStart;
+        inVote = true;
     }
 
     private void startVote(VoteType voteType, String stateString) {
@@ -772,7 +797,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
 
             if (BattleAiMod.aiClient != null) {
-                BattleAiMod.aiClient.sendState(optionsMap.get("turns"));
+                int numTurns = optionsMap.get("turns");
+                if (AbstractDungeon.player.hasRelic(RunicDome.ID)) {
+                    numTurns /= 2;
+                }
+                BattleAiMod.aiClient.sendState(numTurns);
                 SaveState toSend = new SaveState();
 
                 // send game over stats to slayboard in another thread
@@ -799,7 +828,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     public static class Choice {
-        final String choiceName;
+        String choiceName;
         String voteString;
         Optional<RewardInfo> rewardInfo = Optional.empty();
         final ArrayList<String> resultCommands;
@@ -826,8 +855,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public static class RewardInfo {
         final String rewardType;
-        String potionName;
-        String relicName;
+        String potionName = null;
+        String relicName = null;
 
         RewardInfo(JsonObject rewardJson) {
             rewardType = rewardJson.get("reward_type").getAsString();
@@ -850,7 +879,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         add(34);
     }};
 
-    public static HashSet<Integer> NO_OPT_REST_SITE = new HashSet<Integer>() {{
+    public static HashSet<Integer> NO_OPT_REST_SITE_FLOORS = new HashSet<Integer>() {{
         add(14);
         add(31);
         add(48);

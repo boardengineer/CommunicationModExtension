@@ -367,8 +367,6 @@ public class Slayboard {
                 response.append(responseLine.trim());
             }
 
-            System.err.println(response.toString());
-
             JsonArray voteResults = new JsonParser().parse(response.toString()).getAsJsonArray();
             return voteResults.get(0).getAsJsonObject().get("winning_vote").getAsString();
         }

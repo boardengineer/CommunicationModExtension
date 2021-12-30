@@ -5,6 +5,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.events.beyond.MysteriousSphere;
+import com.megacrit.cardcrawl.events.city.MaskedBandits;
+import com.megacrit.cardcrawl.events.exordium.DeadAdventurer;
+import com.megacrit.cardcrawl.events.exordium.Mushrooms;
 import com.megacrit.cardcrawl.neow.NeowEvent;
 import com.megacrit.cardcrawl.ui.buttons.LargeDialogOptionButton;
 import communicationmod.ChoiceScreenUtils;
@@ -55,6 +59,14 @@ public class EventVoteController extends VoteController {
     public void render(SpriteBatch spriteBatch) {
         if (AbstractDungeon.getCurrRoom().event instanceof NeowEvent) {
             MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, CAMERA);
+        } else if (!(AbstractDungeon.getCurrRoom().event instanceof Mushrooms) &&
+                !(AbstractDungeon.getCurrRoom().event instanceof MaskedBandits) &&
+                !(AbstractDungeon.getCurrRoom().event instanceof MysteriousSphere) &&
+                !(AbstractDungeon.getCurrRoom().event instanceof DeadAdventurer)) {
+
+            // Don't show the map for the events with the event text on the left and battled on the
+            // right.
+            MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8 * 3 * -1, 0, CAMERA);
         }
 
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
