@@ -22,6 +22,7 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
+import com.megacrit.cardcrawl.relics.FrozenCore;
 import com.megacrit.cardcrawl.relics.RunicDome;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
@@ -801,6 +802,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (AbstractDungeon.player.hasRelic(RunicDome.ID)) {
                     numTurns /= 2;
                 }
+
+                if (AbstractDungeon.player.hasRelic(FrozenCore.ID)) {
+                    numTurns = numTurns + numTurns / 2;
+                }
+
                 BattleAiMod.aiClient.sendState(numTurns);
                 SaveState toSend = new SaveState();
 
@@ -897,6 +903,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         HashMap<String, Integer> frequencies = new HashMap<>();
 
+        // Concurrency error here
         voteByUsernameMap.entrySet().forEach(entry -> {
             String choice = entry.getValue();
             if (!frequencies.containsKey(choice)) {

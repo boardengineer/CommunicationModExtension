@@ -59,8 +59,7 @@ public class CardRewardVoteController extends VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             String message = choice.choiceName;
-            if (message.equalsIgnoreCase("skip") && !AbstractDungeon.player
-                    .hasRelic("PrismaticBranch")) {
+            if (message.equalsIgnoreCase("skip")) {
                 String skipMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
