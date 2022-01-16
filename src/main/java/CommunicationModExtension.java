@@ -8,10 +8,7 @@ import com.gikk.twirk.TwirkBuilder;
 import com.gikk.twirk.events.TwirkListener;
 import com.gikk.twirk.types.twitchMessage.TwitchMessage;
 import com.gikk.twirk.types.users.TwitchUser;
-import communicationmod.CommandExecutor;
-import communicationmod.CommunicationMod;
-import communicationmod.GameStateConverter;
-import communicationmod.InvalidCommandException;
+import communicationmod.*;
 import de.robojumper.ststwitch.TwitchConfig;
 import ludicrousspeed.Controller;
 import twitch.TwitchController;
@@ -144,10 +141,8 @@ public class CommunicationModExtension {
 
             try {
                 Twirk twirk = new TwirkBuilder(channel, username, token).setSSL(true).build();
-                LinkedBlockingQueue<String> readQueue = new LinkedBlockingQueue<>();
-                ReflectionHacks
-                        .setPrivateStatic(CommunicationMod.class, "readQueue", readQueue);
-                TwitchController controller = new TwitchController(readQueue, twirk);
+
+                TwitchController controller = new TwitchController(twirk);
                 BaseMod.subscribe(controller);
 
                 twirk.addIrcListener(new TwirkListener() {
@@ -157,27 +152,11 @@ public class CommunicationModExtension {
                     }
                 });
 
+                CommunicationMod.subscribe(() -> controller
+                        .startVote(GameStateConverter.getCommunicationState()));
+
                 twirk.connect();
                 System.err.println("connected as " + username);
-
-                Thread writeThread = new Thread(() -> {
-                    LinkedBlockingQueue<String> writeQueue = new LinkedBlockingQueue<>();
-                    ReflectionHacks
-                            .setPrivateStatic(CommunicationMod.class, "writeQueue", writeQueue);
-
-                    while (true) {
-                        if (!writeQueue.isEmpty()) {
-                            String stateMessage = writeQueue.poll();
-                            controller.startVote(stateMessage);
-                        }
-                    }
-                });
-
-                writeThread.start();
-
-                ReflectionHacks
-                        .setPrivateStatic(CommunicationMod.class, "writeThread", writeThread);
-
 
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();

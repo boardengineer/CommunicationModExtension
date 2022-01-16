@@ -22,7 +22,7 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
-import com.megacrit.cardcrawl.relics.FrozenCore;
+import com.megacrit.cardcrawl.relics.FrozenEye;
 import com.megacrit.cardcrawl.relics.RunicDome;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
@@ -30,6 +30,7 @@ import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
+import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
@@ -37,7 +38,6 @@ import savestate.SaveState;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber, StartGameSubscriber {
@@ -104,7 +104,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     ArrayList<Choice> viableChoices;
     private HashMap<String, Choice> choicesMap;
 
-    private final LinkedBlockingQueue<String> readQueue;
     private final Twirk twirk;
 
     private boolean shouldStartClientOnUpdate = false;
@@ -120,8 +119,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
-    public TwitchController(LinkedBlockingQueue<String> readQueue, Twirk twirk) {
-        this.readQueue = readQueue;
+    public TwitchController(Twirk twirk) {
         this.twirk = twirk;
 
         optionsMap = new HashMap<>();
@@ -236,7 +234,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                 result.resultCommands.size() == 1) {
                             command += String.format(" %d %s", optionsMap.get("asc"), seedString);
                         }
-                        readQueue.add(command);
+                        CommunicationMod.queueCommand(command);
                     }
 
                     if (!voteByUsernameMap.isEmpty()) {
@@ -271,7 +269,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             // admin direct command override
             if (tokens.length >= 2 && tokens[0].equals("!sudo")) {
                 String command = message.substring(message.indexOf(' ') + 1);
-                readQueue.add(command);
+                CommunicationMod.queueCommand(command);
             } else if (tokens.length >= 2 && tokens[0].equals("!admin")) {
                 if (tokens[1].equals("set")) {
                     if (tokens.length >= 4) {
@@ -306,7 +304,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                       .forEach(runId -> recallQueue.add(Integer.parseInt(runId)));
                                 runId = recallQueue.poll();
                                 String command = Slayboard.queryRunCommand(runId);
-                                readQueue.add(command);
+                                CommunicationMod.queueCommand(command);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -420,7 +418,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                             if (AbstractDungeon
                                     .getCurrRoom() instanceof ShopRoom && AbstractDungeon.combatRewardScreen.rewards
                                     .isEmpty()) {
-                                readQueue.add("cancel");
+                                CommunicationMod.queueCommand("cancel");
                             }
                         }
                     }
@@ -446,11 +444,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     delayProceed(screenType, stateMessage);
                 } else if (availableCommands.contains("confirm")) {
                     System.err.println("choosing confirm");
-                    readQueue.add("confirm");
+                    CommunicationMod.queueCommand("confirm");
                 } else if (availableCommands.contains("leave")) {
                     // exit shop hell
-                    readQueue.add("leave");
-                    readQueue.add("proceed");
+                    CommunicationMod.queueCommand("leave");
+                    CommunicationMod.queueCommand("proceed");
                 }
             }
         }
@@ -619,7 +617,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             if (command != null) {
                 previousLevel = 0;
                 votePerFloorIndex = 1;
-                readQueue.add(command);
+                CommunicationMod.queueCommand(command);
                 return;
             }
         }
@@ -803,7 +801,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     numTurns /= 2;
                 }
 
-                if (AbstractDungeon.player.hasRelic(FrozenCore.ID)) {
+                if (AbstractDungeon.player.hasRelic(FrozenEye.ID)) {
                     numTurns = numTurns + numTurns / 2;
                 }
 
