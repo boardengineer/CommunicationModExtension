@@ -104,7 +104,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     ArrayList<Choice> viableChoices;
     private HashMap<String, Choice> choicesMap;
 
-    private final Twirk twirk;
+    public static Twirk twirk;
 
     private boolean shouldStartClientOnUpdate = false;
     private boolean inBattle = false;
