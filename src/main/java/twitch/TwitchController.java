@@ -394,7 +394,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
 
                 if (choicesMap.containsKey(voteValue)) {
-                    voteByUsernameMap.put(userName, voteValue);
+                    try {
+                        voteByUsernameMap.put(userName, voteValue);
+                    } catch (ConcurrentModificationException e) {
+                        System.err.println("Skipping user vote");
+                    }
                 }
             }
         }
@@ -735,7 +739,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         String topMessage = "";
         if (voteByUsernameMap != null && viableChoices != null && viableChoices.size() > 1) {
             if (voteController != null) {
-                voteController.render(spriteBatch);
+                try {
+                    voteController.render(spriteBatch);
+                } catch (ConcurrentModificationException e) {
+                    System.err.println("Error: Skipping rendering because of concurrent error");
+                }
             } else {
                 BitmapFont font = FontHelper.buttonLabelFont;
                 String displayString = buildDisplayString();
