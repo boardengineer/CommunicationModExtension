@@ -1,10 +1,13 @@
 package twitch;
 
+import ThMod.event.Mushrooms_MRS;
+import basemod.BaseMod;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.events.AbstractEvent;
 import com.megacrit.cardcrawl.events.beyond.MysteriousSphere;
 import com.megacrit.cardcrawl.events.city.MaskedBandits;
 import com.megacrit.cardcrawl.events.exordium.DeadAdventurer;
@@ -59,14 +62,26 @@ public class EventVoteController extends VoteController {
     public void render(SpriteBatch spriteBatch) {
         if (AbstractDungeon.getCurrRoom().event instanceof NeowEvent) {
             MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, CAMERA);
-        } else if (!(AbstractDungeon.getCurrRoom().event instanceof Mushrooms) &&
-                !(AbstractDungeon.getCurrRoom().event instanceof MaskedBandits) &&
-                !(AbstractDungeon.getCurrRoom().event instanceof MysteriousSphere) &&
-                !(AbstractDungeon.getCurrRoom().event instanceof DeadAdventurer)) {
+        } else {
+            AbstractEvent event = AbstractDungeon.getCurrRoom().event;
 
-            // Don't show the map for the events with the event text on the left and battled on the
-            // right.
-            MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8 * 3 * -1, 0, CAMERA);
+            boolean disableMapForCustomEvent = false;
+            if (BaseMod.hasModID("TS05_Marisa:")) {
+                if (event instanceof Mushrooms_MRS) {
+                    disableMapForCustomEvent = true;
+                }
+            }
+
+            if (!(event instanceof Mushrooms) &&
+                    !(event instanceof MaskedBandits) &&
+                    !(event instanceof MysteriousSphere) &&
+                    !(event instanceof DeadAdventurer) &&
+                    !disableMapForCustomEvent) {
+
+                // Don't show the map for the events with the event text on the left and battle on the
+                // right.
+                MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8 * 3 * -1, 0, CAMERA);
+            }
         }
 
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();

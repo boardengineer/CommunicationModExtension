@@ -172,7 +172,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (LudicrousSpeedMod.mustRestart) {
                     System.err.println("Desync detected, rerunning simluation");
                     LudicrousSpeedMod.mustRestart = false;
-                    startAiClient();
+//                    startAiClient();
                 }
             }
         }
