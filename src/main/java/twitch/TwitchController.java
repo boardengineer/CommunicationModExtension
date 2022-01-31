@@ -17,8 +17,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
@@ -119,8 +121,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
+    private final HashMap<String, String> cardsToDescriptionMap;
+
     public TwitchController(Twirk twirk) {
-        this.twirk = twirk;
+        TwitchController.twirk = twirk;
 
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
@@ -133,6 +137,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
         }
+
+        cardsToDescriptionMap = new HashMap<>();
+        CardLibrary.cards.values().stream()
+                         .forEach(card -> cardsToDescriptionMap
+                                 .put(card.name.toLowerCase().replace(" ", ""), card.description
+                                         .stream()
+                                         .map(line -> replaceStringSegmentsForCard(line, card))
+                                         .collect(Collectors
+                                                 .joining(" "))));
     }
 
     @Override
@@ -375,8 +388,24 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         twirk.channelMessage("[BOT] " + relics);
                     }
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+
+        if (tokens[0].equals("!card")) {
+
+            String queryString = "";
+            for (int i = 1; i < tokens.length; i++) {
+                queryString += tokens[i].toLowerCase();
+            }
+            System.err.println("user is querying " + queryString);
+
+            if (cardsToDescriptionMap.containsKey(queryString)) {
+                twirk.channelMessage("[BOT] " + cardsToDescriptionMap.get(queryString));
+            } else {
+                System.err.println(queryString + " NOT FOUND");
             }
         }
 
@@ -1035,5 +1064,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }).start();
         }
+    }
+
+    public String replaceStringSegmentsForCard(DescriptionLine line, AbstractCard card) {
+        String result = line.text;
+
+        result = result.replace("!B!", Integer.toString(card.baseBlock));
+        result = result.replace("!D!", Integer.toString(card.baseDamage));
+        result = result.replace("!M!", Integer.toString(card.baseMagicNumber));
+
+        return result;
     }
 }
