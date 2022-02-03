@@ -675,6 +675,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             choices.add(new Choice("marisa", "5", "start marisa"));
         }
 
+        if (BaseMod.hasModID("HermitState:")) {
+            choices.add(new Choice("hermit", "6", "start hermit"));
+        }
+
         viableChoices = choices;
 
         choicesMap = new HashMap<>();

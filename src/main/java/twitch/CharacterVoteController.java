@@ -47,6 +47,10 @@ public class CharacterVoteController extends VoteController {
                 case "marisa":
                     charButton = ImageMaster.loadImage("img/charSelect/MarisaButton.png");
                     break;
+                case "hermit":
+                    charButton = ImageMaster
+                            .loadImage("hermitResources/images/charSelect/HermitButton.png");
+                    break;
             }
 
             spriteBatch.draw(charButton, 300 + 225 * i, 50, 200, 200);
