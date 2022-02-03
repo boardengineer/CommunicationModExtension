@@ -88,6 +88,20 @@
             <systemPath>${basedir}/../_ModTheSpire/mods/MarisaState.jar</systemPath>
         </dependency>
         <dependency>
+            <groupId>hermit</groupId>
+            <artifactId>hermit</artifactId>
+            <version>1.43</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/Hermit.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>marisa</groupId>
+            <artifactId>HermitState</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/HermitState.jar</systemPath>
+        </dependency>
+        <dependency>
             <groupId>mintyspire</groupId>
             <artifactId>MintySpire</artifactId>
             <version>2.5.3</version>

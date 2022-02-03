@@ -1,5 +1,6 @@
 package twitch;
 
+import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
@@ -132,7 +133,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap.put("recall", 0);
         optionsMap.put("turns", 10_000);
         optionsMap.put("verbose", 1);
-        optionsMap.put("marisa", 0);
 
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
@@ -671,7 +671,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         choices.add(new Choice("defect", "3", "start defect"));
         choices.add(new Choice("watcher", "4", "start watcher"));
 
-        if (optionsMap.getOrDefault("marisa", 0) > 0) {
+        if (BaseMod.hasModID("MarisaState:")) {
             choices.add(new Choice("marisa", "5", "start marisa"));
         }
 
