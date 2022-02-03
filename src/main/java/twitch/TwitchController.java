@@ -140,12 +140,32 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         cardsToDescriptionMap = new HashMap<>();
         CardLibrary.cards.values().stream()
-                         .forEach(card -> cardsToDescriptionMap
-                                 .put(card.name.toLowerCase().replace(" ", ""), card.description
+                         .forEach(card -> {
+                             String name = card.name.toLowerCase().replace(" ", "");
+                             String description = card.description
+                                     .stream()
+                                     .map(line -> replaceStringSegmentsForCard(line, card))
+                                     .collect(Collectors
+                                             .joining(" "));
+
+                             String descriptionResult = String.format("%s: %s", card.name, description);
+                             cardsToDescriptionMap.put(name, descriptionResult);
+
+                             try {
+                                 card.upgrade();
+                                 String upgradedName = name + "+";
+                                 String upgradedDescription = card.description
                                          .stream()
                                          .map(line -> replaceStringSegmentsForCard(line, card))
                                          .collect(Collectors
-                                                 .joining(" "))));
+                                                 .joining(" "));
+                                 String upgradedDescriptionResult = String
+                                         .format("%s: %s", card.name, upgradedDescription);
+                                 cardsToDescriptionMap.put(upgradedName, upgradedDescriptionResult);
+                             } catch (NullPointerException e) {
+                                 // upgrading sometimes nulls out, hopefully just for curses.
+                             }
+                         });
     }
 
     @Override
