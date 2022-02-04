@@ -1,5 +1,6 @@
 package twitch;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.helpers.Hitbox;
@@ -8,6 +9,7 @@ import communicationmod.ChoiceScreenUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 public class MapVoteController extends VoteController {
     private final TwitchController twitchController;
@@ -34,8 +36,13 @@ public class MapVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
 
             String message = choice.choiceName;
             if (messageToRoomNodeMap.containsKey(message)) {
@@ -49,9 +56,11 @@ public class MapVoteController extends VoteController {
                 // Alternate having the vote above and below so that the messages don't
                 // run into each other
                 if (i % 2 == 0) {
-                    RenderHelpers.renderTextBelowHitbox(spriteBatch, mapMessage, roomHitbox);
+                    RenderHelpers
+                            .renderTextBelowHitbox(spriteBatch, mapMessage, roomHitbox, messageColor);
                 } else {
-                    RenderHelpers.renderTextAboveHitbox(spriteBatch, mapMessage, roomHitbox);
+                    RenderHelpers
+                            .renderTextAboveHitbox(spriteBatch, mapMessage, roomHitbox, messageColor);
                 }
             } else {
                 System.err.println("no room button for " + choice.choiceName);

@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
@@ -13,6 +14,7 @@ import com.megacrit.cardcrawl.ui.buttons.SingingBowlButton;
 import com.megacrit.cardcrawl.ui.buttons.SkipCardButton;
 
 import java.util.HashMap;
+import java.util.Set;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
@@ -55,8 +57,13 @@ public class CardRewardVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
 
             String message = choice.choiceName;
             if (message.equalsIgnoreCase("skip")) {
@@ -67,7 +74,7 @@ public class CardRewardVoteController extends VoteController {
                 SkipCardButton skipCardButton = ReflectionHacks
                         .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "skipButton");
 
-                renderTextBelowHitbox(spriteBatch, skipMessage, cardRewardAdjust(skipCardButton.hb));
+                renderTextBelowHitbox(spriteBatch, skipMessage, cardRewardAdjust(skipCardButton.hb), messageColor);
             } else if (message.equalsIgnoreCase("bowl")) {
                 String bowlMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
@@ -76,7 +83,7 @@ public class CardRewardVoteController extends VoteController {
                 SingingBowlButton bowlButton = ReflectionHacks
                         .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "bowlButton");
 
-                renderTextBelowHitbox(spriteBatch, bowlMessage, cardRewardAdjust(bowlButton.hb));
+                renderTextBelowHitbox(spriteBatch, bowlMessage, cardRewardAdjust(bowlButton.hb), messageColor);
             } else if (messageToCardReward.containsKey(message)) {
                 AbstractCard card = messageToCardReward.get(message);
                 Hitbox cardHitbox = card.hb;
@@ -84,7 +91,7 @@ public class CardRewardVoteController extends VoteController {
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, cardMessage, cardRewardAdjust(cardHitbox));
+                renderTextBelowHitbox(spriteBatch, cardMessage, cardRewardAdjust(cardHitbox), messageColor);
             } else {
 //                System.err.println("no card button for " + choice.choiceName);
             }

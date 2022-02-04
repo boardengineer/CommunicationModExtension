@@ -8,22 +8,30 @@ import com.megacrit.cardcrawl.helpers.Hitbox;
 
 public class RenderHelpers {
     static void renderTextBelowHitbox(SpriteBatch spriteBatch, String text, Hitbox hitbox) {
+        renderTextBelowHitbox(spriteBatch, text, hitbox, null);
+    }
+
+    static void renderTextBelowHitbox(SpriteBatch spriteBatch, String text, Hitbox hitbox, Color color) {
         BitmapFont font = FontHelper.buttonLabelFont;
-        Color color = Color.RED;
+        Color actualColor = color == null ? Color.RED : color;
         float textWidth = FontHelper.getWidth(font, text, 1f);
         float messageX = hitbox.x + (hitbox.width - textWidth) / 2;
 
-        FontHelper.renderFont(spriteBatch, font, text, messageX, hitbox.y, color);
+        FontHelper.renderFont(spriteBatch, font, text, messageX, hitbox.y, actualColor);
     }
 
     static void renderTextAboveHitbox(SpriteBatch spriteBatch, String text, Hitbox hitbox) {
+        renderTextAboveHitbox(spriteBatch, text, hitbox, null);
+    }
+
+    static void renderTextAboveHitbox(SpriteBatch spriteBatch, String text, Hitbox hitbox, Color color) {
         BitmapFont font = FontHelper.buttonLabelFont;
-        Color color = Color.RED;
+        Color actualColor = color == null ? Color.RED : color;
         float textWidth = FontHelper.getWidth(font, text, 1f);
         float messageX = hitbox.x + (hitbox.width - textWidth) / 2;
 
         float messageY = hitbox.y + hitbox.height + FontHelper.getHeight(font);
 
-        FontHelper.renderFont(spriteBatch, font, text, messageX, messageY, color);
+        FontHelper.renderFont(spriteBatch, font, text, messageX, messageY, actualColor);
     }
 }

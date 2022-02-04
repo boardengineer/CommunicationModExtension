@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -17,6 +18,8 @@ import tssrelics.relics.SneckoSkinBoots;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CombatRewardVoteController extends VoteController {
     private final HashMap<String, RewardItem> voteStringToCombatRewardItem;
@@ -203,8 +206,13 @@ public class CombatRewardVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
 
             String message = choice.choiceName;
             if (message.equals("leave")) {
@@ -212,17 +220,15 @@ public class CombatRewardVoteController extends VoteController {
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                RenderHelpers
-                        .renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
-                                .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb"));
+                renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
+                        .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb"), messageColor);
             } else if (message.equals("cancel")) {
                 String leaveMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                RenderHelpers
-                        .renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
-                                .getPrivate(AbstractDungeon.overlayMenu.cancelButton, CancelButton.class, "hb"));
+                renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
+                        .getPrivate(AbstractDungeon.overlayMenu.cancelButton, CancelButton.class, "hb"), messageColor);
             } else if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
                 RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
                 String rewardItemMessage = String.format("[vote %s] (%s)",

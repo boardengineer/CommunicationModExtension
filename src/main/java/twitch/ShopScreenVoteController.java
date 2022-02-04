@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
@@ -17,6 +18,7 @@ import tssrelics.relics.DiceOfFate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ShopScreenVoteController extends VoteController {
@@ -62,8 +64,13 @@ public class ShopScreenVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
 
             String message = choice.choiceName;
             String voteString = choice.voteString;
@@ -74,14 +81,14 @@ public class ShopScreenVoteController extends VoteController {
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
                 RenderHelpers
-                        .renderTextBelowHitbox(spriteBatch, leaveMessage, AbstractDungeon.overlayMenu.cancelButton.hb);
+                        .renderTextBelowHitbox(spriteBatch, leaveMessage, AbstractDungeon.overlayMenu.cancelButton.hb, messageColor);
             } else if (message.equals("purge")) {
                 String purgeMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
                 RenderHelpers
-                        .renderTextBelowHitbox(spriteBatch, purgeMessage, addGoldHitbox(getShopPurgeHitbox(), 1));
+                        .renderTextBelowHitbox(spriteBatch, purgeMessage, addGoldHitbox(getShopPurgeHitbox(), 1), messageColor);
             } else if (voteStringToShopItemMap.containsKey(voteString)) {
                 Hitbox shopItemHitbox = getShopItemHitbox(voteStringToShopItemMap
                         .get(voteString));
@@ -92,7 +99,8 @@ public class ShopScreenVoteController extends VoteController {
                             choice.voteString,
                             voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                    RenderHelpers.renderTextBelowHitbox(spriteBatch, shopMessage, shopItemHitbox);
+                    RenderHelpers
+                            .renderTextBelowHitbox(spriteBatch, shopMessage, shopItemHitbox, messageColor);
                 } else {
                     System.err.println("no hitbox for" + choice.choiceName);
                 }

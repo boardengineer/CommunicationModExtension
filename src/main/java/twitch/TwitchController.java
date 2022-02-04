@@ -148,7 +148,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                      .collect(Collectors
                                              .joining(" "));
 
-                             String descriptionResult = String.format("%s: %s", card.name, description);
+                             String descriptionResult = String
+                                     .format("%s: %s", card.name, description);
                              cardsToDescriptionMap.put(name, descriptionResult);
 
                              try {
@@ -978,10 +979,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     private Choice getVoteResult() {
-        HashMap<String, Integer> frequencies = getVoteFrequencies();
+        Set<String> bestResults = getBestVoteResultKeys();
 
-        Set<Map.Entry<String, Integer>> entries = frequencies.entrySet();
-        if (voteByUsernameMap.size() == 0) {
+        if (bestResults.size() == 0) {
             if (viableChoices.size() > 1) {
                 consecutiveNoVotes++;
                 if (consecutiveNoVotes >= 5) {
@@ -998,19 +998,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             consecutiveNoVotes = 0;
         }
 
-        ArrayList<String> bestResults = new ArrayList<>();
-        int bestRate = 0;
-
-        for (Map.Entry<String, Integer> entry : entries) {
-            if (entry.getValue() > bestRate) {
-                bestResults = new ArrayList<>();
-                bestResults.add(entry.getKey());
-                bestRate = entry.getValue();
-            } else if (entry.getValue() == bestRate) {
-                bestResults.add(entry.getKey());
-            }
+        Iterator<String> resultFinder = bestResults.iterator();
+        int resultIndex = new Random().nextInt(bestResults.size());
+        for(int i = 0; i < resultIndex; i++) {
+            resultFinder.next();
         }
-        String bestResult = bestResults.get(new Random().nextInt(bestResults.size()));
+        String bestResult = resultFinder.next();
 
         if (!choicesMap.containsKey(bestResult.toLowerCase())) {
             System.err.println("choosing random for invalid votes " + bestResult);
@@ -1019,6 +1012,26 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         return choicesMap.get(bestResult.toLowerCase());
+    }
+
+    public Set<String> getBestVoteResultKeys() {
+        HashMap<String, Integer> frequencies = getVoteFrequencies();
+        HashSet<String> result = new HashSet<>();
+
+        Set<Map.Entry<String, Integer>> entries = frequencies.entrySet();
+        int bestRate = 0;
+
+        for (Map.Entry<String, Integer> entry : entries) {
+            if (entry.getValue() > bestRate) {
+                result = new HashSet<>();
+                result.add(entry.getKey());
+                bestRate = entry.getValue();
+            } else if (bestRate > 0 && entry.getValue() == bestRate) {
+                result.add(entry.getKey());
+            }
+        }
+
+        return result;
     }
 
     void setUpDefaultVoteOptions(JsonObject stateJson) {

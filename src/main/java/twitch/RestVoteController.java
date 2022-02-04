@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
@@ -12,6 +13,7 @@ import mintySpire.patches.map.MiniMapDisplay;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
@@ -51,8 +53,13 @@ public class RestVoteController extends VoteController {
         MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, CAMERA);
 
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
 
             String message = choice.choiceName;
             if (messageToRestOption.containsKey(message)) {
@@ -62,7 +69,7 @@ public class RestVoteController extends VoteController {
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, voteMessage, adjustSelectionHitbox(hitbox));
+                renderTextBelowHitbox(spriteBatch, voteMessage, adjustSelectionHitbox(hitbox), messageColor);
             } else {
                 System.err.println("no boss relic button for " + choice.choiceName);
             }

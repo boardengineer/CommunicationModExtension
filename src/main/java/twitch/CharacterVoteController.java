@@ -1,5 +1,6 @@
 package twitch;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
@@ -7,6 +8,7 @@ import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
 
 import java.util.HashMap;
+import java.util.Set;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
@@ -27,8 +29,13 @@ public class CharacterVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
 
             Texture charButton = null;
             switch (choice.choiceName) {
@@ -60,7 +67,8 @@ public class CharacterVoteController extends VoteController {
                     voteFrequencies.getOrDefault(choice.voteString, 0));
 
             Hitbox hitbox = new Hitbox(300 + 225 * i, 50, 200, 200);
-            renderTextBelowHitbox(spriteBatch, voteMessage, hitbox);
+
+            renderTextBelowHitbox(spriteBatch, voteMessage, hitbox, messageColor);
         }
     }
 

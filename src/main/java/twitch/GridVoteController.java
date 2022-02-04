@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
@@ -10,6 +11,7 @@ import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
 
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.Set;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
@@ -48,8 +50,14 @@ public class GridVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
+        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
+
+            Color messageColor = winningResults
+                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
+
             String message = choice.voteString;
             if (voteStringToCardMap.containsKey(message)) {
                 AbstractCard card = voteStringToCardMap.get(message);
@@ -60,7 +68,7 @@ public class GridVoteController extends VoteController {
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, voteMessage, hitbox);
+                renderTextBelowHitbox(spriteBatch, voteMessage, hitbox, messageColor);
             } else {
                 System.err.println("no event button for " + choice.choiceName);
             }
