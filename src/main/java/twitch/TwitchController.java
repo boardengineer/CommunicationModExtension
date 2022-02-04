@@ -686,17 +686,19 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             }
         }).start();
 
-        choices.add(new Choice("ironclad", "1", "start ironclad"));
-        choices.add(new Choice("silent", "2", "start silent"));
-        choices.add(new Choice("defect", "3", "start defect"));
-        choices.add(new Choice("watcher", "4", "start watcher"));
+        int choiceIndex = 1;
+
+        choices.add(new Choice("ironclad", Integer.toString(choiceIndex++), "start ironclad"));
+        choices.add(new Choice("silent", Integer.toString(choiceIndex++), "start silent"));
+        choices.add(new Choice("defect", Integer.toString(choiceIndex++), "start defect"));
+        choices.add(new Choice("watcher", Integer.toString(choiceIndex++), "start watcher"));
 
         if (BaseMod.hasModID("MarisaState:")) {
-            choices.add(new Choice("marisa", "5", "start marisa"));
+            choices.add(new Choice("marisa", Integer.toString(choiceIndex++), "start marisa"));
         }
 
         if (BaseMod.hasModID("HermitState:")) {
-            choices.add(new Choice("hermit", "6", "start hermit"));
+            choices.add(new Choice("hermit", Integer.toString(choiceIndex++), "start hermit"));
         }
 
         viableChoices = choices;
