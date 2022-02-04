@@ -50,7 +50,7 @@ public class BossRewardVoteController extends VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
-                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
+                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
             String message = choice.choiceName.toLowerCase(Locale.ROOT);
             if (messageToBossRelicMap.containsKey(message)) {

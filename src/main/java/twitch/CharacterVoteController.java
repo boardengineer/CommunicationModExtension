@@ -4,8 +4,10 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
+import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
+import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 
 import java.util.HashMap;
 import java.util.Set;
@@ -13,6 +15,9 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CharacterVoteController extends VoteController {
+    private static final Texture IRONCLAD_BACKGROUND = ImageMaster
+            .loadImage("images/ui/charSelect/ironcladPortrait.jpg");
+
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
@@ -35,7 +40,18 @@ public class CharacterVoteController extends VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
-                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
+                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+
+            CardCrawlGame.mode = CardCrawlGame.GameMode.CHAR_SELECT;
+            CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
+
+            if (winningResults.contains(choice.voteString)) {
+                CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = twitchController.characterPortrats
+                        .get(choice.choiceName);
+
+            }
+            twitchController.characterOptions.get(choice.choiceName).selected = winningResults
+                    .contains(choice.voteString);
 
             Texture charButton = null;
             switch (choice.choiceName) {

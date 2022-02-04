@@ -22,10 +22,7 @@ import java.util.HashMap;
 
 public class EventVoteController extends VoteController {
     private static final float SCALE = 3.3f;
-
-    public static final OrthographicCamera CAMERA = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
-            .getWidth() * SCALE, MiniMapDisplay.FRAME_BUFFER
-            .getHeight() * SCALE);
+    public static OrthographicCamera camera = null;
 
     // Event rendering references
     private final HashMap<String, LargeDialogOptionButton> voteStringToEventButtonMap;
@@ -35,6 +32,14 @@ public class EventVoteController extends VoteController {
     private final JsonObject stateJson;
 
     public EventVoteController(TwitchController twitchController, JsonObject stateJson) {
+        if (BaseMod.hasModID("mintyspire:")) {
+            if (camera == null) {
+                camera = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
+                        .getWidth() * SCALE, MiniMapDisplay.FRAME_BUFFER
+                        .getHeight() * SCALE);
+            }
+        }
+
         voteStringToEventButtonMap = new HashMap<>();
         ArrayList<LargeDialogOptionButton> eventButtons = ChoiceScreenUtils
                 .getActiveEventButtons();
@@ -61,7 +66,9 @@ public class EventVoteController extends VoteController {
     @Override
     public void render(SpriteBatch spriteBatch) {
         if (AbstractDungeon.getCurrRoom().event instanceof NeowEvent) {
-            MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, CAMERA);
+            if (BaseMod.hasModID("mintyspire:")) {
+                MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, camera);
+            }
         } else {
             AbstractEvent event = AbstractDungeon.getCurrRoom().event;
 
@@ -80,7 +87,10 @@ public class EventVoteController extends VoteController {
 
                 // Don't show the map for the events with the event text on the left and battle on the
                 // right.
-                MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8 * 3 * -1, 0, CAMERA);
+                if (BaseMod.hasModID("mintyspire:")) {
+                    MiniMapDisplay
+                            .renderMinimap(spriteBatch, Settings.WIDTH / 8 * 3 * -1, 0, camera);
+                }
             }
         }
 

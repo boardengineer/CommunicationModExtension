@@ -1,6 +1,8 @@
 package twitch;
 
+import ThMod.characters.Marisa;
 import basemod.BaseMod;
+import basemod.CustomCharacterSelectScreen;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
@@ -19,10 +21,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
+import com.megacrit.cardcrawl.characters.Defect;
+import com.megacrit.cardcrawl.characters.Ironclad;
+import com.megacrit.cardcrawl.characters.TheSilent;
+import com.megacrit.cardcrawl.characters.Watcher;
+import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.helpers.FontHelper;
+import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.FrozenEye;
@@ -31,9 +39,11 @@ import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
+import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import communicationmod.CommunicationMod;
+import hermit.characters.hermit;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
@@ -123,9 +133,69 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int votePerFloorIndex = 0;
 
     private final HashMap<String, String> cardsToDescriptionMap;
+    public HashMap<String, Texture> characterPortrats;
+    public HashMap<String, CharacterOption> characterOptions;
 
     public TwitchController(Twirk twirk) {
         TwitchController.twirk = twirk;
+
+        characterPortrats = new HashMap<>();
+
+
+        characterPortrats.put("ironclad", ImageMaster
+                .loadImage("images/ui/charSelect/ironcladPortrait.jpg"));
+        characterPortrats
+                .put("silent", ImageMaster.loadImage("images/ui/charSelect/silentPortrait.jpg"));
+        characterPortrats
+                .put("defect", ImageMaster.loadImage("images/ui/charSelect/defectPortrait.jpg"));
+        characterPortrats
+                .put("watcher", ImageMaster.loadImage("images/ui/charSelect/watcherPortrait.jpg"));
+
+        if (BaseMod.hasModID("MarisaState:")) {
+            characterPortrats
+                    .put("marisa", ImageMaster.loadImage("img/charSelect/marisaPortrait.jpg"));
+        }
+
+        if (BaseMod.hasModID("HermitState:")) {
+            characterPortrats.put("hermit", ImageMaster
+                    .loadImage("hermitResources/images/charSelect/hermitSelect.png"));
+        }
+
+        characterOptions = new HashMap<>();
+        ArrayList<CharacterOption> options = ReflectionHacks
+                .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
+        CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
+
+        for (CharacterOption option : options) {
+            if (option.c instanceof Ironclad) {
+                characterOptions.put("ironclad", option);
+            }
+
+            if (option.c instanceof TheSilent) {
+                characterOptions.put("silent", option);
+            }
+
+            if (option.c instanceof Defect) {
+                characterOptions.put("defect", option);
+            }
+
+            if (option.c instanceof Watcher) {
+                characterOptions.put("watcher", option);
+            }
+
+            if (BaseMod.hasModID("MarisaState:")) {
+                if (option.c instanceof Marisa) {
+                    characterOptions.put("marisa", option);
+                }
+            }
+
+            if (BaseMod.hasModID("HermitState:")) {
+                if (option.c instanceof hermit) {
+                    characterOptions.put("hermit", option);
+                }
+            }
+
+        }
 
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
@@ -1000,7 +1070,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         Iterator<String> resultFinder = bestResults.iterator();
         int resultIndex = new Random().nextInt(bestResults.size());
-        for(int i = 0; i < resultIndex; i++) {
+        for (int i = 0; i < resultIndex; i++) {
             resultFinder.next();
         }
         String bestResult = resultFinder.next();

@@ -1,5 +1,6 @@
 package twitch;
 
+import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -24,11 +25,17 @@ public class RestVoteController extends VoteController {
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
-    public static final OrthographicCamera CAMERA = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
-            .getWidth() * SCALE, MiniMapDisplay.FRAME_BUFFER
-            .getHeight() * SCALE);
+    public static OrthographicCamera camera = null;
 
     RestVoteController(TwitchController twitchController, JsonObject stateJson) {
+        if (BaseMod.hasModID("mintyspire:")) {
+            if (camera == null) {
+                camera = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
+                        .getWidth() * SCALE, MiniMapDisplay.FRAME_BUFFER
+                        .getHeight() * SCALE);
+            }
+        }
+
         this.twitchController = twitchController;
         messageToRestOption = new HashMap<>();
 
@@ -50,7 +57,9 @@ public class RestVoteController extends VoteController {
 
     @Override
     public void render(SpriteBatch spriteBatch) {
-        MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, CAMERA);
+        if (BaseMod.hasModID("mintyspire:")) {
+            MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, camera);
+        }
 
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
@@ -59,7 +68,7 @@ public class RestVoteController extends VoteController {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
-                    .contains(choice.voteString) ? Color.YELLOW : Color.RED;
+                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
             String message = choice.choiceName;
             if (messageToRestOption.containsKey(message)) {
