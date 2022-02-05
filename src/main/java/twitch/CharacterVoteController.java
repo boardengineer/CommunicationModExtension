@@ -15,15 +15,14 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CharacterVoteController extends VoteController {
-    private static final Texture IRONCLAD_BACKGROUND = ImageMaster
-            .loadImage("images/ui/charSelect/ironcladPortrait.jpg");
-
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     public CharacterVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         this.stateJson = stateJson;
+
+        twitchController.populateCharacterOptions();
     }
 
     @Override

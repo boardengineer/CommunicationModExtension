@@ -161,42 +161,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     .loadImage("hermitResources/images/charSelect/hermitSelect.png"));
         }
 
-        characterOptions = new HashMap<>();
-        ArrayList<CharacterOption> options = ReflectionHacks
-                .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
-        CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
-
-        for (CharacterOption option : options) {
-            if (option.c instanceof Ironclad) {
-                characterOptions.put("ironclad", option);
-            }
-
-            if (option.c instanceof TheSilent) {
-                characterOptions.put("silent", option);
-            }
-
-            if (option.c instanceof Defect) {
-                characterOptions.put("defect", option);
-            }
-
-            if (option.c instanceof Watcher) {
-                characterOptions.put("watcher", option);
-            }
-
-            if (BaseMod.hasModID("MarisaState:")) {
-                if (option.c instanceof Marisa) {
-                    characterOptions.put("marisa", option);
-                }
-            }
-
-            if (BaseMod.hasModID("HermitState:")) {
-                if (option.c instanceof hermit) {
-                    characterOptions.put("hermit", option);
-                }
-            }
-
-        }
-
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
@@ -237,6 +201,43 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                  // upgrading sometimes nulls out, hopefully just for curses.
                              }
                          });
+    }
+
+    public void populateCharacterOptions() {
+        characterOptions = new HashMap<>();
+        ArrayList<CharacterOption> options = ReflectionHacks
+                .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
+        CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
+
+        for (CharacterOption option : options) {
+            if (option.c instanceof Ironclad) {
+                characterOptions.put("ironclad", option);
+            }
+
+            if (option.c instanceof TheSilent) {
+                characterOptions.put("silent", option);
+            }
+
+            if (option.c instanceof Defect) {
+                characterOptions.put("defect", option);
+            }
+
+            if (option.c instanceof Watcher) {
+                characterOptions.put("watcher", option);
+            }
+
+            if (BaseMod.hasModID("MarisaState:")) {
+                if (option.c instanceof Marisa) {
+                    characterOptions.put("marisa", option);
+                }
+            }
+
+            if (BaseMod.hasModID("HermitState:")) {
+                if (option.c instanceof hermit) {
+                    characterOptions.put("hermit", option);
+                }
+            }
+        }
     }
 
     @Override
