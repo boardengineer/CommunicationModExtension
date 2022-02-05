@@ -553,14 +553,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     startChooseVote(stateJson);
                 } else if (availableCommands.contains("play")) {
                     // BATTLE STARTS HERE
-                    startingHP = AbstractDungeon.player.currentHealth;
-
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    shouldStartClientOnUpdate = true;
+                    new Thread(() -> {
+                        startingHP = AbstractDungeon.player.currentHealth;
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        shouldStartClientOnUpdate = true;
+                    }).start();
                 } else if (availableCommands.contains("start")) {
                     startCharacterVote(new JsonParser().parse(stateMessage).getAsJsonObject());
                 } else if (availableCommands.contains("proceed")) {
@@ -942,7 +943,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                 BattleAiMod.aiClient.sendState(numTurns);
                 SaveState toSend = new SaveState();
-
                 // send game over stats to slayboard in another thread
                 new Thread(() -> {
                     try {
