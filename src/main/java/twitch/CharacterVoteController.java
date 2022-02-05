@@ -35,22 +35,29 @@ public class CharacterVoteController extends VoteController {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
+        // Only take the first winning result, the text blurs together if there are multiple
+        // winners.
+        boolean firstFound = false;
+
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+            boolean isWinning = (!firstFound) && winningResults.contains(choice.voteString);
+            if (isWinning) {
+                firstFound = true;
+            }
+
+            Color messageColor = isWinning ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
             CardCrawlGame.mode = CardCrawlGame.GameMode.CHAR_SELECT;
             CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
 
-            if (winningResults.contains(choice.voteString)) {
+            if (isWinning) {
                 CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = twitchController.characterPortrats
                         .get(choice.choiceName);
 
             }
-            twitchController.characterOptions.get(choice.choiceName).selected = winningResults
-                    .contains(choice.voteString);
+            twitchController.characterOptions.get(choice.choiceName).selected = isWinning;
 
             Texture charButton = null;
             switch (choice.choiceName) {
