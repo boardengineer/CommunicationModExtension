@@ -367,6 +367,7 @@ public class CombatRewardVoteController extends VoteController {
 
     public static HashSet<String> AUTO_CHOICE_NAMES = new HashSet<String>() {{
         add("gold");
+        add("hermit_bounty");
         add("stolen_gold");
         add("emerald_key");
     }};
