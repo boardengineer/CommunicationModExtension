@@ -80,6 +80,10 @@ public class CharacterVoteController extends VoteController {
                     charButton = ImageMaster
                             .loadImage("hermitResources/images/charSelect/HermitButton.png");
                     break;
+                case "vacant":
+                    charButton = ImageMaster
+                            .loadImage("theVacantResources/images/charSelect/TheVacantButton.png");
+                    break;
             }
 
             spriteBatch.draw(charButton, 300 + 225 * i, 50, 200, 200);

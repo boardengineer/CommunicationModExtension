@@ -108,6 +108,13 @@
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/mintySpire.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>theVacant</groupId>
+            <artifactId>theVacant</artifactId>
+            <version>v0.18.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/theVacant.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

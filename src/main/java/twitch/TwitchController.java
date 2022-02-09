@@ -47,6 +47,7 @@ import hermit.characters.hermit;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
+import theVacant.characters.TheVacant;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -161,6 +162,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     .loadImage("hermitResources/images/charSelect/hermitSelect.png"));
         }
 
+        if (BaseMod.hasModID("VacantState:")) {
+            characterPortrats.put("vacant", ImageMaster
+                    .loadImage("theVacantResources/images/charSelect/VacantPortraitBG.png"));
+        }
+
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
@@ -235,6 +241,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             if (BaseMod.hasModID("HermitState:")) {
                 if (option.c instanceof hermit) {
                     characterOptions.put("hermit", option);
+                }
+            }
+
+            if (BaseMod.hasModID("VacantState:")) {
+                if (option.c instanceof TheVacant) {
+                    characterOptions.put("vacant", option);
                 }
             }
         }
@@ -772,6 +784,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         if (BaseMod.hasModID("HermitState:")) {
             choices.add(new Choice("hermit", Integer.toString(choiceIndex++), "start hermit"));
+        }
+
+        if (BaseMod.hasModID("HermitState:")) {
+            choices.add(new Choice("vacant", Integer.toString(choiceIndex++), "start the_vacant"));
         }
 
         viableChoices = choices;
