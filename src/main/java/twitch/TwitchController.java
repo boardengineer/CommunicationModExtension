@@ -28,10 +28,7 @@ import com.megacrit.cardcrawl.characters.Watcher;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
-import com.megacrit.cardcrawl.helpers.CardLibrary;
-import com.megacrit.cardcrawl.helpers.FontHelper;
-import com.megacrit.cardcrawl.helpers.ImageMaster;
-import com.megacrit.cardcrawl.helpers.SeedHelper;
+import com.megacrit.cardcrawl.helpers.*;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.FrozenEye;
 import com.megacrit.cardcrawl.relics.RunicDome;
@@ -43,6 +40,7 @@ import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import communicationmod.CommunicationMod;
+import hermit.HermitMod;
 import hermit.characters.hermit;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
@@ -134,6 +132,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int votePerFloorIndex = 0;
 
     private final HashMap<String, String> cardsToDescriptionMap;
+    private final HashMap<String, String> keywordDescriptionMap;
+
     public HashMap<String, Texture> characterPortrats;
     public HashMap<String, CharacterOption> characterOptions;
 
@@ -207,6 +207,24 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                  // upgrading sometimes nulls out, hopefully just for curses.
                              }
                          });
+
+        keywordDescriptionMap = new HashMap<>();
+        GameDictionary.keywords.entrySet().forEach(entry -> {
+            String key = entry.getKey();
+
+            key = key.replace("thevacant:", "");
+            key = key.replace(HermitMod.getModID() + ":", "");
+
+            key = key.toLowerCase();
+
+            String description = entry.getValue();
+
+            description = description.replace("#y", "");
+            description = description.replace("#b", "");
+            description = description.replace("NL", "");
+
+            keywordDescriptionMap.put(key, key + " : " + description);
+        });
     }
 
     public void populateCharacterOptions() {
@@ -504,12 +522,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             for (int i = 1; i < tokens.length; i++) {
                 queryString += tokens[i].toLowerCase();
             }
-            System.err.println("user is querying " + queryString);
 
             if (cardsToDescriptionMap.containsKey(queryString)) {
                 twirk.channelMessage("[BOT] " + cardsToDescriptionMap.get(queryString));
-            } else {
-                System.err.println(queryString + " NOT FOUND");
+            }
+        }
+
+        if (tokens[0].equals("!info")) {
+
+            String queryString = "";
+            for (int i = 1; i < tokens.length; i++) {
+                queryString += tokens[i].toLowerCase();
+            }
+
+            if (keywordDescriptionMap.containsKey(queryString)) {
+                twirk.channelMessage("[BOT] " + keywordDescriptionMap.get(queryString));
             }
         }
 
