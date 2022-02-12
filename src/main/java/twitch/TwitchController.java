@@ -216,7 +216,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 key = key.replace(HermitMod.getModID() + ":", "");
             }
 
-            key = key.toLowerCase();
+            key = key.toLowerCase().replace(" ", "");
 
             String description = entry.getValue();
 
@@ -237,7 +237,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 key = key.replace(HermitMod.getModID() + ":", "");
             }
 
-            key = key.toLowerCase();
+            key = key.toLowerCase().replace(" ", "");
 
             String description = relic.description;
 
@@ -245,7 +245,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             description = description.replace("#b", "");
             description = description.replace("NL", "");
 
-            System.err.println("adding " + key + " " + description);
+            description = description.replace("thevacant:", "");
+
+            if (BaseMod.hasModID("HermitState:")) {
+                description = description.replace(HermitMod.getModID() + ":", "");
+            }
 
             relicDescriptionMap.put(key, relic.name + " : " + description);
         });
