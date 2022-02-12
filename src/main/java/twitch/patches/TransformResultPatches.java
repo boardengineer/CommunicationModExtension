@@ -91,7 +91,7 @@ public class TransformResultPatches {
         }
     }
 
-    @SpirePatch(clz = FestivuePole.AirGrievencesEffect.class, method = "update")
+    @SpirePatch(clz = FestivuePole.AirGrievencesEffect.class, method = "update", requiredModId = "TSSRelics")
     public static class EnableOnFestivusPole {
         @SpirePrefixPatch
         public static void enableMessaging(FestivuePole.AirGrievencesEffect airGrievencesEffect) {

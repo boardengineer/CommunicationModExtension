@@ -29,10 +29,7 @@ import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.*;
-import com.megacrit.cardcrawl.relics.CursedKey;
-import com.megacrit.cardcrawl.relics.FrozenEye;
-import com.megacrit.cardcrawl.relics.RunicDome;
-import com.megacrit.cardcrawl.relics.WingBoots;
+import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
@@ -133,6 +130,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private final HashMap<String, String> cardsToDescriptionMap;
     private final HashMap<String, String> keywordDescriptionMap;
+    private final HashMap<String, String> relicDescriptionMap;
 
     public HashMap<String, Texture> characterPortrats;
     public HashMap<String, CharacterOption> characterOptions;
@@ -213,7 +211,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             String key = entry.getKey();
 
             key = key.replace("thevacant:", "");
-            key = key.replace(HermitMod.getModID() + ":", "");
+
+            if (BaseMod.hasModID("HermitState:")) {
+                key = key.replace(HermitMod.getModID() + ":", "");
+            }
 
             key = key.toLowerCase();
 
@@ -224,6 +225,29 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             description = description.replace("NL", "");
 
             keywordDescriptionMap.put(key, key + " : " + description);
+        });
+
+        relicDescriptionMap = new HashMap<>();
+        getAllRelics().forEach(relic -> {
+            String key = relic.name;
+
+            key = key.replace("thevacant:", "");
+
+            if (BaseMod.hasModID("HermitState:")) {
+                key = key.replace(HermitMod.getModID() + ":", "");
+            }
+
+            key = key.toLowerCase();
+
+            String description = relic.description;
+
+            description = description.replace("#y", "");
+            description = description.replace("#b", "");
+            description = description.replace("NL", "");
+
+            System.err.println("adding " + key + " " + description);
+
+            relicDescriptionMap.put(key, relic.name + " : " + description);
         });
     }
 
@@ -537,6 +561,18 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             if (keywordDescriptionMap.containsKey(queryString)) {
                 twirk.channelMessage("[BOT] " + keywordDescriptionMap.get(queryString));
+            }
+        }
+
+        if (tokens[0].equals("!relic")) {
+
+            String queryString = "";
+            for (int i = 1; i < tokens.length; i++) {
+                queryString += tokens[i].toLowerCase();
+            }
+
+            if (relicDescriptionMap.containsKey(queryString)) {
+                twirk.channelMessage("[BOT] " + relicDescriptionMap.get(queryString));
             }
         }
 
@@ -1227,5 +1263,24 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         result = result.replace("!M!", Integer.toString(card.baseMagicNumber));
 
         return result;
+    }
+
+    public static ArrayList<AbstractRelic> getAllRelics() {
+        ArrayList<AbstractRelic> relics = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        HashMap<String, AbstractRelic> sharedRelics = ReflectionHacks
+                .getPrivateStatic(RelicLibrary.class, "sharedRelics");
+
+        relics.addAll(sharedRelics.values());
+        relics.addAll(RelicLibrary.redList);
+        relics.addAll(RelicLibrary.greenList);
+        relics.addAll(RelicLibrary.blueList);
+        relics.addAll(RelicLibrary.whiteList);
+        relics.addAll(BaseMod.getAllCustomRelics().values().stream()
+                             .flatMap(characterRelicMap -> characterRelicMap.values().stream())
+                             .collect(Collectors.toCollection(ArrayList::new)));
+
+        Collections.sort(relics);
+        return relics;
     }
 }
