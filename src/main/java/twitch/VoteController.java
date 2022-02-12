@@ -13,5 +13,13 @@ public abstract class VoteController {
         return Optional.empty();
     }
 
-    abstract void endVote();
+    void endVote(TwitchController.Choice result) {
+        endVote();
+    }
+
+    /**
+     * Doesn't get called if the override with a result gets re-implemented
+     */
+    void endVote() {
+    }
 }

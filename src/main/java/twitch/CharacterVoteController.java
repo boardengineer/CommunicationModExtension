@@ -9,12 +9,19 @@ import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CharacterVoteController extends VoteController {
+    public static final HashMap<String, String> MOD_CHARACTER_EXTRA_INFO = new HashMap<String, String>() {{
+        put("hermit", "(!hermit) (!hermitinfo) (!trymodchars)");
+        put("marisa", "(!marisa) (!marisainfo) (!trymodchars)");
+        put("vacant", "(!vacant) (!vacantinfo) (!trymodchars)");
+    }};
+
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
@@ -99,7 +106,28 @@ public class CharacterVoteController extends VoteController {
     }
 
     @Override
-    public void endVote() {
+    public void endVote(TwitchController.Choice result) {
+        int ascension = TwitchController.optionsMap.get("asc");
+        int lives = TwitchController.optionsMap.get("lives");
 
+        String titleSuffix = String
+                .format(" Ascension: %d\t Lives: %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(result.choiceName));
+
+        if (MOD_CHARACTER_EXTRA_INFO.containsKey(result.choiceName)) {
+            titleSuffix = titleSuffix + " " + MOD_CHARACTER_EXTRA_INFO.get(result.choiceName);
+        }
+
+        final String finalSuffix = titleSuffix;
+        new Thread(() -> {
+            try {
+                twitchController.apiController.setStreamTitle(finalSuffix);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private static String capitalizeFirstLetter(String originalString) {
+        return originalString.substring(0, 1).toUpperCase() + originalString.substring(1);
     }
 }

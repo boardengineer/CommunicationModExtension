@@ -135,8 +135,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public HashMap<String, Texture> characterPortrats;
     public HashMap<String, CharacterOption> characterOptions;
 
+    public TwitchApiController apiController;
+
     public TwitchController(Twirk twirk) {
         TwitchController.twirk = twirk;
+        try {
+            apiController = new TwitchApiController();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         characterPortrats = new HashMap<>();
 
@@ -352,10 +359,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         votePerFloorIndex = 0;
                     }
 
-                    if (voteController != null) {
-                        voteController.endVote();
-                    }
-
                     voteByUsernameMap.keySet().forEach(userName -> {
                         if (!voteFrequencies.containsKey(userName)) {
                             voteFrequencies.put(userName, 0);
@@ -380,7 +383,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         String winningVote = Slayboard
                                 .queryVoteResult(AbstractDungeon.floorNum, runId, votePerFloorIndex++);
                         result = choicesMap.get(winningVote);
-                        System.err.println("winning vote: " + winningVote);
+                    }
+
+                    if (voteController != null) {
+                        voteController.endVote(result);
                     }
 
                     boolean shouldChannelMessageForRecall = viableChoices
@@ -853,7 +859,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             choices.add(new Choice("hermit", Integer.toString(choiceIndex++), "start hermit"));
         }
 
-        if (BaseMod.hasModID("HermitState:")) {
+        if (BaseMod.hasModID("VacantState:")) {
             choices.add(new Choice("vacant", Integer.toString(choiceIndex++), "start the_vacant"));
         }
 
