@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import javassist.Modifier;
 import twitch.BetaArtRequest;
+import twitch.PredictionInfo;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -58,10 +59,9 @@ public class SampleTwitchInterface {
             token = properties.getProperty("token");
             clientId = properties.getProperty("client_id");
 
-            Optional<BetaArtRequest> request = getBetaArtRedemptions();
-            if (request.isPresent()) {
-                fullfillBetaArtReward(request.get().redemptionId);
-            }
+            Optional<PredictionInfo> info = createPrediction();
+
+            resolvePrediction(info.get(), false);
 
         } else {
             System.out.println("no proper login");
@@ -356,6 +356,123 @@ public class SampleTwitchInterface {
             System.out.println("failed with code " + responseCode + " " + http
                     .getResponseMessage());
         }
+    }
 
+    private static Optional<PredictionInfo> createPrediction() throws IOException {
+        URL url = new URL("https://api.twitch.tv/helix/predictions");
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("POST");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Content-Type", "application/json");
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
+
+        JsonObject dataJson = new JsonObject();
+
+        dataJson.addProperty("broadcaster_id", BROADCASTER_ID);
+        dataJson.addProperty("title", "Will we beat Act 3?");
+
+        JsonArray outcomes = new JsonArray();
+
+        JsonObject winOutcome = new JsonObject();
+        winOutcome.addProperty("title", "YES! win win win win");
+
+        JsonObject loseOutcome = new JsonObject();
+        loseOutcome.addProperty("title", "NO! only mostly perfect");
+
+        outcomes.add(winOutcome);
+        outcomes.add(loseOutcome);
+
+        dataJson.add("outcomes", outcomes);
+
+        dataJson.addProperty("prediction_window", 300);
+
+        String data = dataJson.toString();
+
+        byte[] out = data.getBytes(StandardCharsets.UTF_8);
+
+        OutputStream stream = http.getOutputStream();
+        stream.write(out);
+
+        int responseCode = http.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            // print result
+
+            JsonObject responseJson = new JsonParser().parse(response.toString()).getAsJsonObject();
+
+            JsonObject predictionJson = responseJson.get("data").getAsJsonArray().get(0)
+                                                    .getAsJsonObject();
+
+            PredictionInfo result = new PredictionInfo();
+            result.predictionId = predictionJson.get("id").getAsString();
+
+            JsonArray outcomeResults = predictionJson.get("outcomes").getAsJsonArray();
+            result.winningId = outcomeResults.get(0).getAsJsonObject().get("id").getAsString();
+            result.losingId = outcomeResults.get(1).getAsJsonObject().get("id").getAsString();
+
+            return Optional.of(result);
+        } else {
+            System.out.println("failed with code " + responseCode + " " + http
+                    .getResponseMessage());
+        }
+
+        return Optional.empty();
+    }
+
+    public static void resolvePrediction(PredictionInfo predictionInfo, boolean win) throws IOException {
+        URL url = new URL("https://api.twitch.tv/helix/predictions");
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("PATCH");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Content-Type", "application/json");
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+        JsonObject dataJson = new JsonObject();
+
+        dataJson.addProperty("broadcaster_id", BROADCASTER_ID);
+        dataJson.addProperty("id", predictionInfo.predictionId);
+        dataJson.addProperty("status", "RESOLVED");
+        dataJson.addProperty("winning_outcome_id", win ? predictionInfo.winningId : predictionInfo.losingId);
+
+        String data = dataJson.toString();
+
+        byte[] out = data.getBytes(StandardCharsets.UTF_8);
+
+        OutputStream stream = http.getOutputStream();
+        stream.write(out);
+
+        int responseCode = http.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            // print result
+            System.out.println(response.toString());
+        } else {
+            System.out.println("failed with code " + responseCode + " " + http
+                    .getResponseMessage());
+        }
     }
 }

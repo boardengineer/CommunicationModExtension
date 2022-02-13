@@ -124,7 +124,15 @@ public class CharacterVoteController extends VoteController {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            try {
+                twitchController.currentPrediction = twitchController.apiController
+                        .createPrediction();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }).start();
+
     }
 
     private static String capitalizeFirstLetter(String originalString) {

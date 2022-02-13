@@ -145,6 +145,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     HashMap<String, Long> betaExpirationsMap;
     SpireConfig betaArtConfig;
 
+    public Optional<PredictionInfo> currentPrediction = Optional.empty();
+
     public TwitchController(Twirk twirk) {
         TwitchController.twirk = twirk;
         try {
@@ -850,6 +852,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     }
                 } else {
                     optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) - 1);
+                }
+
+                if (currentPrediction.isPresent()) {
+                    apiController.resolvePrediction(currentPrediction.get(), reportedVictory);
                 }
 
 
