@@ -1,6 +1,10 @@
 package utilities;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import javassist.Modifier;
+import twitch.BetaArtRequest;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -9,21 +13,22 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 public class SampleTwitchInterface {
     private static final Field MODIFIERS_FIELD;
-    private static String BROADCASTER_ID = "605614377";
+
+    private static final String BROADCASTER_ID = "605614377";
+    private static final String BETA_ART_REWARD_ID = "32907622-e992-4088-af09-46c75ad43cfa";
+
     private static String token;
     private static String clientId;
 
     static {
         try {
 
-            Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+            Method getDeclaredFields0 = Class.class
+                    .getDeclaredMethod("getDeclaredFields0", boolean.class);
             getDeclaredFields0.setAccessible(true);
             Field[] fields = (Field[]) getDeclaredFields0.invoke(Field.class, false);
             Field modifiers = null;
@@ -53,7 +58,10 @@ public class SampleTwitchInterface {
             token = properties.getProperty("token");
             clientId = properties.getProperty("client_id");
 
-            modifyChannel();
+            Optional<BetaArtRequest> request = getBetaArtRedemptions();
+            if (request.isPresent()) {
+                fullfillBetaArtReward(request.get().redemptionId);
+            }
 
         } else {
             System.out.println("no proper login");
@@ -96,7 +104,6 @@ public class SampleTwitchInterface {
                 System.out.println("failure");
             }
         }
-        System.out.println("we back?");
     }
 
     public static void queryChannel() throws IOException {
@@ -204,5 +211,151 @@ public class SampleTwitchInterface {
         }
 
         return hasAllRequiredFields;
+    }
+
+    private static void createBetaRedemption() throws IOException {
+        URL url = new URL("https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=" + BROADCASTER_ID);
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("POST");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Content-Type", "application/json");
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
+
+        JsonObject dataJson = new JsonObject();
+
+        dataJson.addProperty("title", "Set Beta Art for 1 Week");
+        dataJson.addProperty("cost", 15_000);
+        dataJson.addProperty("is_user_input_required", true);
+        dataJson.addProperty("prompt", "What Beta Art would you like to enable?  You can double check spelling by using the !card command.");
+
+        String data = dataJson.toString();
+
+        byte[] out = data.getBytes(StandardCharsets.UTF_8);
+
+        OutputStream stream = http.getOutputStream();
+        stream.write(out);
+
+        int responseCode = http.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            // print result
+
+            JsonObject responseJson = new JsonParser().parse(response.toString()).getAsJsonObject();
+
+            String rewardId = responseJson.get("data").getAsJsonArray().get(0).getAsJsonObject()
+                                          .get("id").getAsString();
+
+            System.out.println("rewardId " + rewardId);
+        } else {
+            System.out.println("failed with code " + responseCode + " " + http
+                    .getResponseMessage());
+        }
+    }
+
+    private static Optional<BetaArtRequest> getBetaArtRedemptions() throws IOException {
+        String queryUrl = String
+                .format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED", "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions", BROADCASTER_ID, BETA_ART_REWARD_ID);
+
+        System.out.println(queryUrl);
+        URL url = new URL(queryUrl);
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("GET");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+        if (http.getResponseCode() == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            // print result
+            JsonObject responseJson = new JsonParser().parse(response.toString()).getAsJsonObject();
+            JsonArray dataArray = responseJson.get("data").getAsJsonArray();
+
+            if (dataArray.size() > 0) {
+                JsonObject redemption = dataArray.get(0).getAsJsonObject();
+
+                BetaArtRequest result = new BetaArtRequest();
+
+                result.redemptionId = redemption.get("id").getAsString();
+                result.userInput = redemption.get("user_input").getAsString();
+
+                return Optional.of(result);
+            }
+
+            System.out.println(response.toString());
+        } else {
+            System.out.println("failed with code " + http.getResponseCode() + " " + http
+                    .getResponseMessage());
+        }
+
+        return Optional.empty();
+    }
+
+    public static void fullfillBetaArtReward(String redemptionId) throws IOException {
+        String urlBuilder = String
+                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, BETA_ART_REWARD_ID, redemptionId);
+
+        URL url = new URL(urlBuilder);
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("PATCH");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Content-Type", "application/json");
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+
+        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
+        JsonObject dataJson = new JsonObject();
+
+        dataJson.addProperty("status", "FULFILLED");
+
+        String data = dataJson.toString();
+
+        byte[] out = data.getBytes(StandardCharsets.UTF_8);
+
+        OutputStream stream = http.getOutputStream();
+        stream.write(out);
+
+        int responseCode = http.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            // print result
+            System.out.println(response.toString());
+        } else {
+            System.out.println("failed with code " + responseCode + " " + http
+                    .getResponseMessage());
+        }
+
     }
 }

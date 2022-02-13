@@ -14,9 +14,11 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
 import com.gikk.twirk.Twirk;
 import com.gikk.twirk.types.users.TwitchUser;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
@@ -124,11 +126,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static long lastDeckDisplayTimestamp = 0L;
     public static long lastRelicDisplayTimestamp = 0L;
     public static long lastBossDisplayTimestamp = 0L;
+    public static long pollBetaArtTimestamp = 0L;
 
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
     private final HashMap<String, String> cardsToDescriptionMap;
+    private final HashMap<String, String> cardNamesToIdMap;
+
     private final HashMap<String, String> keywordDescriptionMap;
     private final HashMap<String, String> relicDescriptionMap;
 
@@ -137,6 +142,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public TwitchApiController apiController;
 
+    HashMap<String, Long> betaExpirationsMap;
+    SpireConfig betaArtConfig;
+
     public TwitchController(Twirk twirk) {
         TwitchController.twirk = twirk;
         try {
@@ -144,6 +152,35 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        betaExpirationsMap = new HashMap<>();
+        new Thread(() -> {
+            try {
+                betaArtConfig = new SpireConfig("CommModExtension", "beta_redemptions");
+
+                JsonObject betaMapJson = new JsonParser()
+                        .parse(betaArtConfig.getString("beta_timestamps")).getAsJsonObject();
+
+                System.err.println(betaMapJson);
+
+                long now = System.currentTimeMillis();
+                for (Map.Entry<String, JsonElement> entry : betaMapJson.entrySet()) {
+                    String key = entry.getKey();
+                    long expiration = betaMapJson.get(key).getAsLong();
+                    if (expiration > now) {
+                        System.err.println("setting " + key);
+                        betaExpirationsMap.put(key, expiration);
+                        UnlockTracker.betaCardPref.putBoolean(key, true);
+                    }
+                }
+                saveBetaConfig();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        pollBetaArtTimestamp = System.currentTimeMillis() + 10_000;
 
         characterPortrats = new HashMap<>();
 
@@ -183,6 +220,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             optionsMap.put(voteType.optionName, voteType.defaultTime);
         }
 
+        cardNamesToIdMap = new HashMap<>();
         cardsToDescriptionMap = new HashMap<>();
         CardLibrary.cards.values().stream()
                          .forEach(card -> {
@@ -196,6 +234,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                              String descriptionResult = String
                                      .format("%s: %s", card.name, description);
                              cardsToDescriptionMap.put(name, descriptionResult);
+                             cardNamesToIdMap.put(name, card.cardID);
 
                              try {
                                  card.upgrade();
@@ -311,6 +350,35 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             shouldStartClientOnUpdate = false;
             inBattle = true;
             startAiClient();
+        }
+
+        if (pollBetaArtTimestamp < System.currentTimeMillis()) {
+            pollBetaArtTimestamp = System.currentTimeMillis() + 5_000;
+            new Thread(() -> {
+                try {
+                    Optional<BetaArtRequest> betaArtRequestOptional = apiController
+                            .getBetaArtRedemptions();
+                    if (betaArtRequestOptional.isPresent()) {
+                        BetaArtRequest betaArtRequest = betaArtRequestOptional.get();
+                        System.err
+                                .println("found beta art reuqest for " + betaArtRequest.userInput);
+
+                        String queryName = betaArtRequest.userInput.replace(" ", "").toLowerCase();
+
+                        String cardId = cardNamesToIdMap.get(queryName);
+                        UnlockTracker.betaCardPref.putBoolean(cardId, true);
+
+                        apiController.fullfillBetaArtReward(betaArtRequest.redemptionId);
+
+                        long inAWeek = System.currentTimeMillis() + 1_000 * 60 * 60 * 24 * 7;
+
+                        betaExpirationsMap.put(cardId, inAWeek);
+                        saveBetaConfig();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
         }
 
         if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
@@ -1292,5 +1360,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         Collections.sort(relics);
         return relics;
+    }
+
+    private void saveBetaConfig() throws IOException {
+        JsonObject toWrite = new JsonObject();
+        for (Map.Entry<String, Long> entry : betaExpirationsMap.entrySet()) {
+            toWrite.addProperty(entry.getKey(), entry.getValue());
+        }
+
+        betaArtConfig.setString("beta_timestamps", toWrite.toString());
+        betaArtConfig.save();
     }
 }
