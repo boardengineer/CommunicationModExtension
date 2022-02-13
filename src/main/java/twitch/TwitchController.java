@@ -161,14 +161,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 JsonObject betaMapJson = new JsonParser()
                         .parse(betaArtConfig.getString("beta_timestamps")).getAsJsonObject();
 
-                System.err.println(betaMapJson);
-
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, JsonElement> entry : betaMapJson.entrySet()) {
                     String key = entry.getKey();
                     long expiration = betaMapJson.get(key).getAsLong();
                     if (expiration > now) {
-                        System.err.println("setting " + key);
                         betaExpirationsMap.put(key, expiration);
                         UnlockTracker.betaCardPref.putBoolean(key, true);
                     }
@@ -360,20 +357,25 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                             .getBetaArtRedemptions();
                     if (betaArtRequestOptional.isPresent()) {
                         BetaArtRequest betaArtRequest = betaArtRequestOptional.get();
-                        System.err
-                                .println("found beta art reuqest for " + betaArtRequest.userInput);
 
                         String queryName = betaArtRequest.userInput.replace(" ", "").toLowerCase();
 
-                        String cardId = cardNamesToIdMap.get(queryName);
-                        UnlockTracker.betaCardPref.putBoolean(cardId, true);
+                        if (cardNamesToIdMap.containsKey(queryName)) {
+                            String cardId = cardNamesToIdMap.get(queryName);
 
-                        apiController.fullfillBetaArtReward(betaArtRequest.redemptionId);
+                            UnlockTracker.betaCardPref.putBoolean(cardId, true);
 
-                        long inAWeek = System.currentTimeMillis() + 1_000 * 60 * 60 * 24 * 7;
+                            apiController.fullfillBetaArtReward(betaArtRequest.redemptionId);
 
-                        betaExpirationsMap.put(cardId, inAWeek);
-                        saveBetaConfig();
+                            long inAWeek = System.currentTimeMillis() + 1_000 * 60 * 60 * 24 * 7;
+
+                            betaExpirationsMap.put(cardId, inAWeek);
+                            saveBetaConfig();
+                            twirk.channelMessage("[Bot] Beta art set successfully for " + betaArtRequest.userInput);
+                        } else {
+                            apiController.cancelBetaArtReward(betaArtRequest.redemptionId);
+                            twirk.channelMessage("[Bot] Redemption Cancelled, no card matching " + betaArtRequest.userInput);
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

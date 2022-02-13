@@ -161,9 +161,50 @@ public class TwitchApiController {
                 response.append(inputLine);
             }
             in.close();
+        } else {
+            System.out.println("failed with code " + responseCode + " " + http
+                    .getResponseMessage());
+        }
 
-            // print result
-            System.out.println(response.toString());
+    }
+
+    public void cancelBetaArtReward(String redemptionId) throws IOException {
+        String urlBuilder = String
+                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, BETA_ART_REWARD_ID, redemptionId);
+
+        URL url = new URL(urlBuilder);
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("PATCH");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Content-Type", "application/json");
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+
+        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
+        JsonObject dataJson = new JsonObject();
+
+        dataJson.addProperty("status", "CANCELED");
+
+        String data = dataJson.toString();
+
+        byte[] out = data.getBytes(StandardCharsets.UTF_8);
+
+        OutputStream stream = http.getOutputStream();
+        stream.write(out);
+
+        int responseCode = http.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
         } else {
             System.out.println("failed with code " + responseCode + " " + http
                     .getResponseMessage());
