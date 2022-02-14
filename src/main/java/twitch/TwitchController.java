@@ -844,9 +844,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
                                                    .get("victory").getAsBoolean();
                 int floor = gameState.get("floor").getAsInt();
-                if (reportedVictory || floor > 51) {
+                boolean didClimb = reportedVictory || floor > 51;
+                if (didClimb) {
                     optionsMap.put("asc", optionsMap.getOrDefault("asc", 0) + 1);
-                    if (reportedVictory && floor > 51) {
+                    if (didClimb) {
                         // Heart kills get an extra life
                         optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) + 1);
                     }
@@ -855,7 +856,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
 
                 if (currentPrediction.isPresent()) {
-                    apiController.resolvePrediction(currentPrediction.get(), reportedVictory);
+                    apiController.resolvePrediction(currentPrediction.get(), didClimb);
                 }
 
 
