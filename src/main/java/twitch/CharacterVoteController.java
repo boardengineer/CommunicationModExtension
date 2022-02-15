@@ -1,15 +1,27 @@
 package twitch;
 
+import ThMod.characters.Marisa;
+import basemod.BaseMod;
+import basemod.CustomCharacterSelectScreen;
+import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
+import com.megacrit.cardcrawl.characters.Defect;
+import com.megacrit.cardcrawl.characters.Ironclad;
+import com.megacrit.cardcrawl.characters.TheSilent;
+import com.megacrit.cardcrawl.characters.Watcher;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
+import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
+import hermit.characters.hermit;
+import theVacant.characters.TheVacant;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -25,11 +37,13 @@ public class CharacterVoteController extends VoteController {
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
+    private HashMap<String, CharacterOption> characterOptions;
+
     public CharacterVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         this.stateJson = stateJson;
 
-        twitchController.populateCharacterOptions();
+        characterOptions = getCharacterOptions();
     }
 
     @Override
@@ -60,11 +74,11 @@ public class CharacterVoteController extends VoteController {
             CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
 
             if (isWinning) {
-                CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = twitchController.characterPortrats
+                CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = twitchController.characterPortraits
                         .get(choice.choiceName);
 
             }
-            twitchController.characterOptions.get(choice.choiceName).selected = isWinning;
+            characterOptions.get(choice.choiceName).selected = isWinning;
 
             Texture charButton = null;
             switch (choice.choiceName) {
@@ -133,6 +147,51 @@ public class CharacterVoteController extends VoteController {
             }
         }).start();
 
+    }
+
+    private HashMap<String, CharacterOption> getCharacterOptions() {
+        HashMap<String, CharacterOption> characterOptions = new HashMap<>();
+        ArrayList<CharacterOption> options = ReflectionHacks
+                .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
+        CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
+
+        for (CharacterOption option : options) {
+            if (option.c instanceof Ironclad) {
+                characterOptions.put("ironclad", option);
+            }
+
+            if (option.c instanceof TheSilent) {
+                characterOptions.put("silent", option);
+            }
+
+            if (option.c instanceof Defect) {
+                characterOptions.put("defect", option);
+            }
+
+            if (option.c instanceof Watcher) {
+                characterOptions.put("watcher", option);
+            }
+
+            if (BaseMod.hasModID("MarisaState:")) {
+                if (option.c instanceof Marisa) {
+                    characterOptions.put("marisa", option);
+                }
+            }
+
+            if (BaseMod.hasModID("HermitState:")) {
+                if (option.c instanceof hermit) {
+                    characterOptions.put("hermit", option);
+                }
+            }
+
+            if (BaseMod.hasModID("VacantState:")) {
+                if (option.c instanceof TheVacant) {
+                    characterOptions.put("vacant", option);
+                }
+            }
+        }
+
+        return characterOptions;
     }
 
     private static String capitalizeFirstLetter(String originalString) {

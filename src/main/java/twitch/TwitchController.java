@@ -1,8 +1,6 @@
 package twitch;
 
-import ThMod.characters.Marisa;
 import basemod.BaseMod;
-import basemod.CustomCharacterSelectScreen;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
@@ -14,20 +12,13 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
 import com.gikk.twirk.Twirk;
 import com.gikk.twirk.types.users.TwitchUser;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
-import com.megacrit.cardcrawl.characters.Defect;
-import com.megacrit.cardcrawl.characters.Ironclad;
-import com.megacrit.cardcrawl.characters.TheSilent;
-import com.megacrit.cardcrawl.characters.Watcher;
-import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.*;
@@ -35,16 +26,13 @@ import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
-import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import communicationmod.CommunicationMod;
 import hermit.HermitMod;
-import hermit.characters.hermit;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
-import theVacant.characters.TheVacant;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -106,6 +94,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private String screenType = null;
     public static VoteController voteController;
 
+    private final BetaArtController betaArtController;
+
     public static HashMap<String, Integer> optionsMap;
 
     private boolean inVote = false;
@@ -126,24 +116,19 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static long lastDeckDisplayTimestamp = 0L;
     public static long lastRelicDisplayTimestamp = 0L;
     public static long lastBossDisplayTimestamp = 0L;
-    public static long pollBetaArtTimestamp = 0L;
 
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
     private final HashMap<String, String> cardsToDescriptionMap;
-    private final HashMap<String, String> cardNamesToIdMap;
+    public final HashMap<String, String> cardNamesToIdMap;
 
     private final HashMap<String, String> keywordDescriptionMap;
     private final HashMap<String, String> relicDescriptionMap;
 
-    public HashMap<String, Texture> characterPortrats;
-    public HashMap<String, CharacterOption> characterOptions;
+    public HashMap<String, Texture> characterPortraits;
 
     public TwitchApiController apiController;
-
-    HashMap<String, Long> betaExpirationsMap;
-    SpireConfig betaArtConfig;
 
     public Optional<PredictionInfo> currentPrediction = Optional.empty();
 
@@ -155,56 +140,32 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             e.printStackTrace();
         }
 
-        betaExpirationsMap = new HashMap<>();
-        new Thread(() -> {
-            try {
-                betaArtConfig = new SpireConfig("CommModExtension", "beta_redemptions");
+        this.betaArtController = new BetaArtController(this);
 
-                JsonObject betaMapJson = new JsonParser()
-                        .parse(betaArtConfig.getString("beta_timestamps")).getAsJsonObject();
-
-                long now = System.currentTimeMillis();
-                for (Map.Entry<String, JsonElement> entry : betaMapJson.entrySet()) {
-                    String key = entry.getKey();
-                    long expiration = betaMapJson.get(key).getAsLong();
-                    if (expiration > now) {
-                        betaExpirationsMap.put(key, expiration);
-                        UnlockTracker.betaCardPref.putBoolean(key, true);
-                    }
-                }
-                saveBetaConfig();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
-
-        pollBetaArtTimestamp = System.currentTimeMillis() + 10_000;
-
-        characterPortrats = new HashMap<>();
+        characterPortraits = new HashMap<>();
 
 
-        characterPortrats.put("ironclad", ImageMaster
+        characterPortraits.put("ironclad", ImageMaster
                 .loadImage("images/ui/charSelect/ironcladPortrait.jpg"));
-        characterPortrats
+        characterPortraits
                 .put("silent", ImageMaster.loadImage("images/ui/charSelect/silentPortrait.jpg"));
-        characterPortrats
+        characterPortraits
                 .put("defect", ImageMaster.loadImage("images/ui/charSelect/defectPortrait.jpg"));
-        characterPortrats
+        characterPortraits
                 .put("watcher", ImageMaster.loadImage("images/ui/charSelect/watcherPortrait.jpg"));
 
         if (BaseMod.hasModID("MarisaState:")) {
-            characterPortrats
+            characterPortraits
                     .put("marisa", ImageMaster.loadImage("img/charSelect/marisaPortrait.jpg"));
         }
 
         if (BaseMod.hasModID("HermitState:")) {
-            characterPortrats.put("hermit", ImageMaster
+            characterPortraits.put("hermit", ImageMaster
                     .loadImage("hermitResources/images/charSelect/hermitSelect.png"));
         }
 
         if (BaseMod.hasModID("VacantState:")) {
-            characterPortrats.put("vacant", ImageMaster
+            characterPortraits.put("vacant", ImageMaster
                     .loadImage("theVacantResources/images/charSelect/VacantPortraitBG.png"));
         }
 
@@ -300,48 +261,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         });
     }
 
-    public void populateCharacterOptions() {
-        characterOptions = new HashMap<>();
-        ArrayList<CharacterOption> options = ReflectionHacks
-                .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
-        CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
 
-        for (CharacterOption option : options) {
-            if (option.c instanceof Ironclad) {
-                characterOptions.put("ironclad", option);
-            }
-
-            if (option.c instanceof TheSilent) {
-                characterOptions.put("silent", option);
-            }
-
-            if (option.c instanceof Defect) {
-                characterOptions.put("defect", option);
-            }
-
-            if (option.c instanceof Watcher) {
-                characterOptions.put("watcher", option);
-            }
-
-            if (BaseMod.hasModID("MarisaState:")) {
-                if (option.c instanceof Marisa) {
-                    characterOptions.put("marisa", option);
-                }
-            }
-
-            if (BaseMod.hasModID("HermitState:")) {
-                if (option.c instanceof hermit) {
-                    characterOptions.put("hermit", option);
-                }
-            }
-
-            if (BaseMod.hasModID("VacantState:")) {
-                if (option.c instanceof TheVacant) {
-                    characterOptions.put("vacant", option);
-                }
-            }
-        }
-    }
 
     @Override
     public void receivePostUpdate() {
@@ -351,39 +271,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             startAiClient();
         }
 
-        if (pollBetaArtTimestamp < System.currentTimeMillis()) {
-            pollBetaArtTimestamp = System.currentTimeMillis() + 5_000;
-            new Thread(() -> {
-                try {
-                    Optional<BetaArtRequest> betaArtRequestOptional = apiController
-                            .getBetaArtRedemptions();
-                    if (betaArtRequestOptional.isPresent()) {
-                        BetaArtRequest betaArtRequest = betaArtRequestOptional.get();
-
-                        String queryName = betaArtRequest.userInput.replace(" ", "").toLowerCase();
-
-                        if (cardNamesToIdMap.containsKey(queryName)) {
-                            String cardId = cardNamesToIdMap.get(queryName);
-
-                            UnlockTracker.betaCardPref.putBoolean(cardId, true);
-
-                            apiController.fullfillBetaArtReward(betaArtRequest.redemptionId);
-
-                            long inAWeek = System.currentTimeMillis() + 1_000 * 60 * 60 * 24 * 7;
-
-                            betaExpirationsMap.put(cardId, inAWeek);
-                            saveBetaConfig();
-                            twirk.channelMessage("[Bot] Beta art set successfully for " + betaArtRequest.userInput);
-                        } else {
-                            apiController.cancelBetaArtReward(betaArtRequest.redemptionId);
-                            twirk.channelMessage("[Bot] Redemption Cancelled, no card matching " + betaArtRequest.userInput);
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }).start();
-        }
+        betaArtController.update();
 
         if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
             if (BattleAiMod.rerunController.isDone || LudicrousSpeedMod.mustRestart) {
@@ -1369,15 +1257,5 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         Collections.sort(relics);
         return relics;
-    }
-
-    private void saveBetaConfig() throws IOException {
-        JsonObject toWrite = new JsonObject();
-        for (Map.Entry<String, Long> entry : betaExpirationsMap.entrySet()) {
-            toWrite.addProperty(entry.getKey(), entry.getValue());
-        }
-
-        betaArtConfig.setString("beta_timestamps", toWrite.toString());
-        betaArtConfig.save();
     }
 }
