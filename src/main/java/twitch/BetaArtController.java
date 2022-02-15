@@ -21,7 +21,7 @@ public class BetaArtController {
     private final TwitchController twitchController;
 
     private static final long INITIAL_POLL_DELAY = 10_000L;
-    private static final long POLL_DELAY = 10_000L;
+    private static final long POLL_DELAY = 5_000L;
 
     HashMap<String, Long> betaExpirationsMap;
     SpireConfig betaArtConfig;
@@ -62,7 +62,7 @@ public class BetaArtController {
 
     public void update() {
         if (pollBetaArtTimestamp < System.currentTimeMillis()) {
-            pollBetaArtTimestamp = System.currentTimeMillis() + 5_000;
+            pollBetaArtTimestamp = System.currentTimeMillis() + POLL_DELAY;
             new Thread(() -> {
                 try {
                     Optional<BetaArtRequest> betaArtRequestOptional = twitchController.apiController
@@ -72,8 +72,10 @@ public class BetaArtController {
 
                         String queryName = betaArtRequest.userInput.replace(" ", "").toLowerCase();
 
-                        if (twitchController.cardNamesToIdMap.containsKey(queryName)) {
-                            String cardId = twitchController.cardNamesToIdMap.get(queryName);
+                        Optional<String> id = twitchController.queryController
+                                .getIdForCard(queryName);
+                        if (id.isPresent()) {
+                            String cardId = id.get();
 
                             UnlockTracker.betaCardPref.putBoolean(cardId, true);
 

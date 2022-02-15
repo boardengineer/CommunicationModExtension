@@ -95,6 +95,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static VoteController voteController;
 
     private final BetaArtController betaArtController;
+    public QueryController queryController;
 
     public static HashMap<String, Integer> optionsMap;
 
@@ -120,9 +121,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
-    private final HashMap<String, String> cardsToDescriptionMap;
-    public final HashMap<String, String> cardNamesToIdMap;
-
     private final HashMap<String, String> keywordDescriptionMap;
     private final HashMap<String, String> relicDescriptionMap;
 
@@ -141,6 +139,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         this.betaArtController = new BetaArtController(this);
+        this.queryController = new QueryController(this);
 
         characterPortraits = new HashMap<>();
 
@@ -173,44 +172,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         optionsMap.put("asc", 0);
         optionsMap.put("lives", 0);
         optionsMap.put("recall", 0);
-        optionsMap.put("turns", 10_000);
+        optionsMap.put("turns", 15_000);
         optionsMap.put("verbose", 1);
 
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
         }
-
-        cardNamesToIdMap = new HashMap<>();
-        cardsToDescriptionMap = new HashMap<>();
-        CardLibrary.cards.values().stream()
-                         .forEach(card -> {
-                             String name = card.name.toLowerCase().replace(" ", "");
-                             String description = card.description
-                                     .stream()
-                                     .map(line -> replaceStringSegmentsForCard(line, card))
-                                     .collect(Collectors
-                                             .joining(" "));
-
-                             String descriptionResult = String
-                                     .format("%s: %s", card.name, description);
-                             cardsToDescriptionMap.put(name, descriptionResult);
-                             cardNamesToIdMap.put(name, card.cardID);
-
-                             try {
-                                 card.upgrade();
-                                 String upgradedName = name + "+";
-                                 String upgradedDescription = card.description
-                                         .stream()
-                                         .map(line -> replaceStringSegmentsForCard(line, card))
-                                         .collect(Collectors
-                                                 .joining(" "));
-                                 String upgradedDescriptionResult = String
-                                         .format("%s: %s", card.name, upgradedDescription);
-                                 cardsToDescriptionMap.put(upgradedName, upgradedDescriptionResult);
-                             } catch (NullPointerException e) {
-                                 // upgrading sometimes nulls out, hopefully just for curses.
-                             }
-                         });
 
         keywordDescriptionMap = new HashMap<>();
         GameDictionary.keywords.entrySet().forEach(entry -> {
@@ -515,9 +482,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             for (int i = 1; i < tokens.length; i++) {
                 queryString += tokens[i].toLowerCase();
             }
+            Optional<String> queryResult = queryController.getDescriptionForCard(queryString);
 
-            if (cardsToDescriptionMap.containsKey(queryString)) {
-                twirk.channelMessage("[BOT] " + cardsToDescriptionMap.get(queryString));
+            if (queryResult.isPresent()) {
+                twirk.channelMessage("[BOT] " + queryResult.get());
             }
         }
 
