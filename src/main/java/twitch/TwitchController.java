@@ -262,7 +262,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
 
-
     @Override
     public void receivePostUpdate() {
         if (shouldStartClientOnUpdate) {
@@ -744,7 +743,14 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
 
                 if (currentPrediction.isPresent()) {
-                    apiController.resolvePrediction(currentPrediction.get(), didClimb);
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(3_000);
+                            apiController.resolvePrediction(currentPrediction.get(), didClimb);
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
                 }
 
 
