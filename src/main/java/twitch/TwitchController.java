@@ -702,7 +702,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 boolean didClimb = reportedVictory || floor > 51;
                 if (didClimb) {
                     optionsMap.put("asc", optionsMap.getOrDefault("asc", 0) + 1);
-                    if (didClimb) {
+                    if (reportedVictory && floor > 51) {
                         // Heart kills get an extra life
                         optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) + 1);
                     }
