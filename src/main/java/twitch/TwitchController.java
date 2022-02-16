@@ -21,7 +21,10 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
-import com.megacrit.cardcrawl.helpers.*;
+import com.megacrit.cardcrawl.helpers.FontHelper;
+import com.megacrit.cardcrawl.helpers.ImageMaster;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
+import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
@@ -29,7 +32,6 @@ import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import communicationmod.CommunicationMod;
-import hermit.HermitMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
@@ -121,9 +123,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
-    private final HashMap<String, String> keywordDescriptionMap;
-    private final HashMap<String, String> relicDescriptionMap;
-
     public HashMap<String, Texture> characterPortraits;
 
     public TwitchApiController apiController;
@@ -139,7 +138,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         this.betaArtController = new BetaArtController(this);
-        this.queryController = new QueryController(this);
+        this.queryController = new QueryController();
 
         characterPortraits = new HashMap<>();
 
@@ -178,54 +177,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         for (VoteType voteType : VoteType.values()) {
             optionsMap.put(voteType.optionName, voteType.defaultTime);
         }
-
-        keywordDescriptionMap = new HashMap<>();
-        GameDictionary.keywords.entrySet().forEach(entry -> {
-            String key = entry.getKey();
-
-            key = key.replace("thevacant:", "");
-
-            if (BaseMod.hasModID("HermitState:")) {
-                key = key.replace(HermitMod.getModID() + ":", "");
-            }
-
-            key = key.toLowerCase().replace(" ", "");
-
-            String description = entry.getValue();
-
-            description = description.replace("#y", "");
-            description = description.replace("#b", "");
-            description = description.replace("NL", "");
-
-            keywordDescriptionMap.put(key, key + " : " + description);
-        });
-
-        relicDescriptionMap = new HashMap<>();
-        getAllRelics().forEach(relic -> {
-            String key = relic.name;
-
-            key = key.replace("thevacant:", "");
-
-            if (BaseMod.hasModID("HermitState:")) {
-                key = key.replace(HermitMod.getModID() + ":", "");
-            }
-
-            key = key.toLowerCase().replace(" ", "");
-
-            String description = relic.description;
-
-            description = description.replace("#y", "");
-            description = description.replace("#b", "");
-            description = description.replace("NL", "");
-
-            description = description.replace("thevacant:", "");
-
-            if (BaseMod.hasModID("HermitState:")) {
-                description = description.replace(HermitMod.getModID() + ":", "");
-            }
-
-            relicDescriptionMap.put(key, relic.name + " : " + description);
-        });
     }
 
 
@@ -489,27 +440,29 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             }
         }
 
-        if (tokens[0].equals("!info")) {
-
-            String queryString = "";
-            for (int i = 1; i < tokens.length; i++) {
-                queryString += tokens[i].toLowerCase();
-            }
-
-            if (keywordDescriptionMap.containsKey(queryString)) {
-                twirk.channelMessage("[BOT] " + keywordDescriptionMap.get(queryString));
-            }
-        }
-
         if (tokens[0].equals("!relic")) {
 
             String queryString = "";
             for (int i = 1; i < tokens.length; i++) {
                 queryString += tokens[i].toLowerCase();
             }
+            Optional<String> queryResult = queryController.getDescriptionForRelic(queryString);
 
-            if (relicDescriptionMap.containsKey(queryString)) {
-                twirk.channelMessage("[BOT] " + relicDescriptionMap.get(queryString));
+            if (queryResult.isPresent()) {
+                twirk.channelMessage("[BOT] " + queryResult.get());
+            }
+        }
+
+        if (tokens[0].equals("!info")) {
+
+            String queryString = "";
+            for (int i = 1; i < tokens.length; i++) {
+                queryString += tokens[i].toLowerCase();
+            }
+            Optional<String> queryResult = queryController.getDefinitionForKeyword(queryString);
+
+            if (queryResult.isPresent()) {
+                twirk.channelMessage("[BOT] " + queryResult.get());
             }
         }
 

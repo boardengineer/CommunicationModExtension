@@ -1,30 +1,38 @@
 package twitch;
 
+import basemod.BaseMod;
+import basemod.ReflectionHacks;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
+import com.megacrit.cardcrawl.helpers.GameDictionary;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
+import com.megacrit.cardcrawl.relics.AbstractRelic;
+import hermit.HermitMod;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class QueryController {
-    private final TwitchController twitchController;
-
     private final HashMap<String, String> cardsToDescriptionMap;
     private final HashMap<String, String> cardNamesToIdMap;
 
-    private HashMap<String, String> keywordDescriptionMap;
+    private final HashMap<String, String> keywordDescriptionMap;
     private HashMap<String, String> relicDescriptionMap;
 
-    public QueryController(TwitchController twitchController) {
-        this.twitchController = twitchController;
-
+    public QueryController() {
         cardNamesToIdMap = new HashMap<>();
         cardsToDescriptionMap = new HashMap<>();
-
         populateCardMaps();
 
+        keywordDescriptionMap = new HashMap<>();
+        populateKeywordMap();
+
+        relicDescriptionMap = new HashMap<>();
+        populateRelicMap();
     }
 
     public Optional<String> getDescriptionForCard(String rawCardName) {
@@ -42,6 +50,26 @@ public class QueryController {
 
         if (cardNamesToIdMap.containsKey(key)) {
             return Optional.of(cardNamesToIdMap.get(key));
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<String> getDescriptionForRelic(String rawRelicName) {
+        String key = prepNameString(rawRelicName);
+
+        if (relicDescriptionMap.containsKey(key)) {
+            return Optional.of(relicDescriptionMap.get(key));
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<String> getDefinitionForKeyword(String rawKeyword) {
+        String key = prepNameString(rawKeyword);
+
+        if (keywordDescriptionMap.containsKey(key)) {
+            return Optional.of(keywordDescriptionMap.get(key));
         }
 
         return Optional.empty();
@@ -79,6 +107,56 @@ public class QueryController {
                          });
     }
 
+    private void populateKeywordMap() {
+        GameDictionary.keywords.entrySet().forEach(entry -> {
+            String key = entry.getKey();
+
+            key = key.replace("thevacant:", "");
+
+            if (BaseMod.hasModID("HermitState:")) {
+                key = key.replace(HermitMod.getModID() + ":", "");
+            }
+
+            key = key.toLowerCase().replace(" ", "");
+
+            String description = entry.getValue();
+
+            description = description.replace("#y", "");
+            description = description.replace("#b", "");
+            description = description.replace("NL", "");
+
+            keywordDescriptionMap.put(key, key + " : " + description);
+        });
+    }
+
+    private void populateRelicMap() {
+        getAllRelics().forEach(relic -> {
+            String key = relic.name;
+
+            key = key.replace("thevacant:", "");
+
+            if (BaseMod.hasModID("HermitState:")) {
+                key = key.replace(HermitMod.getModID() + ":", "");
+            }
+
+            key = key.toLowerCase().replace(" ", "");
+
+            String description = relic.description;
+
+            description = description.replace("#y", "");
+            description = description.replace("#b", "");
+            description = description.replace("NL", "");
+
+            description = description.replace("thevacant:", "");
+
+            if (BaseMod.hasModID("HermitState:")) {
+                description = description.replace(HermitMod.getModID() + ":", "");
+            }
+
+            relicDescriptionMap.put(key, relic.name + " : " + description);
+        });
+    }
+
     private static String replaceStringSegmentsForCard(DescriptionLine line, AbstractCard card) {
         String result = line.text;
 
@@ -91,5 +169,24 @@ public class QueryController {
 
     private String prepNameString(String name) {
         return name.toLowerCase().replace(" ", "");
+    }
+
+    private static ArrayList<AbstractRelic> getAllRelics() {
+        ArrayList<AbstractRelic> relics = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        HashMap<String, AbstractRelic> sharedRelics = ReflectionHacks
+                .getPrivateStatic(RelicLibrary.class, "sharedRelics");
+
+        relics.addAll(sharedRelics.values());
+        relics.addAll(RelicLibrary.redList);
+        relics.addAll(RelicLibrary.greenList);
+        relics.addAll(RelicLibrary.blueList);
+        relics.addAll(RelicLibrary.whiteList);
+        relics.addAll(BaseMod.getAllCustomRelics().values().stream()
+                             .flatMap(characterRelicMap -> characterRelicMap.values().stream())
+                             .collect(Collectors.toCollection(ArrayList::new)));
+
+        Collections.sort(relics);
+        return relics;
     }
 }
