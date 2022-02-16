@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
@@ -12,6 +12,8 @@ import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.CardRewardScreen;
 import com.megacrit.cardcrawl.ui.buttons.SingingBowlButton;
 import com.megacrit.cardcrawl.ui.buttons.SkipCardButton;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.HashMap;
 import java.util.Set;
@@ -24,7 +26,7 @@ public class CardRewardVoteController extends VoteController {
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
-    CardRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public CardRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         messageToCardReward = new HashMap<>();
         for (AbstractCard card : AbstractDungeon.cardRewardScreen.rewardGroup) {
@@ -96,11 +98,6 @@ public class CardRewardVoteController extends VoteController {
 //                System.err.println("no card button for " + choice.choiceName);
             }
         }
-    }
-
-    @Override
-    public void endVote() {
-
     }
 
     private static Hitbox cardRewardAdjust(Hitbox hitbox) {

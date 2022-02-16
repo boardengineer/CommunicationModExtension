@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
@@ -8,6 +8,8 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.HashMap;
 import java.util.Optional;
@@ -20,7 +22,7 @@ public class GridVoteController extends VoteController {
     private final HashMap<String, AbstractCard> voteStringToCardMap;
     private final JsonObject stateJson;
 
-    GridVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public GridVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
 
         voteStringToCardMap = new HashMap<>();
@@ -40,7 +42,7 @@ public class GridVoteController extends VoteController {
     }
 
     @Override
-    Optional<String> getTipString() {
+    public Optional<String> getTipString() {
         String tipMsg = ReflectionHacks
                 .getPrivate(AbstractDungeon.gridSelectScreen, GridCardSelectScreen.class, "tipMsg");
 

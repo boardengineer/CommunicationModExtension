@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import basemod.BaseMod;
 import basemod.ReflectionHacks;
@@ -11,6 +11,8 @@ import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.ui.campfire.AbstractCampfireOption;
 import communicationmod.ChoiceScreenUtils;
 import mintySpire.patches.map.MiniMapDisplay;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +29,7 @@ public class RestVoteController extends VoteController {
 
     public static OrthographicCamera camera = null;
 
-    RestVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public RestVoteController(TwitchController twitchController, JsonObject stateJson) {
         if (BaseMod.hasModID("mintyspire:")) {
             if (camera == null) {
                 camera = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER

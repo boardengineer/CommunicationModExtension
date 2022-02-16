@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import ThMod.characters.Marisa;
 import basemod.BaseMod;
@@ -13,12 +13,15 @@ import com.megacrit.cardcrawl.characters.Ironclad;
 import com.megacrit.cardcrawl.characters.TheSilent;
 import com.megacrit.cardcrawl.characters.Watcher;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
+import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import hermit.characters.hermit;
 import theVacant.characters.TheVacant;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,6 +65,8 @@ public class CharacterVoteController extends VoteController {
         // winners.
         boolean firstFound = false;
 
+
+        int startX = Settings.WIDTH / (twitchController.viableChoices.size() + 1) / 2;
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
             TwitchController.Choice choice = twitchController.viableChoices.get(i);
 
@@ -108,13 +113,16 @@ public class CharacterVoteController extends VoteController {
                     break;
             }
 
-            spriteBatch.draw(charButton, 300 + 225 * i, 50, 200, 200);
+//            Settings.WIDTH
+
+            int xpos = startX + 225 * i;
+            spriteBatch.draw(charButton, xpos, 50, charButton.getWidth(), charButton.getHeight());
 
             String voteMessage = String.format("[vote %s] (%s)",
                     choice.voteString,
                     voteFrequencies.getOrDefault(choice.voteString, 0));
 
-            Hitbox hitbox = new Hitbox(300 + 225 * i, 50, 200, 200);
+            Hitbox hitbox = new Hitbox(xpos, 50, 200, 200);
 
             renderTextBelowHitbox(spriteBatch, voteMessage, hitbox, messageColor);
         }

@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
@@ -9,19 +9,20 @@ import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.screens.mainMenu.MenuCancelButton;
 import com.megacrit.cardcrawl.screens.select.BossRelicSelectScreen;
+import twitch.RenderHelpers;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Set;
-
-import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class BossRewardVoteController extends VoteController {
     private final TwitchController twitchController;
     private final HashMap<String, AbstractRelic> messageToBossRelicMap;
     private final JsonObject stateJson;
 
-    BossRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public BossRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
 
         messageToBossRelicMap = new HashMap<>();
@@ -60,7 +61,7 @@ public class BossRewardVoteController extends VoteController {
                         choice.voteString,
                         voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, rewardItemMessage, rewardItemHitbox, messageColor);
+                RenderHelpers.renderTextBelowHitbox(spriteBatch, rewardItemMessage, rewardItemHitbox, messageColor);
             } else if (message.equalsIgnoreCase("skip")) {
                 String skipMessage = String.format("[vote %s] (%s)",
                         choice.voteString,
@@ -69,15 +70,10 @@ public class BossRewardVoteController extends VoteController {
                 MenuCancelButton cancelButton = ReflectionHacks
                         .getPrivate(AbstractDungeon.bossRelicScreen, BossRelicSelectScreen.class, "cancelButton");
 
-                renderTextBelowHitbox(spriteBatch, skipMessage, cancelButton.hb, messageColor);
+                RenderHelpers.renderTextBelowHitbox(spriteBatch, skipMessage, cancelButton.hb, messageColor);
             } else {
                 System.err.println("no boss relic button for " + choice.choiceName);
             }
         }
-    }
-
-    @Override
-    public void endVote() {
-
     }
 }

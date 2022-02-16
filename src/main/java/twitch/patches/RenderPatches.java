@@ -30,7 +30,7 @@ public class RenderPatches {
     @SpirePatch(clz = CustomCharacterSelectScreen.class, method = "render")
     public static class NoRenderSelectdoScreen {
         @SpireInsertPatch(loc = 69)
-        public static SpireReturn noRenderArrows(CustomCharacterSelectScreen scree) {
+        public static SpireReturn noRenderArrows(CustomCharacterSelectScreen screen) {
             return SpireReturn.Return(null);
         }
     }

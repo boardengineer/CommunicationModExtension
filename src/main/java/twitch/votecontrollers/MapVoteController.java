@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -6,6 +6,9 @@ import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.map.MapRoomNode;
 import communicationmod.ChoiceScreenUtils;
+import twitch.RenderHelpers;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.ArrayList;
 import java.util.HashMap;

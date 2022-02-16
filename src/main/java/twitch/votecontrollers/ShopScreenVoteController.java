@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
@@ -15,6 +15,9 @@ import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
 import communicationmod.ChoiceScreenUtils;
 import tssrelics.relics.DiceOfFate;
+import twitch.RenderHelpers;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +29,7 @@ public class ShopScreenVoteController extends VoteController {
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
-    ShopScreenVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public ShopScreenVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         voteStringToShopItemMap = new HashMap<>();
         ArrayList<Object> shopItems = ReflectionHacks

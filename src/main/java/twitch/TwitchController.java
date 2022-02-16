@@ -18,13 +18,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
-import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
-import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
-import com.megacrit.cardcrawl.relics.*;
+import com.megacrit.cardcrawl.relics.CursedKey;
+import com.megacrit.cardcrawl.relics.FrozenEye;
+import com.megacrit.cardcrawl.relics.RunicDome;
+import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
@@ -34,6 +35,15 @@ import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
+import twitch.votecontrollers.BossRewardVoteController;
+import twitch.votecontrollers.CardRewardVoteController;
+import twitch.votecontrollers.CharacterVoteController;
+import twitch.votecontrollers.CombatRewardVoteController;
+import twitch.votecontrollers.EventVoteController;
+import twitch.votecontrollers.GridVoteController;
+import twitch.votecontrollers.MapVoteController;
+import twitch.votecontrollers.RestVoteController;
+import twitch.votecontrollers.ShopScreenVoteController;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -103,8 +113,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean inVote = false;
     private long voteEndTimeMillis;
 
-    ArrayList<Choice> choices;
-    ArrayList<Choice> viableChoices;
+    public ArrayList<Choice> choices;
+    public ArrayList<Choice> viableChoices;
     private HashMap<String, Choice> choicesMap;
 
     public static Twirk twirk;
@@ -113,7 +123,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean inBattle = false;
     private boolean fastMode = true;
     int consecutiveNoVotes = 0;
-    boolean skipAfterCard = true;
+    public boolean skipAfterCard = true;
 
     public static long lastDeckDisplayTimestamp = 0L;
     public static long lastRelicDisplayTimestamp = 0L;
@@ -136,7 +146,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         this.betaArtController = new BetaArtController(this);
         this.queryController = new QueryController();
-        CharacterVoteController.initializePortraits();
+        twitch.votecontrollers.CharacterVoteController.initializePortraits();
 
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
@@ -919,10 +929,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     public static class Choice {
-        String choiceName;
-        String voteString;
-        Optional<RewardInfo> rewardInfo = Optional.empty();
-        final ArrayList<String> resultCommands;
+        public String choiceName;
+        public String voteString;
+        public Optional<RewardInfo> rewardInfo = Optional.empty();
+        public final ArrayList<String> resultCommands;
 
         public Choice(String choiceName, String voteString, String... resultCommands) {
             this.choiceName = choiceName;
@@ -945,11 +955,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     public static class RewardInfo {
-        final String rewardType;
-        String potionName = null;
-        String relicName = null;
+        public final String rewardType;
+        public String potionName = null;
+        public String relicName = null;
 
-        RewardInfo(JsonObject rewardJson) {
+        public RewardInfo(JsonObject rewardJson) {
             rewardType = rewardJson.get("reward_type").getAsString();
             if (rewardType.equals("POTION")) {
                 potionName = rewardJson.get("potion").getAsJsonObject().get("name").getAsString();
@@ -981,7 +991,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         add(34);
     }};
 
-    HashMap<String, Integer> getVoteFrequencies() {
+    public HashMap<String, Integer> getVoteFrequencies() {
         if (voteByUsernameMap == null) {
             return new HashMap<>();
         }
@@ -1057,7 +1067,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         return result;
     }
 
-    void setUpDefaultVoteOptions(JsonObject stateJson) {
+    public void setUpDefaultVoteOptions(JsonObject stateJson) {
         JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
         JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
 
@@ -1126,34 +1136,5 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }).start();
         }
-    }
-
-    public String replaceStringSegmentsForCard(DescriptionLine line, AbstractCard card) {
-        String result = line.text;
-
-        result = result.replace("!B!", Integer.toString(card.baseBlock));
-        result = result.replace("!D!", Integer.toString(card.baseDamage));
-        result = result.replace("!M!", Integer.toString(card.baseMagicNumber));
-
-        return result;
-    }
-
-    public static ArrayList<AbstractRelic> getAllRelics() {
-        ArrayList<AbstractRelic> relics = new ArrayList<>();
-        @SuppressWarnings("unchecked")
-        HashMap<String, AbstractRelic> sharedRelics = ReflectionHacks
-                .getPrivateStatic(RelicLibrary.class, "sharedRelics");
-
-        relics.addAll(sharedRelics.values());
-        relics.addAll(RelicLibrary.redList);
-        relics.addAll(RelicLibrary.greenList);
-        relics.addAll(RelicLibrary.blueList);
-        relics.addAll(RelicLibrary.whiteList);
-        relics.addAll(BaseMod.getAllCustomRelics().values().stream()
-                             .flatMap(characterRelicMap -> characterRelicMap.values().stream())
-                             .collect(Collectors.toCollection(ArrayList::new)));
-
-        Collections.sort(relics);
-        return relics;
     }
 }

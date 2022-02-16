@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import ThMod.event.Mushrooms_MRS;
 import basemod.BaseMod;
@@ -16,6 +16,8 @@ import com.megacrit.cardcrawl.neow.NeowEvent;
 import com.megacrit.cardcrawl.ui.buttons.LargeDialogOptionButton;
 import communicationmod.ChoiceScreenUtils;
 import mintySpire.patches.map.MiniMapDisplay;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.ArrayList;
 import java.util.HashMap;

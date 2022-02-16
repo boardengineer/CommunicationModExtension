@@ -7,7 +7,7 @@ import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
-import twitch.GridVoteController;
+import twitch.votecontrollers.GridVoteController;
 import twitch.TwitchController;
 
 import java.util.ArrayList;

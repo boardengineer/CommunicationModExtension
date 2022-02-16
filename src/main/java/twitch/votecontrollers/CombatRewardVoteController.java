@@ -1,4 +1,4 @@
-package twitch;
+package twitch.votecontrollers;
 
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
@@ -15,6 +15,8 @@ import com.megacrit.cardcrawl.ui.buttons.ProceedButton;
 import communicationmod.CommandExecutor;
 import tssrelics.relics.SneckoCharm;
 import tssrelics.relics.SneckoSkinBoots;
+import twitch.TwitchController;
+import twitch.VoteController;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,7 +29,7 @@ public class CombatRewardVoteController extends VoteController {
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
-    CombatRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public CombatRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
         this.stateJson = stateJson;
 
@@ -256,7 +258,7 @@ public class CombatRewardVoteController extends VoteController {
     }
 
     @Override
-    Optional<String> getTipString() {
+    public Optional<String> getTipString() {
         if (!twitchController.skipAfterCard) {
             String resultString = "Card Reward Listing: ";
             for (Map.Entry<String, RewardItem> entry : voteStringToCombatRewardItem.entrySet()) {
