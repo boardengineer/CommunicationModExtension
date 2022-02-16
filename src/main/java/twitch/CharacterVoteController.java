@@ -28,6 +28,8 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CharacterVoteController extends VoteController {
+    private static HashMap<String, Texture> characterPortraits;
+
     public static final HashMap<String, String> MOD_CHARACTER_EXTRA_INFO = new HashMap<String, String>() {{
         put("hermit", "(!hermit) (!hermitinfo) (!trymodchars)");
         put("marisa", "(!marisa) (!marisainfo) (!trymodchars)");
@@ -37,7 +39,7 @@ public class CharacterVoteController extends VoteController {
     private final TwitchController twitchController;
     private final JsonObject stateJson;
 
-    private HashMap<String, CharacterOption> characterOptions;
+    private final HashMap<String, CharacterOption> characterOptions;
 
     public CharacterVoteController(TwitchController twitchController, JsonObject stateJson) {
         this.twitchController = twitchController;
@@ -74,9 +76,8 @@ public class CharacterVoteController extends VoteController {
             CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
 
             if (isWinning) {
-                CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = twitchController.characterPortraits
+                CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = characterPortraits
                         .get(choice.choiceName);
-
             }
             characterOptions.get(choice.choiceName).selected = isWinning;
 
@@ -196,5 +197,38 @@ public class CharacterVoteController extends VoteController {
 
     private static String capitalizeFirstLetter(String originalString) {
         return originalString.substring(0, 1).toUpperCase() + originalString.substring(1);
+    }
+
+    public static void initializePortraits() {
+        if (characterPortraits == null || characterPortraits.isEmpty()) {
+            characterPortraits = new HashMap<>();
+
+            characterPortraits.put("ironclad", ImageMaster
+                    .loadImage("images/ui/charSelect/ironcladPortrait.jpg"));
+            characterPortraits
+                    .put("silent", ImageMaster
+                            .loadImage("images/ui/charSelect/silentPortrait.jpg"));
+            characterPortraits
+                    .put("defect", ImageMaster
+                            .loadImage("images/ui/charSelect/defectPortrait.jpg"));
+            characterPortraits
+                    .put("watcher", ImageMaster
+                            .loadImage("images/ui/charSelect/watcherPortrait.jpg"));
+
+            if (BaseMod.hasModID("MarisaState:")) {
+                characterPortraits
+                        .put("marisa", ImageMaster.loadImage("img/charSelect/marisaPortrait.jpg"));
+            }
+
+            if (BaseMod.hasModID("HermitState:")) {
+                characterPortraits.put("hermit", ImageMaster
+                        .loadImage("hermitResources/images/charSelect/hermitSelect.png"));
+            }
+
+            if (BaseMod.hasModID("VacantState:")) {
+                characterPortraits.put("vacant", ImageMaster
+                        .loadImage("theVacantResources/images/charSelect/VacantPortraitBG.png"));
+            }
+        }
     }
 }

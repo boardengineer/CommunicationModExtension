@@ -22,7 +22,6 @@ import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
-import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.*;
@@ -123,8 +122,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
 
-    public HashMap<String, Texture> characterPortraits;
-
     public TwitchApiController apiController;
 
     public Optional<PredictionInfo> currentPrediction = Optional.empty();
@@ -139,33 +136,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         this.betaArtController = new BetaArtController(this);
         this.queryController = new QueryController();
-
-        characterPortraits = new HashMap<>();
-
-
-        characterPortraits.put("ironclad", ImageMaster
-                .loadImage("images/ui/charSelect/ironcladPortrait.jpg"));
-        characterPortraits
-                .put("silent", ImageMaster.loadImage("images/ui/charSelect/silentPortrait.jpg"));
-        characterPortraits
-                .put("defect", ImageMaster.loadImage("images/ui/charSelect/defectPortrait.jpg"));
-        characterPortraits
-                .put("watcher", ImageMaster.loadImage("images/ui/charSelect/watcherPortrait.jpg"));
-
-        if (BaseMod.hasModID("MarisaState:")) {
-            characterPortraits
-                    .put("marisa", ImageMaster.loadImage("img/charSelect/marisaPortrait.jpg"));
-        }
-
-        if (BaseMod.hasModID("HermitState:")) {
-            characterPortraits.put("hermit", ImageMaster
-                    .loadImage("hermitResources/images/charSelect/hermitSelect.png"));
-        }
-
-        if (BaseMod.hasModID("VacantState:")) {
-            characterPortraits.put("vacant", ImageMaster
-                    .loadImage("theVacantResources/images/charSelect/VacantPortraitBG.png"));
-        }
+        CharacterVoteController.initializePortraits();
 
         optionsMap = new HashMap<>();
         optionsMap.put("asc", 0);
