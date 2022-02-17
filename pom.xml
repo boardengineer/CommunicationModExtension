@@ -115,6 +115,13 @@
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/theVacant.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>thecursedmod</groupId>
+            <artifactId>thecursedmod</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/TheCursedMod.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

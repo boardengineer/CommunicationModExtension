@@ -736,6 +736,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             choices.add(new Choice("vacant", Integer.toString(choiceIndex++), "start the_vacant"));
         }
 
+        if (BaseMod.hasModID("CursedState:")) {
+            choices.add(new Choice("cursed", Integer.toString(choiceIndex++), "start the_cursed"));
+        }
+
         viableChoices = choices;
 
         choicesMap = new HashMap<>();

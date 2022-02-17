@@ -20,6 +20,8 @@ import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import hermit.characters.hermit;
 import theVacant.characters.TheVacant;
+import thecursed.TheCursedMod;
+import thecursed.characters.TheCursedCharacter;
 import twitch.TwitchController;
 import twitch.VoteController;
 
@@ -111,6 +113,10 @@ public class CharacterVoteController extends VoteController {
                     charButton = ImageMaster
                             .loadImage("theVacantResources/images/charSelect/TheVacantButton.png");
                     break;
+                case "cursed":
+                    charButton = ImageMaster
+                            .loadImage(TheCursedMod.getResourcePath("charSelect/button.png"));
+                    break;
             }
 
 //            Settings.WIDTH
@@ -198,6 +204,12 @@ public class CharacterVoteController extends VoteController {
                     characterOptions.put("vacant", option);
                 }
             }
+
+            if (BaseMod.hasModID("CursedState:")) {
+                if (option.c instanceof TheCursedCharacter) {
+                    characterOptions.put("cursed", option);
+                }
+            }
         }
 
         return characterOptions;
@@ -236,6 +248,11 @@ public class CharacterVoteController extends VoteController {
             if (BaseMod.hasModID("VacantState:")) {
                 characterPortraits.put("vacant", ImageMaster
                         .loadImage("theVacantResources/images/charSelect/VacantPortraitBG.png"));
+            }
+
+            if (BaseMod.hasModID("CursedState:")) {
+                characterPortraits.put("cursed", ImageMaster
+                        .loadImage(TheCursedMod.getResourcePath("charSelect/portrait.png")));
             }
         }
     }
