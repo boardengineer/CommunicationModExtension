@@ -8,13 +8,18 @@ import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
 import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import com.megacrit.cardcrawl.screens.charSelect.CharacterSelectScreen;
+import twitch.TwitchController;
+import twitch.votecontrollers.CharacterVoteController;
 
 public class RenderPatches {
     @SpirePatch(clz = CharacterOption.class, method = "renderOptionButton")
     public static class NoButtonRenderPatch {
         @SpirePrefixPatch
         public static SpireReturn doNothingAtRender(CharacterOption option, SpriteBatch sb) {
-            return SpireReturn.Return(null);
+            if (inCharacterVote()) {
+                return SpireReturn.Return(null);
+            }
+            return SpireReturn.Continue();
         }
     }
 
@@ -23,7 +28,10 @@ public class RenderPatches {
     public static class NoRenderAscension {
         @SpirePrefixPatch
         public static SpireReturn doNothingAtRender(CharacterSelectScreen option, SpriteBatch sb) {
-            return SpireReturn.Return(null);
+            if (inCharacterVote()) {
+                return SpireReturn.Return(null);
+            }
+            return SpireReturn.Continue();
         }
     }
 
@@ -31,7 +39,14 @@ public class RenderPatches {
     public static class NoRenderSelectdoScreen {
         @SpireInsertPatch(loc = 69)
         public static SpireReturn noRenderArrows(CustomCharacterSelectScreen screen) {
-            return SpireReturn.Return(null);
+            if (inCharacterVote()) {
+                return SpireReturn.Return(null);
+            }
+            return SpireReturn.Continue();
         }
+    }
+
+    private static boolean inCharacterVote() {
+        return TwitchController.voteController != null && TwitchController.voteController instanceof CharacterVoteController;
     }
 }

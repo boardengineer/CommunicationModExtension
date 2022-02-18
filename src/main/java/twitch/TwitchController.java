@@ -99,7 +99,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      */
     private HashMap<String, Integer> voteFrequencies = new HashMap<>();
 
-    private VoteType currentVote = null;
+    public static VoteType currentVote = null;
     private String stateString = "";
 
     private String screenType = null;
