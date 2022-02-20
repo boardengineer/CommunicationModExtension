@@ -131,6 +131,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
+    private boolean isActive = false;
 
     public TwitchApiController apiController;
 
@@ -315,6 +316,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 } else if (tokens[1].equals("disable")) {
                     voteByUsernameMap = null;
                     inBattle = false;
+                    isActive = false;
+                } else if (tokens[1].equals("enable")) {
+                    isActive = true;
                 } else if (tokens[1].equals("recall")) {
                     System.err.println("starting recall");
                     voteByUsernameMap = null;
@@ -472,6 +476,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     public void startVote(String stateMessage) {
+        if (!isActive) {
+            return;
+        }
+
         JsonObject stateJson = new JsonParser().parse(stateMessage).getAsJsonObject();
         if (stateJson.has("available_commands")) {
             JsonArray availableCommandsArray = stateJson.get("available_commands").getAsJsonArray();
