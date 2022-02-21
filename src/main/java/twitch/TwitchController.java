@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
 import com.gikk.twirk.Twirk;
 import com.gikk.twirk.types.users.TwitchUser;
 import com.google.gson.JsonArray;
@@ -120,8 +121,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static Twirk twirk;
 
     private boolean shouldStartClientOnUpdate = false;
-    private boolean inBattle = false;
-    private boolean fastMode = true;
+    private static boolean inBattle = false;
+    private boolean fastMode = false;
     int consecutiveNoVotes = 0;
     public boolean skipAfterCard = true;
 
@@ -131,33 +132,60 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private int previousLevel = -1;
     private int votePerFloorIndex = 0;
-    private boolean isActive = false;
+    private static boolean isActive = false;
 
     public TwitchApiController apiController;
+
+    int currentAscension = 0;
+    int currentLives = 0;
+
+    SpireConfig optionsConfig;
 
     public Optional<PredictionInfo> currentPrediction = Optional.empty();
 
     public TwitchController(Twirk twirk) {
-        TwitchController.twirk = twirk;
+        this.betaArtController = new BetaArtController(this);
         try {
-            apiController = new TwitchApiController();
+            optionsConfig = new SpireConfig("CommModExtension", "options");
+
+            TwitchController.twirk = twirk;
+            try {
+                apiController = new TwitchApiController();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            this.queryController = new QueryController();
+            twitch.votecontrollers.CharacterVoteController.initializePortraits();
+
+            optionsMap = new HashMap<>();
+            if (optionsConfig.has("asc")) {
+                int asc = optionsConfig.getInt("asc");
+                currentAscension = asc;
+                optionsMap.put("asc", asc);
+            } else {
+                currentAscension = 0;
+                optionsMap.put("asc", 0);
+            }
+
+            if (optionsConfig.has("lives")) {
+                int lives = optionsConfig.getInt("lives");
+                currentLives = lives;
+                optionsMap.put("lives", lives);
+            } else {
+                currentLives = 0;
+                optionsMap.put("lives", 0);
+            }
+
+            optionsMap.put("recall", 0);
+            optionsMap.put("turns", 15_000);
+            optionsMap.put("verbose", 1);
+
+            for (VoteType voteType : VoteType.values()) {
+                optionsMap.put(voteType.optionName, voteType.defaultTime);
+            }
         } catch (IOException e) {
             e.printStackTrace();
-        }
-
-        this.betaArtController = new BetaArtController(this);
-        this.queryController = new QueryController();
-        twitch.votecontrollers.CharacterVoteController.initializePortraits();
-
-        optionsMap = new HashMap<>();
-        optionsMap.put("asc", 0);
-        optionsMap.put("lives", 0);
-        optionsMap.put("recall", 0);
-        optionsMap.put("turns", 15_000);
-        optionsMap.put("verbose", 1);
-
-        for (VoteType voteType : VoteType.values()) {
-            optionsMap.put(voteType.optionName, voteType.defaultTime);
         }
     }
 
@@ -313,6 +341,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                             }
                         }
                     }
+                    saveOptionsConfig();
                 } else if (tokens[1].equals("disable")) {
                     voteByUsernameMap = null;
                     inBattle = false;
@@ -643,13 +672,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 int floor = gameState.get("floor").getAsInt();
                 boolean didClimb = reportedVictory || floor > 51;
                 if (didClimb) {
-                    optionsMap.put("asc", optionsMap.getOrDefault("asc", 0) + 1);
+                    int newAsc = optionsMap.getOrDefault("asc", 0) + 1;
+                    optionsMap.put("asc", newAsc);
+                    currentAscension = newAsc;
                     if (reportedVictory && floor > 51) {
                         // Heart kills get an extra life
-                        optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) + 1);
+                        int newLives = optionsMap.getOrDefault("lives", 0) + 1;
+                        currentLives = newLives;
+                        optionsMap.put("lives", newLives);
                     }
+                    saveOptionsConfig();
                 } else {
-                    optionsMap.put("lives", optionsMap.getOrDefault("lives", 0) - 1);
+                    int newLives = optionsMap.getOrDefault("lives", 0) - 1;
+                    currentLives = newLives;
+                    optionsMap.put("lives", newLives);
+                    saveOptionsConfig();
                 }
 
                 if (currentPrediction.isPresent()) {
@@ -1148,5 +1185,39 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }).start();
         }
+    }
+
+    public static void enable() {
+        isActive = true;
+    }
+
+    public static void disable() {
+        isActive = false;
+    }
+
+    public static void battleRestart() {
+        boolean wasInBattle = inBattle;
+        inBattle = false;
+        if (wasInBattle) {
+            CommunicationMod.mustSendGameState = true;
+        }
+    }
+
+    /**
+     * Writes the beta table back info the spire config
+     */
+    private void saveOptionsConfig() {
+        new Thread(() -> {
+            JsonObject toWrite = new JsonObject();
+            for (Map.Entry<String, Integer> entry : optionsMap.entrySet()) {
+                optionsConfig.setString(entry.getKey(), Integer.toString(entry.getValue()));
+            }
+
+            try {
+                optionsConfig.save();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

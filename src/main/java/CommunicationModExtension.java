@@ -249,6 +249,13 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
                                 .addToTop(new DamageAllEnemiesAction(AbstractDungeon.player, multiDamage, DamageInfo.DamageType.HP_LOSS, AbstractGameAction.AttackEffect.NONE));
                     } else if (controllerLine.equals("start")) {
                         CommunicationMod.queueCommand("start ironclad");
+                    } else if (controllerLine.equals("enable")) {
+                        System.out.println("received enable signal");
+                        TwitchController.enable();
+                    } else if (controllerLine.equals("state")) {
+                        CommunicationMod.mustSendGameState = true;
+                    } else if (controllerLine.equals("battlerestart")) {
+                        TwitchController.battleRestart();
                     }
                 }
             } catch (IOException | InterruptedException e) {
