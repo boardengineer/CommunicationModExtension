@@ -121,7 +121,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static Twirk twirk;
 
     private boolean shouldStartClientOnUpdate = false;
-    private static boolean inBattle = false;
+    public static boolean inBattle = false;
     private boolean fastMode = false;
     int consecutiveNoVotes = 0;
     public boolean skipAfterCard = true;

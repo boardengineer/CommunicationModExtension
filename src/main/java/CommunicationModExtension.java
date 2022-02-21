@@ -13,6 +13,7 @@ import com.gikk.twirk.types.twitchMessage.TwitchMessage;
 import com.gikk.twirk.types.users.TwitchUser;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.actions.common.DamageAllEnemiesAction;
+import com.megacrit.cardcrawl.actions.common.LoseHPAction;
 import com.megacrit.cardcrawl.cards.DamageInfo;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import communicationmod.CommandExecutor;
@@ -256,6 +257,12 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
                         CommunicationMod.mustSendGameState = true;
                     } else if (controllerLine.equals("battlerestart")) {
                         TwitchController.battleRestart();
+                    } else if (controllerLine.equals("advancegame")) {
+                        CommunicationMod.mustSendGameState = true;
+                        TwitchController.inBattle = false;
+                    } else if (controllerLine.equals("losebattle")) {
+                        AbstractDungeon.actionManager
+                                .addToTop(new LoseHPAction(AbstractDungeon.player, AbstractDungeon.player, 999));
                     }
                 }
             } catch (IOException | InterruptedException e) {
