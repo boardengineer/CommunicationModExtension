@@ -238,9 +238,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         try {
             if (voteByUsernameMap != null) {
-                long timeRemaining = voteEndTimeMillis - System.currentTimeMillis();
-
-                if (timeRemaining <= 0 && inVote) {
+                if (isVoteOver() && inVote) {
                     inVote = false;
 
                     if (AbstractDungeon.floorNum != previousLevel) {
@@ -881,7 +879,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     @Override
     public void receivePostRender(SpriteBatch spriteBatch) {
         String topMessage = "";
-        if (voteByUsernameMap != null && viableChoices != null && viableChoices.size() > 1) {
+        if (voteByUsernameMap != null && viableChoices != null && viableChoices
+                .size() > 1 && !isVoteOver()) {
             if (voteController != null) {
                 try {
                     voteController.render(spriteBatch);
@@ -1224,5 +1223,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    private boolean isVoteOver() {
+        return System.currentTimeMillis() > voteEndTimeMillis;
     }
 }
