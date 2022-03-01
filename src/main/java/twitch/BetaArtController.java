@@ -38,8 +38,9 @@ public class BetaArtController {
             try {
                 betaArtConfig = new SpireConfig("CommModExtension", "beta_redemptions");
 
-                JsonObject betaMapJson = new JsonParser()
-                        .parse(betaArtConfig.getString("beta_timestamps")).getAsJsonObject();
+                JsonObject betaMapJson = betaArtConfig.has("beta_timestamps") ? new JsonParser()
+                        .parse(betaArtConfig.getString("beta_timestamps"))
+                        .getAsJsonObject() : new JsonObject();
 
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, JsonElement> entry : betaMapJson.entrySet()) {
