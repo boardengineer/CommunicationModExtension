@@ -7,6 +7,9 @@ import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.characters.Defect;
 import com.megacrit.cardcrawl.characters.Ironclad;
@@ -17,7 +20,7 @@ import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
-import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
+import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import hermit.characters.hermit;
 import theVacant.characters.TheVacant;
 import thecursed.TheCursedMod;
@@ -78,9 +81,6 @@ public class CharacterVoteController extends VoteController {
             }
 
             Color messageColor = isWinning ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
-
-            CardCrawlGame.mode = CardCrawlGame.GameMode.CHAR_SELECT;
-            CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
 
             if (isWinning) {
                 CardCrawlGame.mainMenuScreen.charSelectScreen.bgCharImg = characterPortraits
@@ -184,45 +184,26 @@ public class CharacterVoteController extends VoteController {
         for (CharacterOption option : options) {
             if (option.c instanceof Ironclad) {
                 characterOptions.put("ironclad", option);
-            }
-
-            if (option.c instanceof TheSilent) {
+            } else if (option.c instanceof TheSilent) {
                 characterOptions.put("silent", option);
-            }
-
-            if (option.c instanceof Defect) {
+            } else if (option.c instanceof Defect) {
                 characterOptions.put("defect", option);
-            }
-
-            if (option.c instanceof Watcher) {
+            } else if (option.c instanceof Watcher) {
                 characterOptions.put("watcher", option);
-            }
-
-            if (BaseMod.hasModID("MarisaState:")) {
-                if (option.c instanceof Marisa) {
-                    characterOptions.put("marisa", option);
-                }
-            }
-
-            if (BaseMod.hasModID("HermitState:")) {
-                if (option.c instanceof hermit) {
-                    characterOptions.put("hermit", option);
-                }
-            }
-
-            if (BaseMod.hasModID("VacantState:")) {
-                if (option.c instanceof TheVacant) {
-                    characterOptions.put("vacant", option);
-                }
-            }
-
-            if (BaseMod.hasModID("CursedState:")) {
-                if (option.c instanceof TheCursedCharacter) {
-                    characterOptions.put("cursed", option);
-                }
+            } else if (BaseMod.hasModID("MarisaState:") && option.c instanceof Marisa) {
+                characterOptions.put("marisa", option);
+            } else if (BaseMod.hasModID("HermitState:") && option.c instanceof hermit) {
+                characterOptions.put("hermit", option);
+            } else if (BaseMod.hasModID("VacantState:") && option.c instanceof TheVacant) {
+                characterOptions.put("vacant", option);
+            } else if (BaseMod.hasModID("CursedState:") && option.c instanceof TheCursedCharacter) {
+                characterOptions.put("cursed", option);
+            } else {
+                System.err.println("no character option for " + option.c.getClass());
             }
         }
 
+        System.err.println("Returning Character Options " + characterOptions);
         return characterOptions;
     }
 
@@ -265,6 +246,14 @@ public class CharacterVoteController extends VoteController {
                 characterPortraits.put("cursed", ImageMaster
                         .loadImage(TheCursedMod.getResourcePath("charSelect/portrait.png")));
             }
+        }
+    }
+
+    @SpirePatch(clz = UnlockTracker.class, method = "isCharacterLocked")
+    public static class AllCharactersUnlockedPatch {
+        @SpirePrefixPatch
+        public static SpireReturn<Boolean> unlockAll(String key) {
+            return SpireReturn.Return(false);
         }
     }
 }

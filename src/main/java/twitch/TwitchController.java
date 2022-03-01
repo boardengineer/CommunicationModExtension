@@ -19,6 +19,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
@@ -30,6 +31,7 @@ import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
+import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import communicationmod.CommunicationMod;
@@ -797,6 +799,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         voteFrequencies = new HashMap<>();
 
         startVote(VoteType.CHARACTER, "");
+
+        CardCrawlGame.mode = CardCrawlGame.GameMode.CHAR_SELECT;
+        CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
     }
 
     private void startVote(VoteType voteType, boolean forceWait, String stateString) {
