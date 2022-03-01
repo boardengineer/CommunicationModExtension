@@ -166,14 +166,20 @@ public class CharacterVoteController extends VoteController {
 
     private HashMap<String, CharacterOption> getCharacterOptions() {
         HashMap<String, CharacterOption> characterOptions = new HashMap<>();
-        ArrayList<CharacterOption> options = ReflectionHacks
-                .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
 
-        if (options == null) {
-            options = CardCrawlGame.mainMenuScreen.charSelectScreen.options;
-        } else {
-            CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
+        ArrayList<CharacterOption> options = new ArrayList<>();
+        try {
+            options = ReflectionHacks
+                    .getPrivate(CardCrawlGame.mainMenuScreen.charSelectScreen, CustomCharacterSelectScreen.class, "allOptions");
+
+            if (options == null) {
+                options = CardCrawlGame.mainMenuScreen.charSelectScreen.options;
+            } else {
+                CardCrawlGame.mainMenuScreen.charSelectScreen.options = options;
+            }
+        } catch (IllegalArgumentException e) {
         }
+
 
         for (CharacterOption option : options) {
             if (option.c instanceof Ironclad) {
