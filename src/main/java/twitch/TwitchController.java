@@ -283,16 +283,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                 .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
                     }
 
-                    for (String command : result.resultCommands) {
-                        String seedString = SeedHelper.getString(new Random().nextLong());
-                        if (currentVote == VoteType.CHARACTER &&
-                                optionsMap.getOrDefault("asc", 0) > 0 &&
-                                result.resultCommands.size() == 1) {
-                            command += String.format(" %d %s", optionsMap.get("asc"), seedString);
-                        }
-                        CommunicationMod.queueCommand(command);
-                    }
-
                     if (!voteByUsernameMap.isEmpty()) {
                         String fileName = String
                                 .format("votelogs/%s.txt", System.currentTimeMillis());
@@ -305,6 +295,16 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     voteController = null;
                     currentVote = null;
                     screenType = null;
+
+                    for (String command : result.resultCommands) {
+                        String seedString = SeedHelper.getString(new Random().nextLong());
+                        if (currentVote == VoteType.CHARACTER &&
+                                optionsMap.getOrDefault("asc", 0) > 0 &&
+                                result.resultCommands.size() == 1) {
+                            command += String.format(" %d %s", optionsMap.get("asc"), seedString);
+                        }
+                        CommunicationMod.queueCommand(command);
+                    }
                 }
             }
         } catch (ConcurrentModificationException | NullPointerException | IOException e) {
