@@ -257,15 +257,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                     if (!shouldRecall()) {
                         result = getVoteResult();
-                        new Thread(() -> {
-                            try {
-                                int floorNum = AbstractDungeon.floorNum;
-                                Slayboard
-                                        .postVoteResult(runId, floorNum, votePerFloorIndex++, result.voteString);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }).start();
+//                        new Thread(() -> {
+//                            try {
+//                                int floorNum = AbstractDungeon.floorNum;
+//                                Slayboard
+//                                        .postVoteResult(runId, floorNum, votePerFloorIndex++, result.voteString);
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }).start();
                     } else {
                         String winningVote = Slayboard
                                 .queryVoteResult(AbstractDungeon.floorNum, runId, votePerFloorIndex++);
@@ -283,19 +283,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                                 .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
                     }
 
-                    if (!voteByUsernameMap.isEmpty()) {
-                        String fileName = String
-                                .format("votelogs/%s.txt", System.currentTimeMillis());
-                        FileWriter writer = new FileWriter(fileName);
-                        writer.write(voteByUsernameMap.toString() + " " + stateString);
-                        writer.close();
-                    }
-
-                    voteByUsernameMap = null;
-                    voteController = null;
-                    currentVote = null;
-                    screenType = null;
-
                     for (String command : result.resultCommands) {
                         String seedString = SeedHelper.getString(new Random().nextLong());
                         if (currentVote == VoteType.CHARACTER &&
@@ -305,6 +292,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                         }
                         CommunicationMod.queueCommand(command);
                     }
+
+                    voteByUsernameMap = null;
+                    voteController = null;
+                    currentVote = null;
+                    screenType = null;
                 }
             }
         } catch (ConcurrentModificationException | NullPointerException | IOException e) {
@@ -753,15 +745,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
         optionsMap.put("recall", 0);
 
-        new Thread(() -> {
-            try {
-                runId = Slayboard.startRun();
-
-                System.err.println("LOOK HERE LOOK HERE RUN ID " + runId);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
+//        new Thread(() -> {
+//            try {
+//                runId = Slayboard.startRun();
+//
+//                System.err.println("LOOK HERE LOOK HERE RUN ID " + runId);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
 
         int choiceIndex = 1;
 
@@ -960,13 +952,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 BattleAiMod.aiClient.sendState(numTurns);
                 SaveState toSend = new SaveState();
                 // send game over stats to slayboard in another thread
-                new Thread(() -> {
-                    try {
-                        Slayboard.postBattleState(toSend.encode(), runId);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
+//                new Thread(() -> {
+//                    try {
+//                        Slayboard.postBattleState(toSend.encode(), runId);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }).start();
             }
         } else {
             try {
@@ -1158,16 +1150,16 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         if (!shouldRecall()) {
             // send game over stats to slayboard in another thread
-            new Thread(() -> {
-                try {
-                    int floorNum = AbstractDungeon.floorNum;
-                    int hpChange = AbstractDungeon.player.currentHealth - startingHP;
-
-                    Slayboard.postFloorResult(floorNum, hpChange, runId);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }).start();
+//            new Thread(() -> {
+//                try {
+//                    int floorNum = AbstractDungeon.floorNum;
+//                    int hpChange = AbstractDungeon.player.currentHealth - startingHP;
+//
+//                    Slayboard.postFloorResult(floorNum, hpChange, runId);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }).start();
         }
     }
 
@@ -1179,16 +1171,16 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public void receiveStartGame() {
         if (!shouldRecall()) {
             // Update the run seed once its set
-            new Thread(() -> {
-                try {
-                    int ascensionLevel = AbstractDungeon.ascensionLevel;
-                    Slayboard.updateRunSeedAndAscension(runId, SeedHelper
-                            .getString(Settings.seed), ascensionLevel, AbstractDungeon.player.chosenClass
-                            .name());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }).start();
+//            new Thread(() -> {
+//                try {
+//                    int ascensionLevel = AbstractDungeon.ascensionLevel;
+//                    Slayboard.updateRunSeedAndAscension(runId, SeedHelper
+//                            .getString(Settings.seed), ascensionLevel, AbstractDungeon.player.chosenClass
+//                            .name());
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }).start();
         }
     }
 
