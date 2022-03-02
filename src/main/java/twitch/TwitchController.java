@@ -208,22 +208,22 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (BattleAiMod.rerunController.isDone) {
                     // send game over stats to slayboard in another thread
 
-                    if (!shouldRecall()) {
-                        final List<Command> path = BattleAiMod.rerunController.bestPath;
-                        new Thread(() -> {
-                            if (!shouldRecall()) {
-                                try {
-                                    // TODO, calc hp change
-                                    int floorResult = Slayboard
-                                            .postFloorResult(AbstractDungeon.floorNum, 0, runId);
-
-                                    Slayboard.postCommands(floorResult, path);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }).start();
-                    }
+//                    if (!shouldRecall()) {
+//                        final List<Command> path = BattleAiMod.rerunController.bestPath;
+//                        new Thread(() -> {
+//                            if (!shouldRecall()) {
+//                                try {
+//                                    // TODO, calc hp change
+//                                    int floorResult = Slayboard
+//                                            .postFloorResult(AbstractDungeon.floorNum, 0, runId);
+//
+//                                    Slayboard.postCommands(floorResult, path);
+//                                } catch (IOException e) {
+//                                    e.printStackTrace();
+//                                }
+//                            }
+//                        }).start();
+//                    }
                 }
 
                 LudicrousSpeedMod.controller = BattleAiMod.rerunController = null;
