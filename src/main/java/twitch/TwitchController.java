@@ -309,6 +309,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             }
         } catch (ConcurrentModificationException | NullPointerException | IOException e) {
             System.err.println("Null pointer caught, clean up this crap");
+            e.printStackTrace();
         }
     }
 
