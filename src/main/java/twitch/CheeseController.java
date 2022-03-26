@@ -5,6 +5,7 @@ import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
 import com.megacrit.cardcrawl.relics.PrismaticShard;
+import com.megacrit.cardcrawl.relics.Tingsha;
 import tssrelics.relics.FestivuePole;
 
 import java.io.IOException;
@@ -51,6 +52,15 @@ public class CheeseController {
                            .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), pole);
 
             AbstractDungeon.rareRelicPool.remove(pole.relicId);
+        }, true));
+
+        availableCheeses.put("tingting", new CheeseConfig("tingting", () -> {
+            AbstractRelic tingsha = new Tingsha().makeCopy();
+
+            AbstractDungeon.getCurrRoom()
+                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), tingsha);
+
+            AbstractDungeon.rareRelicPool.remove(tingsha.relicId);
         }, true));
 
         // Start a background thread to read the SpireConfig containing any pending cheese
