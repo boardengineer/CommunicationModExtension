@@ -20,11 +20,21 @@ public class TwitchApiController {
     private static final String STREAM_TITLE_PREFIX = "Viewers + AI Slay the Spire (!climb)";
 
     // TODO don't hardcode this
+//  twitchslaysspiretest
+//    private static final String BROADCASTER_ID = "777541093";
+
+    // twitchslaysspire
     private static final String BROADCASTER_ID = "605614377";
-    private static final String BETA_ART_REWARD_ID = "32907622-e992-4088-af09-46c75ad43cfa";
+
+    private static final String BETA_ART_REWARD_1_WEEK_ID = "32907622-e992-4088-af09-46c75ad43cfa";
+    private static final String BETA_ART_REWARD_2_HOURS_ID = "8b0dcb01-8f0a-47bc-8be6-c1834898fbe6";
+    private static final String CHEESE_RUN_REWARD_ID = "4126d9e9-c2bf-4a28-8ca4-71e17f6dbc18";
 
     private String token;
     private String clientId;
+
+    private static final long ONE_WEEK_MILLILS = 1_000 * 60 * 60 * 24 * 7;
+    private static final long TWO_HOURS_MILLIS = 1_000 * 60 * 60 * 2;
 
     public TwitchApiController() throws IOException {
         InputStream in = new FileInputStream("tssconfig.txt");
@@ -79,10 +89,115 @@ public class TwitchApiController {
     }
 
 
-    public Optional<BetaArtRequest> getBetaArtRedemptions() throws IOException {
-        String queryUrl = String
-                .format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED", "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions", BROADCASTER_ID, BETA_ART_REWARD_ID);
+    public Optional<BetaArtRequest> queryBetaArtRequests() throws IOException {
+        Optional<JsonObject> queryResult = queryRedemptions(BETA_ART_REWARD_1_WEEK_ID);
 
+        BetaArtRequest result = new BetaArtRequest();
+        if (queryResult.isPresent()) {
+            result.duration = ONE_WEEK_MILLILS;
+            result.rewardId = BETA_ART_REWARD_1_WEEK_ID;
+        } else {
+            queryResult = queryRedemptions(BETA_ART_REWARD_2_HOURS_ID);
+            result.duration = TWO_HOURS_MILLIS;
+            result.rewardId = BETA_ART_REWARD_2_HOURS_ID;
+        }
+
+        if (queryResult.isPresent()) {
+            JsonObject redemption = queryResult.get();
+            result.redemptionId = redemption.get("id").getAsString();
+            result.userInput = redemption.get("user_input").getAsString();
+            return Optional.of(result);
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<CheeseRequest> queryCheeseRequests() throws IOException {
+        Optional<JsonObject> queryResult = queryRedemptions(CHEESE_RUN_REWARD_ID);
+
+        if (queryResult.isPresent()) {
+            CheeseRequest result = new CheeseRequest();
+
+            JsonObject redemption = queryResult.get();
+            result.rewardId = CHEESE_RUN_REWARD_ID;
+            result.redemptionId = redemption.get("id").getAsString();
+            result.userInput = redemption.get("user_input").getAsString();
+
+            return Optional.of(result);
+        }
+
+        return Optional.empty();
+    }
+
+    public void fulfillChannelPointReward(BetaArtRequest betaArtRequest) throws IOException {
+        completePointRedemption(betaArtRequest.rewardId, betaArtRequest.redemptionId, "FULFILLED");
+    }
+
+    public void cancelBetaArtReward(BetaArtRequest betaArtRequest) throws IOException {
+        completePointRedemption(betaArtRequest.rewardId, betaArtRequest.redemptionId, "CANCELED");
+    }
+
+    public void completePointRedemption(String rewardId, String redemptionId, String status) throws IOException{
+        String urlBuilder = String
+                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, rewardId, redemptionId);
+
+        URL url = new URL(urlBuilder);
+        HttpURLConnection http = (HttpURLConnection) url.openConnection();
+        http.setRequestMethod("PATCH");
+        http.setDoOutput(true);
+        http.setRequestProperty("Client-Id", clientId);
+        http.setRequestProperty("Content-Type", "application/json");
+        http.setRequestProperty("Authorization", "Bearer " + token);
+
+
+        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
+        JsonObject dataJson = new JsonObject();
+
+        dataJson.addProperty("status", status);
+
+        String data = dataJson.toString();
+
+        byte[] out = data.getBytes(StandardCharsets.UTF_8);
+
+        OutputStream stream = http.getOutputStream();
+        stream.write(out);
+
+        int responseCode = http.getResponseCode();
+
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    http.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+        } else {
+            System.out.println("failed with code " + responseCode + " " + http
+                    .getResponseMessage());
+        }
+    }
+
+    private static boolean containProperLogin(Properties properties) {
+        boolean hasAllRequiredFields = true;
+
+        if (properties.get("client_id") == null) {
+            hasAllRequiredFields = false;
+        } else if (properties.get("token") == null) {
+            hasAllRequiredFields = false;
+        }
+
+        return hasAllRequiredFields;
+    }
+
+    public Optional<JsonObject> queryRedemptions(String rewardId) throws IOException {
+        String baseUrl = "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions";
+        String queryUrl = String.format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED",
+                baseUrl, BROADCASTER_ID, rewardId);
+
+        System.out.println(queryUrl);
         URL url = new URL(queryUrl);
         HttpURLConnection http = (HttpURLConnection) url.openConnection();
         http.setRequestMethod("GET");
@@ -106,122 +221,16 @@ public class TwitchApiController {
             JsonArray dataArray = responseJson.get("data").getAsJsonArray();
 
             if (dataArray.size() > 0) {
-                JsonObject redemption = dataArray.get(0).getAsJsonObject();
-
-                BetaArtRequest result = new BetaArtRequest();
-
-                result.redemptionId = redemption.get("id").getAsString();
-                result.userInput = redemption.get("user_input").getAsString();
-
-                return Optional.of(result);
+                return Optional.of(dataArray.get(0).getAsJsonObject());
             }
 
+            System.out.println(response.toString());
         } else {
             System.out.println("failed with code " + http.getResponseCode() + " " + http
                     .getResponseMessage());
         }
 
         return Optional.empty();
-    }
-
-    public void fullfillBetaArtReward(String redemptionId) throws IOException {
-        String urlBuilder = String
-                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, BETA_ART_REWARD_ID, redemptionId);
-
-        URL url = new URL(urlBuilder);
-        HttpURLConnection http = (HttpURLConnection) url.openConnection();
-        http.setRequestMethod("PATCH");
-        http.setDoOutput(true);
-        http.setRequestProperty("Client-Id", clientId);
-        http.setRequestProperty("Content-Type", "application/json");
-        http.setRequestProperty("Authorization", "Bearer " + token);
-
-
-        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
-        JsonObject dataJson = new JsonObject();
-
-        dataJson.addProperty("status", "FULFILLED");
-
-        String data = dataJson.toString();
-
-        byte[] out = data.getBytes(StandardCharsets.UTF_8);
-
-        OutputStream stream = http.getOutputStream();
-        stream.write(out);
-
-        int responseCode = http.getResponseCode();
-
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    http.getInputStream()));
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-        } else {
-            System.out.println("failed with code " + responseCode + " " + http
-                    .getResponseMessage());
-        }
-
-    }
-
-    public void cancelBetaArtReward(String redemptionId) throws IOException {
-        String urlBuilder = String
-                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, BETA_ART_REWARD_ID, redemptionId);
-
-        URL url = new URL(urlBuilder);
-        HttpURLConnection http = (HttpURLConnection) url.openConnection();
-        http.setRequestMethod("PATCH");
-        http.setDoOutput(true);
-        http.setRequestProperty("Client-Id", clientId);
-        http.setRequestProperty("Content-Type", "application/json");
-        http.setRequestProperty("Authorization", "Bearer " + token);
-
-
-        //            http.setRequestProperty("broadcaster_id", "twitchslaysspire");
-        JsonObject dataJson = new JsonObject();
-
-        dataJson.addProperty("status", "CANCELED");
-
-        String data = dataJson.toString();
-
-        byte[] out = data.getBytes(StandardCharsets.UTF_8);
-
-        OutputStream stream = http.getOutputStream();
-        stream.write(out);
-
-        int responseCode = http.getResponseCode();
-
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    http.getInputStream()));
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-        } else {
-            System.out.println("failed with code " + responseCode + " " + http
-                    .getResponseMessage());
-        }
-
-    }
-
-    private static boolean containProperLogin(Properties properties) {
-        boolean hasAllRequiredFields = true;
-
-        if (properties.get("client_id") == null) {
-            hasAllRequiredFields = false;
-        } else if (properties.get("token") == null) {
-            hasAllRequiredFields = false;
-        }
-
-        return hasAllRequiredFields;
     }
 
     public Optional<PredictionInfo> createPrediction() throws IOException {

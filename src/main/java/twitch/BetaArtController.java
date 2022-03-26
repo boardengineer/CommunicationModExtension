@@ -67,7 +67,7 @@ public class BetaArtController {
             new Thread(() -> {
                 try {
                     Optional<BetaArtRequest> betaArtRequestOptional = twitchController.apiController
-                            .getBetaArtRedemptions();
+                            .queryBetaArtRequests();
                     if (betaArtRequestOptional.isPresent()) {
                         BetaArtRequest betaArtRequest = betaArtRequestOptional.get();
 
@@ -81,17 +81,15 @@ public class BetaArtController {
                             UnlockTracker.betaCardPref.putBoolean(cardId, true);
 
                             twitchController.apiController
-                                    .fullfillBetaArtReward(betaArtRequest.redemptionId);
+                                    .fulfillChannelPointReward(betaArtRequest);
 
-                            long inAWeek = System.currentTimeMillis() + 1_000 * 60 * 60 * 24 * 7;
-
-                            betaExpirationsMap.put(cardId, inAWeek);
+                            betaExpirationsMap.put(cardId, System
+                                    .currentTimeMillis() + betaArtRequest.duration);
                             saveBetaConfig();
                             TwitchController.twirk
                                     .channelMessage("[Bot] Beta art set successfully for " + betaArtRequest.userInput);
                         } else {
-                            twitchController.apiController
-                                    .cancelBetaArtReward(betaArtRequest.redemptionId);
+                            twitchController.apiController.cancelBetaArtReward(betaArtRequest);
                             TwitchController.twirk
                                     .channelMessage("[Bot] Redemption Cancelled, no card matching " + betaArtRequest.userInput);
                         }

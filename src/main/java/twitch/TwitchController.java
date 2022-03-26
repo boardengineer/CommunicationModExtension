@@ -109,6 +109,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static VoteController voteController;
 
     private final BetaArtController betaArtController;
+    private final CheeseController cheeseController;
     public QueryController queryController;
 
     public static HashMap<String, Integer> optionsMap;
@@ -147,6 +148,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public TwitchController(Twirk twirk) {
         this.betaArtController = new BetaArtController(this);
+        this.cheeseController = new CheeseController(this);
         try {
             optionsConfig = new SpireConfig("CommModExtension", "options");
 
@@ -201,6 +203,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         betaArtController.update();
+        cheeseController.update();
 
         if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
             if (BattleAiMod.rerunController.isDone || LudicrousSpeedMod.mustRestart) {

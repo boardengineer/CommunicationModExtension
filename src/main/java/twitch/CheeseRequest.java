@@ -5,9 +5,8 @@ package twitch;
  *
  * This will be kept simple and public for ease of use.
  */
-public class BetaArtRequest {
+public class CheeseRequest {
     public String redemptionId;
     public String rewardId;
     public String userInput;
-    public long duration;
 }

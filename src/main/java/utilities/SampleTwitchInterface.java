@@ -19,8 +19,17 @@ import java.util.*;
 public class SampleTwitchInterface {
     private static final Field MODIFIERS_FIELD;
 
+
+//  twitchslaysspiretest
+//    private static final String BROADCASTER_ID = "777541093";
+
+
+    //  twitchslaysspire
     private static final String BROADCASTER_ID = "605614377";
-    private static final String BETA_ART_REWARD_ID = "32907622-e992-4088-af09-46c75ad43cfa";
+
+    private static final String BETA_ART_REWARD_1_WEEK_ID = "32907622-e992-4088-af09-46c75ad43cfa";
+    private static final String BETA_ART_REWARD_2_HOURS_ID = "292e4682-5152-4021-a0d7-14ad5b47a386";
+    private static final String CHEESE_RUN_REWARD_ID = "76c937ab-6218-48ec-ae87-d71a5a6b2144";
 
     private static String token;
     private static String clientId;
@@ -59,9 +68,11 @@ public class SampleTwitchInterface {
             token = properties.getProperty("token");
             clientId = properties.getProperty("client_id");
 
-            Optional<PredictionInfo> info = createPrediction();
+            createBetaRedemption();
 
-            resolvePrediction(info.get(), false);
+//            Optional<PredictionInfo> info = createPrediction();
+//
+//            resolvePrediction(info.get(), false);
 
         } else {
             System.out.println("no proper login");
@@ -107,7 +118,7 @@ public class SampleTwitchInterface {
     }
 
     public static void queryChannel() throws IOException {
-        URL url = new URL("https://api.twitch.tv/helix/users?login=twitchslaysspire");
+        URL url = new URL("https://api.twitch.tv/helix/users?login=twitchslaysspiretest");
         HttpURLConnection http = (HttpURLConnection) url.openConnection();
         http.setRequestMethod("GET");
         http.setDoOutput(true);
@@ -226,7 +237,7 @@ public class SampleTwitchInterface {
 
         JsonObject dataJson = new JsonObject();
 
-        dataJson.addProperty("title", "Set Beta Art for 1 Week");
+        dataJson.addProperty("title", "Do Thing 2");
         dataJson.addProperty("cost", 15_000);
         dataJson.addProperty("is_user_input_required", true);
         dataJson.addProperty("prompt", "What Beta Art would you like to enable?  You can double check spelling by using the !card command.");
@@ -265,9 +276,31 @@ public class SampleTwitchInterface {
         }
     }
 
-    private static Optional<BetaArtRequest> getBetaArtRedemptions() throws IOException {
-        String queryUrl = String
-                .format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED", "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions", BROADCASTER_ID, BETA_ART_REWARD_ID);
+    public static Optional<BetaArtRequest> getBetaArtRedemptions() throws IOException {
+        Optional<JsonObject> queryResult = queryRedemptions(BETA_ART_REWARD_1_WEEK_ID);
+
+        if (queryResult.isPresent()) {
+            JsonObject redemption = queryResult.get();
+
+            BetaArtRequest result = new BetaArtRequest();
+
+            result.redemptionId = redemption.get("id").getAsString();
+            result.userInput = redemption.get("user_input").getAsString();
+
+            return Optional.of(result);
+        }
+
+        return Optional.empty();
+    }
+
+    public static void fullfillBetaArtReward(String redemptionId) throws IOException {
+        fulfillChannelPointReward(BETA_ART_REWARD_1_WEEK_ID, redemptionId);
+    }
+
+    public static Optional<JsonObject> queryRedemptions(String rewardId) throws IOException {
+        String baseUrl = "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions";
+        String queryUrl = String.format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED",
+                baseUrl, BROADCASTER_ID, rewardId);
 
         System.out.println(queryUrl);
         URL url = new URL(queryUrl);
@@ -293,14 +326,7 @@ public class SampleTwitchInterface {
             JsonArray dataArray = responseJson.get("data").getAsJsonArray();
 
             if (dataArray.size() > 0) {
-                JsonObject redemption = dataArray.get(0).getAsJsonObject();
-
-                BetaArtRequest result = new BetaArtRequest();
-
-                result.redemptionId = redemption.get("id").getAsString();
-                result.userInput = redemption.get("user_input").getAsString();
-
-                return Optional.of(result);
+                return Optional.of(dataArray.get(0).getAsJsonObject());
             }
 
             System.out.println(response.toString());
@@ -312,9 +338,9 @@ public class SampleTwitchInterface {
         return Optional.empty();
     }
 
-    public static void fullfillBetaArtReward(String redemptionId) throws IOException {
+    public static void fulfillChannelPointReward(String rewardId, String redemptionId) throws IOException {
         String urlBuilder = String
-                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, BETA_ART_REWARD_ID, redemptionId);
+                .format("https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=%s&reward_id=%s&id=%s", BROADCASTER_ID, rewardId, redemptionId);
 
         URL url = new URL(urlBuilder);
         HttpURLConnection http = (HttpURLConnection) url.openConnection();
