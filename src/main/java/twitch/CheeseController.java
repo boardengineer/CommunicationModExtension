@@ -65,7 +65,7 @@ public class CheeseController {
             AbstractDungeon.rareRelicPool.remove(tingsha.relicId);
         }, true));
 
-        availableCheeses.put("knifeyspoony", new CheeseConfig("knifeyspoony", () -> {
+        availableCheeses.put("uglystick", new CheeseConfig("uglystick", () -> {
             AbstractRelic branch = new DeadBranch().makeCopy();
 
             AbstractDungeon.getCurrRoom()

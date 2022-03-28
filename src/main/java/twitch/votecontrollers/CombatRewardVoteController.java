@@ -362,6 +362,8 @@ public class CombatRewardVoteController extends VoteController {
         add(new TinyChest().name);
         add(new WarPaint().name);
         add(new Whetstone().name);
+        add(new NinjaScroll().name);
+        add(new BlueCandle().name);
 
         add(SneckoSkinBoots.ID);
         add(SneckoCharm.ID);
