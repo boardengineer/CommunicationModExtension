@@ -17,7 +17,8 @@ public class NeowPatches {
     public static class AddNirlysPatch {
         @SpirePrefixPatch
         public static SpireReturn addNilrys(NeowReward neowReward) {
-            if (CheeseController.requestedCheeseConfig.isPresent()) {
+            if (CheeseController.requestedCheeseConfig != null && CheeseController.requestedCheeseConfig
+                    .isPresent()) {
                 CheeseController.CheeseConfig config = CheeseController.requestedCheeseConfig.get();
 
                 config.cheeseEffect.run();
@@ -46,7 +47,7 @@ public class NeowPatches {
     public static class CustomBlessingPatch {
         @SpirePrefixPatch
         public static SpireReturn replaceBlessings(NeowEvent neowEvent) {
-            if (CheeseController.requestedCheeseConfig
+            if (CheeseController.requestedCheeseConfig != null && CheeseController.requestedCheeseConfig
                     .isPresent() && CheeseController.requestedCheeseConfig.get().replaceNeow) {
                 ArrayList<NeowReward> rewards = ReflectionHacks
                         .getPrivate(neowEvent, NeowEvent.class, "rewards");

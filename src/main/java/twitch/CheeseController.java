@@ -4,9 +4,11 @@ import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
+import com.megacrit.cardcrawl.relics.DeadBranch;
 import com.megacrit.cardcrawl.relics.PrismaticShard;
 import com.megacrit.cardcrawl.relics.Tingsha;
 import tssrelics.relics.FestivuePole;
+import tssrelics.relics.JadeMysticKnot;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -61,6 +63,24 @@ public class CheeseController {
                            .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), tingsha);
 
             AbstractDungeon.rareRelicPool.remove(tingsha.relicId);
+        }, true));
+
+        availableCheeses.put("knifeyspoony", new CheeseConfig("knifeyspoony", () -> {
+            AbstractRelic branch = new DeadBranch().makeCopy();
+
+            AbstractDungeon.getCurrRoom()
+                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), branch);
+
+            AbstractDungeon.rareRelicPool.remove(branch.relicId);
+        }, true));
+
+        availableCheeses.put("alltiedup", new CheeseConfig("alltiedup", () -> {
+            AbstractRelic knot = new JadeMysticKnot().makeCopy();
+
+            AbstractDungeon.getCurrRoom()
+                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), knot);
+
+            AbstractDungeon.rareRelicPool.remove(knot.relicId);
         }, true));
 
         // Start a background thread to read the SpireConfig containing any pending cheese
