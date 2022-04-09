@@ -680,6 +680,15 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     saveOptionsConfig();
                 } else {
                     int newLives = optionsMap.getOrDefault("lives", 0) - 1;
+
+                    if (newLives <= 0) {
+                        newLives = 20;
+
+                        int newAsc = 1;
+                        optionsMap.put("asc", newAsc);
+                        currentAscension = newAsc;
+                    }
+
                     currentLives = newLives;
                     optionsMap.put("lives", newLives);
                     saveOptionsConfig();
