@@ -1,12 +1,12 @@
 package twitch;
 
 import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
+import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.colorless.RitualDagger;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
-import com.megacrit.cardcrawl.relics.AbstractRelic;
-import com.megacrit.cardcrawl.relics.DeadBranch;
-import com.megacrit.cardcrawl.relics.PrismaticShard;
-import com.megacrit.cardcrawl.relics.Tingsha;
+import com.megacrit.cardcrawl.relics.*;
+import com.megacrit.cardcrawl.vfx.cardManip.ShowCardAndObtainEffect;
 import tssrelics.relics.FestivuePole;
 import tssrelics.relics.JadeMysticKnot;
 
@@ -81,6 +81,19 @@ public class CheeseController {
                            .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), knot);
 
             AbstractDungeon.rareRelicPool.remove(knot.relicId);
+        }, true));
+
+        availableCheeses.put("knifeySpooney", new CheeseConfig("knifeySpooney", () -> {
+            AbstractRelic knot = new StrangeSpoon().makeCopy();
+
+            AbstractDungeon.getCurrRoom()
+                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), knot);
+
+            AbstractDungeon.shopRelicPool.remove(knot.relicId);
+
+            AbstractDungeon.topLevelEffects
+                    .add(new ShowCardAndObtainEffect(new RitualDagger()
+                            .makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
         }, true));
 
         // Start a background thread to read the SpireConfig containing any pending cheese

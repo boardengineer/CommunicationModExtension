@@ -17,6 +17,24 @@ public class NeowPatches {
     public static class AddNirlysPatch {
         @SpirePrefixPatch
         public static SpireReturn addNilrys(NeowReward neowReward) {
+            // Uncomment to add a card/relic to all runs for testing
+//            AbstractCard card = new Reprieve().makeCopy();
+//            card.upgrade();
+//            AbstractDungeon.topLevelEffects
+//                    .add(new ShowCardAndObtainEffect(card, (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
+//
+//            AbstractDungeon.topLevelEffects
+//                    .add(new ShowCardAndObtainEffect(new Injury().makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
+//            AbstractDungeon.topLevelEffects
+//                    .add(new ShowCardAndObtainEffect(new Injury().makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
+
+
+
+//            AbstractDungeon.getCurrRoom()
+//                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), new PrismaticBranch()
+//                                   .makeCopy());
+
+
             if (CheeseController.requestedCheeseConfig != null && CheeseController.requestedCheeseConfig
                     .isPresent()) {
                 CheeseController.CheeseConfig config = CheeseController.requestedCheeseConfig.get();
