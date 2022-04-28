@@ -21,7 +21,7 @@ public class QueryController {
     private final HashMap<String, String> cardNamesToIdMap;
 
     private final HashMap<String, String> keywordDescriptionMap;
-    private HashMap<String, String> relicDescriptionMap;
+    private final HashMap<String, String> relicDescriptionMap;
 
     public QueryController() {
         cardNamesToIdMap = new HashMap<>();
@@ -86,7 +86,10 @@ public class QueryController {
                                              .joining(" "));
 
                              String descriptionResult = String
-                                     .format("%s: %s", card.name, description);
+                                     .format("(%s) %s [%d]: %s, %s: %s",
+                                             card.color.name().toLowerCase(), card.name, card.cost,
+                                             card.rarity.name().toLowerCase(),
+                                             card.type.name().toLowerCase(), description);
                              cardsToDescriptionMap.put(name, descriptionResult);
                              cardNamesToIdMap.put(name, card.cardID);
 
@@ -99,7 +102,10 @@ public class QueryController {
                                          .collect(Collectors
                                                  .joining(" "));
                                  String upgradedDescriptionResult = String
-                                         .format("%s: %s", card.name, upgradedDescription);
+                                         .format("(%s) %s [%d]: %s, %s: %s",
+                                                 card.color.name().toLowerCase(), card.name, card.cost,
+                                                 card.rarity.name().toLowerCase(),
+                                                 card.type.name().toLowerCase(), upgradedDescription);
                                  cardsToDescriptionMap.put(upgradedName, upgradedDescriptionResult);
                              } catch (NullPointerException e) {
                                  // upgrading sometimes nulls out, hopefully just for curses.

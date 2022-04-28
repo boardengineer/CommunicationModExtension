@@ -83,7 +83,7 @@ public class CheeseController {
             AbstractDungeon.rareRelicPool.remove(knot.relicId);
         }, true));
 
-        availableCheeses.put("knifeySpooney", new CheeseConfig("knifeySpooney", () -> {
+        availableCheeses.put("knifeyspooney", new CheeseConfig("knifeyspooney", () -> {
             AbstractRelic knot = new StrangeSpoon().makeCopy();
 
             AbstractDungeon.getCurrRoom()
