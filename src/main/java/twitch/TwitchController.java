@@ -1,6 +1,5 @@
 package twitch;
 
-import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
@@ -38,15 +37,7 @@ import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
-import twitch.votecontrollers.BossRewardVoteController;
-import twitch.votecontrollers.CardRewardVoteController;
-import twitch.votecontrollers.CharacterVoteController;
-import twitch.votecontrollers.CombatRewardVoteController;
-import twitch.votecontrollers.EventVoteController;
-import twitch.votecontrollers.GridVoteController;
-import twitch.votecontrollers.MapVoteController;
-import twitch.votecontrollers.RestVoteController;
-import twitch.votecontrollers.ShopScreenVoteController;
+import twitch.votecontrollers.*;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -119,7 +110,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public ArrayList<Choice> choices;
     public ArrayList<Choice> viableChoices;
-    private HashMap<String, Choice> choicesMap;
+    public HashMap<String, Choice> choicesMap;
 
     public static Twirk twirk;
 
@@ -737,67 +728,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     public void startCharacterVote(JsonObject stateJson) {
-        choices = new ArrayList<>();
-
-        // reset recall option back to playing
-        if (shouldRecall() && !recallQueue.isEmpty()) {
-            runId = recallQueue.poll();
-            String command = null;
-            try {
-                command = Slayboard.queryRunCommand(runId);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (command != null) {
-                previousLevel = 0;
-                votePerFloorIndex = 1;
-                CommunicationMod.queueCommand(command);
-                return;
-            }
-        }
-        optionsMap.put("recall", 0);
-
-//        new Thread(() -> {
-//            try {
-//                runId = Slayboard.startRun();
-//
-//                System.err.println("LOOK HERE LOOK HERE RUN ID " + runId);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }).start();
-
-        int choiceIndex = 1;
-
-        choices.add(new Choice("ironclad", Integer.toString(choiceIndex++), "start ironclad"));
-        choices.add(new Choice("silent", Integer.toString(choiceIndex++), "start silent"));
-        choices.add(new Choice("defect", Integer.toString(choiceIndex++), "start defect"));
-        choices.add(new Choice("watcher", Integer.toString(choiceIndex++), "start watcher"));
-
-        if (BaseMod.hasModID("MarisaState:")) {
-            choices.add(new Choice("marisa", Integer.toString(choiceIndex++), "start marisa"));
-        }
-
-        if (BaseMod.hasModID("HermitState:")) {
-            choices.add(new Choice("hermit", Integer.toString(choiceIndex++), "start hermit"));
-        }
-
-        if (BaseMod.hasModID("VacantState:")) {
-            choices.add(new Choice("vacant", Integer.toString(choiceIndex++), "start the_vacant"));
-        }
-
-        if (BaseMod.hasModID("CursedState:")) {
-            choices.add(new Choice("cursed", Integer.toString(choiceIndex++), "start the_cursed"));
-        }
-
-        viableChoices = choices;
-
-        choicesMap = new HashMap<>();
-        for (Choice choice : viableChoices) {
-            choicesMap.put(choice.voteString, choice);
-        }
-
         voteController = new CharacterVoteController(this, stateJson);
+
+        voteController.setUpChoices();
 
         voteFrequencies = new HashMap<>();
 

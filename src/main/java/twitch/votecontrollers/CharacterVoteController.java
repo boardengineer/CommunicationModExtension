@@ -57,7 +57,48 @@ public class CharacterVoteController extends VoteController {
 
     @Override
     public void setUpChoices() {
-        twitchController.setUpDefaultVoteOptions(stateJson);
+        ArrayList<TwitchController.Choice> choices = new ArrayList<>();
+
+        twitchController.choices = new ArrayList<>();
+
+        int choiceIndex = 1;
+
+        choices.add(new TwitchController.Choice("ironclad", Integer
+                .toString(choiceIndex++), "start ironclad"));
+        choices.add(new TwitchController.Choice("silent", Integer
+                .toString(choiceIndex++), "start silent"));
+        choices.add(new TwitchController.Choice("defect", Integer
+                .toString(choiceIndex++), "start defect"));
+        choices.add(new TwitchController.Choice("watcher", Integer
+                .toString(choiceIndex++), "start watcher"));
+
+        if (BaseMod.hasModID("MarisaState:")) {
+            choices.add(new TwitchController.Choice("marisa", Integer
+                    .toString(choiceIndex++), "start marisa"));
+        }
+
+        if (BaseMod.hasModID("HermitState:")) {
+            choices.add(new TwitchController.Choice("hermit", Integer
+                    .toString(choiceIndex++), "start hermit"));
+        }
+
+        if (BaseMod.hasModID("VacantState:")) {
+            choices.add(new TwitchController.Choice("vacant", Integer
+                    .toString(choiceIndex++), "start the_vacant"));
+        }
+
+        if (BaseMod.hasModID("CursedState:")) {
+            choices.add(new TwitchController.Choice("cursed", Integer
+                    .toString(choiceIndex++), "start the_cursed"));
+        }
+
+        twitchController.choices = choices;
+        twitchController.viableChoices = choices;
+
+        twitchController.choicesMap = new HashMap<>();
+        for (TwitchController.Choice choice : choices) {
+            twitchController.choicesMap.put(choice.voteString, choice);
+        }
     }
 
     @Override
