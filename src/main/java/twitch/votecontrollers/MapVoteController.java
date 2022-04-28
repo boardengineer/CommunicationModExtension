@@ -2,24 +2,36 @@ package twitch.votecontrollers;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.gikk.twirk.Twirk;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.map.MapRoomNode;
+import com.megacrit.cardcrawl.rooms.EventRoom;
+import com.megacrit.cardcrawl.rooms.MonsterRoom;
+import com.megacrit.cardcrawl.rooms.MonsterRoomElite;
+import com.megacrit.cardcrawl.rooms.RestRoom;
 import communicationmod.ChoiceScreenUtils;
 import twitch.RenderHelpers;
 import twitch.TwitchController;
 import twitch.VoteController;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class MapVoteController extends VoteController {
+    public static final HashMap<Class, String> ROOM_DISPLAY_STRINGS = new HashMap<Class, String>() {{
+        put(MonsterRoom.class, "Monster Room");
+        put(MonsterRoomElite.class, "Elite Monster Room");
+        put(EventRoom.class, "Event Room");
+        put(RestRoom.class, "Campfire Room");
+    }};
+
     private final TwitchController twitchController;
     private final HashMap<String, MapRoomNode> messageToRoomNodeMap;
     private final JsonObject stateJson;
 
     public MapVoteController(TwitchController twitchController, JsonObject stateJson) {
+        super(twitchController);
         messageToRoomNodeMap = new HashMap<>();
         ArrayList<MapRoomNode> mapChoice = ChoiceScreenUtils.getMapScreenNodeChoices();
         for (MapRoomNode node : mapChoice) {
@@ -75,5 +87,27 @@ public class MapVoteController extends VoteController {
     @Override
     public void endVote() {
 
+    }
+
+    @Override
+    public void sendVoteMessage() {
+        List<TwitchController.Choice> viableChoices = twitchController.viableChoices;
+        Twirk twirk = TwitchController.twirk;
+
+        if (viableChoices.size() > 1) {
+            String messageString = viableChoices.stream().map(this::toMessageString)
+                                                .collect(Collectors.joining(" "));
+            twirk.channelMessage("[BOT] Vote: " + messageString);
+        }
+    }
+
+    private String toMessageString(TwitchController.Choice choice) {
+        Class roomClass = messageToRoomNodeMap.get(choice.choiceName).getRoom().getClass();
+
+        String roomDisplayName = ROOM_DISPLAY_STRINGS.containsKey(roomClass) ? ROOM_DISPLAY_STRINGS
+                .get(roomClass) : roomClass.getSimpleName().toLowerCase();
+
+        return String
+                .format("[ %s | %s | %s ]", choice.voteString, choice.choiceName, roomDisplayName);
     }
 }

@@ -24,12 +24,13 @@ public class RestVoteController extends VoteController {
     private static final float SCALE = 3.3f;
 
     private final HashMap<String, AbstractCampfireOption> messageToRestOption;
-    private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     public static OrthographicCamera camera = null;
 
     public RestVoteController(TwitchController twitchController, JsonObject stateJson) {
+        super(twitchController);
+
         if (BaseMod.hasModID("mintyspire:")) {
             if (camera == null) {
                 camera = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
@@ -38,7 +39,6 @@ public class RestVoteController extends VoteController {
             }
         }
 
-        this.twitchController = twitchController;
         messageToRestOption = new HashMap<>();
 
         ArrayList<AbstractCampfireOption> restOptions = ReflectionHacks

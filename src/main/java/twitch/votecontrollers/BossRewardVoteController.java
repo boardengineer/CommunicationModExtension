@@ -18,12 +18,11 @@ import java.util.Locale;
 import java.util.Set;
 
 public class BossRewardVoteController extends VoteController {
-    private final TwitchController twitchController;
     private final HashMap<String, AbstractRelic> messageToBossRelicMap;
     private final JsonObject stateJson;
 
     public BossRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
-        this.twitchController = twitchController;
+        super(twitchController);
 
         messageToBossRelicMap = new HashMap<>();
 

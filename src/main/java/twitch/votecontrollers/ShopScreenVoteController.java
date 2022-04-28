@@ -26,11 +26,11 @@ import java.util.stream.Collectors;
 
 public class ShopScreenVoteController extends VoteController {
     private final HashMap<String, Object> voteStringToShopItemMap;
-    private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     public ShopScreenVoteController(TwitchController twitchController, JsonObject stateJson) {
-        this.twitchController = twitchController;
+        super(twitchController);
+
         voteStringToShopItemMap = new HashMap<>();
         ArrayList<Object> shopItems = ReflectionHacks
                 .privateStaticMethod(ChoiceScreenUtils.class, "getAvailableShopItems")

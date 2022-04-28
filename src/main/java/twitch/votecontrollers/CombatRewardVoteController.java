@@ -26,11 +26,10 @@ import static twitch.RenderHelpers.renderTextBelowHitbox;
 public class CombatRewardVoteController extends VoteController {
     private final HashMap<String, RewardItem> voteStringToCombatRewardItem;
     private final HashMap<String, String> voteStringToOriginalRewardTextMap;
-    private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     public CombatRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
-        this.twitchController = twitchController;
+        super(twitchController);
         this.stateJson = stateJson;
 
         JsonObject gameState = stateJson.get("game_state").getAsJsonObject();

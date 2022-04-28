@@ -18,12 +18,11 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class GridVoteController extends VoteController {
-    private final TwitchController twitchController;
     private final HashMap<String, AbstractCard> voteStringToCardMap;
     private final JsonObject stateJson;
 
     public GridVoteController(TwitchController twitchController, JsonObject stateJson) {
-        this.twitchController = twitchController;
+        super(twitchController);
 
         voteStringToCardMap = new HashMap<>();
         for (int i = 0; i < AbstractDungeon.gridSelectScreen.targetGroup.group.size(); i++) {

@@ -44,13 +44,12 @@ public class CharacterVoteController extends VoteController {
         put("vacant", "(!vacant) (!vacantinfo) (!trymodchars)");
     }};
 
-    private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     private final HashMap<String, CharacterOption> characterOptions;
 
     public CharacterVoteController(TwitchController twitchController, JsonObject stateJson) {
-        this.twitchController = twitchController;
+        super(twitchController);
         this.stateJson = stateJson;
 
         characterOptions = getCharacterOptions();

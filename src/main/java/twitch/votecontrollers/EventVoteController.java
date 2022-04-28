@@ -30,10 +30,11 @@ public class EventVoteController extends VoteController {
     private final HashMap<String, LargeDialogOptionButton> voteStringToEventButtonMap;
     private final HashMap<String, String> voteStringToOriginalEventButtonMessageMap;
 
-    private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     public EventVoteController(TwitchController twitchController, JsonObject stateJson) {
+        super(twitchController);
+
         if (BaseMod.hasModID("mintyspire:")) {
             if (camera == null) {
                 camera = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
@@ -56,7 +57,6 @@ public class EventVoteController extends VoteController {
             voteStringToEventButtonMap.put(voteString, button);
         }
 
-        this.twitchController = twitchController;
         this.stateJson = stateJson;
     }
 

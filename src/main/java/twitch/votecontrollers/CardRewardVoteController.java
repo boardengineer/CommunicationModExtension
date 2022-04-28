@@ -23,11 +23,10 @@ import static twitch.RenderHelpers.renderTextBelowHitbox;
 public class CardRewardVoteController extends VoteController {
     // Card reward rendering references
     private final HashMap<String, AbstractCard> messageToCardReward;
-    private final TwitchController twitchController;
     private final JsonObject stateJson;
 
     public CardRewardVoteController(TwitchController twitchController, JsonObject stateJson) {
-        this.twitchController = twitchController;
+        super(twitchController);
         messageToCardReward = new HashMap<>();
         for (AbstractCard card : AbstractDungeon.cardRewardScreen.rewardGroup) {
             messageToCardReward.put(card.name.toLowerCase(), card);

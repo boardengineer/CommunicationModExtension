@@ -827,39 +827,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }
 
-            if (viableChoices
-                    .size() > 1 && !(voteType == VoteType.MAP_LONG || voteType == VoteType.MAP_SHORT)) {
-
-                int appendedSize = 0;
-                ArrayList<Choice> toSend = new ArrayList<>();
-                for (int i = 0; i < viableChoices.size(); i++) {
-                    toSend.add(viableChoices.get(i));
-                    appendedSize++;
-
-                    if (appendedSize % 20 == 0) {
-                        // TODO kill print
-                        String messageString = toSend.stream().peek(choice -> System.err
-                                .println(choice.rewardInfo.isPresent() ? choice.rewardInfo
-                                        .get().relicName : " ")).map(choice -> String
-                                .format("[%s| %s]", choice.voteString, choice.choiceName))
-                                                     .collect(Collectors.joining(" "));
-
-                        twirk.channelMessage("[BOT] Vote: " + messageString);
-
-                        toSend = new ArrayList<>();
-                        appendedSize = 0;
-                    }
-                }
-
-                if (!toSend.isEmpty()) {
-                    String messageString = toSend.stream().peek(choice -> System.err
-                            .println(choice.rewardInfo.isPresent() ? choice.rewardInfo
-                                    .get().relicName : " ")).map(choice -> String
-                            .format("[%s| %s]", choice.voteString, choice.choiceName))
-                                                 .collect(Collectors.joining(" "));
-
-                    twirk.channelMessage("[BOT] Vote: " + messageString);
-                }
+            if (voteController != null) {
+                voteController.sendVoteMessage();
             }
         }
 
