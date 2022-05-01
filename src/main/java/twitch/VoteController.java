@@ -13,6 +13,11 @@ public abstract class VoteController {
 
     public abstract void setUpChoices();
     public abstract void render(SpriteBatch spriteBatch);
+
+    protected VoteController(TwitchController twitchController) {
+        this.twitchController = twitchController;
+    }
+
     public Optional<String> getTipString() {
         return Optional.empty();
     }
@@ -62,9 +67,5 @@ public abstract class VoteController {
                 twirk.channelMessage("[BOT] Vote: " + messageString);
             }
         }
-    }
-
-    protected VoteController(TwitchController twitchController) {
-        this.twitchController = twitchController;
     }
 }

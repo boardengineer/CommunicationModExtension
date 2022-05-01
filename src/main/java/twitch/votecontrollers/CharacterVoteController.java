@@ -27,6 +27,7 @@ import thecursed.TheCursedMod;
 import thecursed.characters.TheCursedCharacter;
 import twitch.TwitchController;
 import twitch.VoteController;
+import twitch.games.ClimbGameController;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -176,32 +177,36 @@ public class CharacterVoteController extends VoteController {
 
     @Override
     public void endVote(TwitchController.Choice result) {
-        int ascension = TwitchController.optionsMap.get("asc");
-        int lives = TwitchController.optionsMap.get("lives");
+        if (TwitchController.gameController != null && TwitchController.gameController instanceof ClimbGameController) {
+            ClimbGameController gameController = (ClimbGameController) TwitchController.gameController;
 
-        String titleSuffix = String
-                .format(" Ascension: %d\t Lives: %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(result.choiceName));
+            int ascension = gameController.getAscension();
+            int lives = gameController.getlives();
 
-        if (MOD_CHARACTER_EXTRA_INFO.containsKey(result.choiceName)) {
-            titleSuffix = titleSuffix + " " + MOD_CHARACTER_EXTRA_INFO.get(result.choiceName);
+            String titleSuffix = String
+                    .format(" Ascension: %d\t Lives: %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(result.choiceName));
+
+            if (MOD_CHARACTER_EXTRA_INFO.containsKey(result.choiceName)) {
+                titleSuffix = titleSuffix + " " + MOD_CHARACTER_EXTRA_INFO.get(result.choiceName);
+            }
+
+            final String finalSuffix = titleSuffix;
+            new Thread(() -> {
+                try {
+                    twitchController.apiController.setStreamTitle(finalSuffix);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    twitchController.currentPrediction = twitchController.apiController
+                            .createPrediction();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
         }
-
-        final String finalSuffix = titleSuffix;
-        new Thread(() -> {
-            try {
-                twitchController.apiController.setStreamTitle(finalSuffix);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                twitchController.currentPrediction = twitchController.apiController
-                        .createPrediction();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
-
     }
 
     private HashMap<String, CharacterOption> getCharacterOptions() {

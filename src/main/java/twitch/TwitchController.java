@@ -37,9 +37,9 @@ import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
 import savestate.SaveState;
+import twitch.games.ClimbGameController;
 import twitch.votecontrollers.*;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -101,6 +101,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private final BetaArtController betaArtController;
     private final CheeseController cheeseController;
+    public static GameController gameController;
     public QueryController queryController;
 
     public static HashMap<String, Integer> optionsMap;
@@ -130,10 +131,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public TwitchApiController apiController;
 
-    int currentAscension = 0;
-    int currentLives = 0;
-
-    SpireConfig optionsConfig;
+    public SpireConfig optionsConfig;
 
     public Optional<PredictionInfo> currentPrediction = Optional.empty();
 
@@ -154,23 +152,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             twitch.votecontrollers.CharacterVoteController.initializePortraits();
 
             optionsMap = new HashMap<>();
-            if (optionsConfig.has("asc")) {
-                int asc = optionsConfig.getInt("asc");
-                currentAscension = asc;
-                optionsMap.put("asc", asc);
-            } else {
-                currentAscension = 0;
-                optionsMap.put("asc", 0);
-            }
-
-            if (optionsConfig.has("lives")) {
-                int lives = optionsConfig.getInt("lives");
-                currentLives = lives;
-                optionsMap.put("lives", lives);
-            } else {
-                currentLives = 0;
-                optionsMap.put("lives", 0);
-            }
 
             optionsMap.put("recall", 0);
             optionsMap.put("turns", 15_000);
@@ -182,6 +163,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        gameController = new ClimbGameController(this);
     }
 
 
@@ -279,10 +262,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                     for (String command : result.resultCommands) {
                         String seedString = SeedHelper.getString(new Random().nextLong());
-                        if (currentVote == VoteType.CHARACTER &&
-                                optionsMap.getOrDefault("asc", 0) > 0 &&
+                        if (currentVote == VoteType.CHARACTER && gameController
+                                .getAscension() > 0 &&
                                 result.resultCommands.size() == 1) {
-                            command += String.format(" %d %s", optionsMap.get("asc"), seedString);
+                            command += String
+                                    .format(" %d %s", gameController.getAscension(), seedString);
                         }
                         CommunicationMod.queueCommand(command);
                     }
@@ -632,79 +616,25 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } else if (screenType.equals("COMBAT_REWARD")) {
             voteType = VoteType.SKIP;
         } else if (screenType.equals("GAME_OVER")) {
+            JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
+                                                   .get("game_state").getAsJsonObject();
 
-            try {
-                String fileName = String
-                        .format("votelogs/gameover-%s.txt", System.currentTimeMillis());
-                FileWriter writer = new FileWriter(fileName);
-                writer.write(stateMessage);
-                writer.close();
+            gameController.reportGameOver(gameState);
 
-                // send game over stats to slayboard in another thread
-                // TODO add run results
+            boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
+                                               .get("victory").getAsBoolean();
+            int floor = gameState.get("floor").getAsInt();
+            boolean didClimb = reportedVictory || floor > 51;
 
-//                new Thread(() -> {
-//                    try {
-//                        Slayboard.postScore(stateMessage, voteFrequencies);
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }).start();
-
-
-                JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
-                                                       .get("game_state").getAsJsonObject();
-                boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
-                                                   .get("victory").getAsBoolean();
-                int floor = gameState.get("floor").getAsInt();
-                boolean didClimb = reportedVictory || floor > 51;
-                if (didClimb) {
-                    int newAsc = optionsMap.getOrDefault("asc", 0) + 1;
-                    optionsMap.put("asc", newAsc);
-                    currentAscension = newAsc;
-                    if (reportedVictory && floor > 51) {
-                        // Heart kills get an extra life
-                        int newLives = optionsMap.getOrDefault("lives", 0) + 1;
-                        currentLives = newLives;
-                        optionsMap.put("lives", newLives);
+            if (currentPrediction.isPresent()) {
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(3_000);
+                        apiController.resolvePrediction(currentPrediction.get(), didClimb);
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
                     }
-                    saveOptionsConfig();
-                } else {
-                    int newLives = optionsMap.getOrDefault("lives", 0) - 1;
-
-                    if (newLives <= 0) {
-                        newLives = 20;
-
-                        int newAsc = 1;
-                        optionsMap.put("asc", newAsc);
-                        currentAscension = newAsc;
-                    }
-
-                    currentLives = newLives;
-                    optionsMap.put("lives", newLives);
-                    saveOptionsConfig();
-                }
-
-                if (currentPrediction.isPresent()) {
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(3_000);
-                            apiController.resolvePrediction(currentPrediction.get(), didClimb);
-                        } catch (IOException | InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }).start();
-                }
-
-
-                // Changes lives/ascension level
-                if (optionsMap.getOrDefault("lives", 0) > 0) {
-                    int lives = optionsMap.get("lives");
-                }
-
-
-            } catch (IOException e) {
-                e.printStackTrace();
+                }).start();
             }
 
             switch (AbstractDungeon.screen) {
@@ -1117,7 +1047,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     /**
      * Writes the beta table back info the spire config
      */
-    private void saveOptionsConfig() {
+    public void saveOptionsConfig() {
         new Thread(() -> {
             JsonObject toWrite = new JsonObject();
             for (Map.Entry<String, Integer> entry : optionsMap.entrySet()) {
