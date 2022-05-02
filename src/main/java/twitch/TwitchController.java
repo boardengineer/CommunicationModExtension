@@ -17,7 +17,6 @@ import com.gikk.twirk.types.users.TwitchUser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -32,7 +31,6 @@ import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
-import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import ludicrousspeed.simulator.commands.Command;
@@ -42,14 +40,9 @@ import twitch.votecontrollers.*;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber, StartGameSubscriber {
     private static final Texture HEART_IMAGE = new Texture("heart.png");
-
-    private static final long DECK_DISPLAY_TIMEOUT = 60_000;
-    private static final long RELIC_DISPLAY_TIMEOUT = 60_000;
-    private static final long BOSS_DISPLAY_TIMEOUT = 30_000;
 
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long RECALL_VOTE_TIME_MILLIS = 2_500;
@@ -121,12 +114,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     int consecutiveNoVotes = 0;
     public boolean skipAfterCard = true;
 
-    public static long lastDeckDisplayTimestamp = 0L;
-    public static long lastRelicDisplayTimestamp = 0L;
-    public static long lastBossDisplayTimestamp = 0L;
-
     private int previousLevel = -1;
-    private int votePerFloorIndex = 0;
     private static boolean isActive = false;
 
     public TwitchApiController apiController;
@@ -148,7 +136,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 e.printStackTrace();
             }
 
-            this.queryController = new QueryController();
+            this.queryController = new QueryController(this);
             twitch.votecontrollers.CharacterVoteController.initializePortraits();
 
             optionsMap = new HashMap<>();
@@ -179,32 +167,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         betaArtController.update();
         cheeseController.update();
 
+        // The Ai Client has stopped simulation.  Hand control back to the Twitch interface.
         if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
             if (BattleAiMod.rerunController.isDone || LudicrousSpeedMod.mustRestart) {
-                // BATTLE END
-                if (BattleAiMod.rerunController.isDone) {
-                    // send game over stats to slayboard in another thread
-
-//                    if (!shouldRecall()) {
-//                        final List<Command> path = BattleAiMod.rerunController.bestPath;
-//                        new Thread(() -> {
-//                            if (!shouldRecall()) {
-//                                try {
-//                                    // TODO, calc hp change
-//                                    int floorResult = Slayboard
-//                                            .postFloorResult(AbstractDungeon.floorNum, 0, runId);
-//
-//                                    Slayboard.postCommands(floorResult, path);
-//                                } catch (IOException e) {
-//                                    e.printStackTrace();
-//                                }
-//                            }
-//                        }).start();
-//                    }
-                }
-
                 LudicrousSpeedMod.controller = BattleAiMod.rerunController = null;
                 inBattle = false;
+
                 if (LudicrousSpeedMod.mustRestart) {
                     System.err.println("Desync detected, rerunning simluation");
                     LudicrousSpeedMod.mustRestart = false;
@@ -214,70 +182,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         try {
-            if (voteByUsernameMap != null) {
-                if (isVoteOver() && inVote) {
-                    inVote = false;
-
-                    if (AbstractDungeon.floorNum != previousLevel) {
-                        previousLevel = AbstractDungeon.floorNum;
-                        votePerFloorIndex = 0;
-                    }
-
-                    voteByUsernameMap.keySet().forEach(userName -> {
-                        if (!voteFrequencies.containsKey(userName)) {
-                            voteFrequencies.put(userName, 0);
-                        }
-                        voteFrequencies.put(userName, voteFrequencies.get(userName) + 1);
-                    });
-
-                    Choice result;
-
-                    if (!shouldRecall()) {
-                        result = getVoteResult();
-//                        new Thread(() -> {
-//                            try {
-//                                int floorNum = AbstractDungeon.floorNum;
-//                                Slayboard
-//                                        .postVoteResult(runId, floorNum, votePerFloorIndex++, result.voteString);
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                        }).start();
-                    } else {
-                        String winningVote = Slayboard
-                                .queryVoteResult(AbstractDungeon.floorNum, runId, votePerFloorIndex++);
-                        result = choicesMap.get(winningVote);
-                    }
-
-                    if (voteController != null) {
-                        voteController.endVote(result);
-                    }
-
-                    boolean shouldChannelMessageForRecall = viableChoices
-                            .size() > 1 && shouldRecall();
-                    if (!voteByUsernameMap.isEmpty() || shouldChannelMessageForRecall) {
-                        twirk.channelMessage(String
-                                .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
-                    }
-
-                    for (String command : result.resultCommands) {
-                        String seedString = SeedHelper.getString(new Random().nextLong());
-                        if (currentVote == VoteType.CHARACTER && gameController
-                                .getAscension() > 0 &&
-                                result.resultCommands.size() == 1) {
-                            command += String
-                                    .format(" %d %s", gameController.getAscension(), seedString);
-                        }
-                        CommunicationMod.queueCommand(command);
-                    }
-
-                    voteByUsernameMap = null;
-                    voteController = null;
-                    currentVote = null;
-                    screenType = null;
-                }
+            if (voteByUsernameMap != null && inVote && isVoteOver()) {
+                inVote = false;
+                resolveVote();
             }
-        } catch (ConcurrentModificationException | NullPointerException | IOException e) {
+        } catch (ConcurrentModificationException | NullPointerException e) {
             System.err.println("Null pointer caught, clean up this crap");
             e.printStackTrace();
         }
@@ -325,7 +234,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     inBattle = false;
                     optionsMap.put("recall", 1);
                     previousLevel = 0;
-                    votePerFloorIndex = 1;
 
                     if (tokens.length >= 3) {
                         new Thread(() -> {
@@ -344,112 +252,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
 
                 }
-            } else if (tokens.length >= 3 && tokens[0].equals("!beta")) {
-                try {
-                    String cardId = tokens[1].replace("_", " ");
-                    boolean enable = Boolean.parseBoolean(tokens[2]);
-                    UnlockTracker.betaCardPref.putBoolean(cardId, enable);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
             }
         }
 
-        if (tokens.length == 1) {
-            try {
-                if (tokens[0].equals("!deck")) {
-                    long now = System.currentTimeMillis();
-                    if (now > lastDeckDisplayTimestamp + DECK_DISPLAY_TIMEOUT) {
-                        lastDeckDisplayTimestamp = now;
-                        HashMap<String, Integer> cards = new HashMap<>();
-                        AbstractDungeon.player.masterDeck.group
-                                .forEach(c -> cards.merge(c.name, 1, Integer::sum));
-
-                        StringBuilder sb = new StringBuilder("[BOT] ");
-                        for (AbstractCard c : AbstractDungeon.player.masterDeck.group) {
-                            if (cards.containsKey(c.name)) {
-                                sb.append(c.name);
-                                int amt = cards.get(c.name);
-                                if (amt > 1) {
-                                    sb.append(" x").append(amt);
-                                }
-                                sb.append(";");
-                                cards.remove(c.name);
-                            }
-                        }
-                        if (sb.length() > 0) {
-                            sb.deleteCharAt(sb.length() - 1);
-                        }
-
-                        twirk.channelMessage(sb.toString());
-                    }
-                }
-
-                if (tokens[0].equals("!boss")) {
-                    long now = System.currentTimeMillis();
-                    if (now > lastBossDisplayTimestamp + BOSS_DISPLAY_TIMEOUT) {
-                        lastBossDisplayTimestamp = now;
-                        twirk.channelMessage("[BOT] " + AbstractDungeon.bossKey);
-                    }
-                }
-
-                if (tokens[0].equals("!relics")) {
-                    long now = System.currentTimeMillis();
-                    if (now > lastRelicDisplayTimestamp + RELIC_DISPLAY_TIMEOUT) {
-                        lastRelicDisplayTimestamp = now;
-
-                        String relics = AbstractDungeon.player.relics.stream()
-                                                                     .map(relic -> relic.relicId)
-                                                                     .collect(Collectors
-                                                                             .joining(";"));
-
-                        twirk.channelMessage("[BOT] " + relics);
-                    }
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (tokens[0].equals("!card")) {
-
-            String queryString = "";
-            for (int i = 1; i < tokens.length; i++) {
-                queryString += tokens[i].toLowerCase();
-            }
-            Optional<String> queryResult = queryController.getDescriptionForCard(queryString);
-
-            if (queryResult.isPresent()) {
-                twirk.channelMessage("[BOT] " + queryResult.get());
-            }
-        }
-
-        if (tokens[0].equals("!relic")) {
-
-            String queryString = "";
-            for (int i = 1; i < tokens.length; i++) {
-                queryString += tokens[i].toLowerCase();
-            }
-            Optional<String> queryResult = queryController.getDescriptionForRelic(queryString);
-
-            if (queryResult.isPresent()) {
-                twirk.channelMessage("[BOT] " + queryResult.get());
-            }
-        }
-
-        if (tokens[0].equals("!info")) {
-
-            String queryString = "";
-            for (int i = 1; i < tokens.length; i++) {
-                queryString += tokens[i].toLowerCase();
-            }
-            Optional<String> queryResult = queryController.getDefinitionForKeyword(queryString);
-
-            if (queryResult.isPresent()) {
-                twirk.channelMessage("[BOT] " + queryResult.get());
-            }
-        }
+        queryController.maybeRunQuery(tokens);
 
         if (voteByUsernameMap != null) {
             if (tokens.length == 1 || (tokens.length >= 2 && VOTE_PREFIXES.contains(tokens[0]))) {
@@ -1064,5 +870,52 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private boolean isVoteOver() {
         return System.currentTimeMillis() > voteEndTimeMillis;
+    }
+
+    private void resolveVote() {
+        if (AbstractDungeon.floorNum != previousLevel) {
+            previousLevel = AbstractDungeon.floorNum;
+        }
+
+        voteByUsernameMap.keySet().forEach(userName -> {
+            if (!voteFrequencies.containsKey(userName)) {
+                voteFrequencies.put(userName, 0);
+            }
+            voteFrequencies.put(userName, voteFrequencies.get(userName) + 1);
+        });
+
+        Choice result;
+
+        result = getVoteResult();
+
+        if (voteController != null) {
+            voteController.endVote(result);
+        }
+
+        boolean shouldChannelMessageForRecall = viableChoices
+                .size() > 1 && shouldRecall();
+        if (!voteByUsernameMap.isEmpty() || shouldChannelMessageForRecall) {
+            twirk.channelMessage(String
+                    .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
+        }
+
+        for (String command : result.resultCommands) {
+            if (currentVote == VoteType.CHARACTER && result.resultCommands.size() == 1) {
+                int ascension = gameController.getAscension();
+
+                if (ascension > 0) {
+                    String seedString = SeedHelper.getString(new Random().nextLong());
+
+                    command += String
+                            .format(" %d %s", gameController.getAscension(), seedString);
+                }
+            }
+            CommunicationMod.queueCommand(command);
+        }
+
+        voteByUsernameMap = null;
+        voteController = null;
+        currentVote = null;
+        screenType = null;
     }
 }

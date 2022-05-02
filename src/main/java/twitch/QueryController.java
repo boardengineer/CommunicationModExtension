@@ -4,6 +4,7 @@ import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
+import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.helpers.GameDictionary;
 import com.megacrit.cardcrawl.helpers.RelicLibrary;
@@ -17,13 +18,25 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class QueryController {
+    private static final long DECK_DISPLAY_TIMEOUT = 60_000;
+    private static final long RELIC_DISPLAY_TIMEOUT = 60_000;
+    private static final long BOSS_DISPLAY_TIMEOUT = 30_000;
+
+    private final TwitchController twitchController;
+
     private final HashMap<String, String> cardsToDescriptionMap;
     private final HashMap<String, String> cardNamesToIdMap;
 
     private final HashMap<String, String> keywordDescriptionMap;
     private final HashMap<String, String> relicDescriptionMap;
 
-    public QueryController() {
+    private static long lastDeckDisplayTimestamp = 0L;
+    public static long lastBossDisplayTimestamp = 0L;
+    public static long lastRelicDisplayTimestamp = 0L;
+
+    public QueryController(TwitchController twitchController) {
+        this.twitchController = twitchController;
+
         cardNamesToIdMap = new HashMap<>();
         cardsToDescriptionMap = new HashMap<>();
         populateCardMaps();
@@ -33,6 +46,37 @@ public class QueryController {
 
         relicDescriptionMap = new HashMap<>();
         populateRelicMap();
+    }
+
+    public void maybeRunQuery(String[] tokens) {
+        if (tokens.length == 0) {
+            return;
+        }
+
+        try {
+            switch (tokens[0]) {
+                case "!deck":
+                    runDeckQuery();
+                    break;
+                case "!boss":
+                    runBossQuery();
+                    break;
+                case "!relics":
+                    queryAllRelics();
+                    break;
+                case "!card":
+                    queryCard(tokens);
+                    break;
+                case "!relic":
+                    queryRelic(tokens);
+                    break;
+                case "!info":
+                    queryKeyword(tokens);
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public Optional<String> getDescriptionForCard(String rawCardName) {
@@ -103,9 +147,11 @@ public class QueryController {
                                                  .joining(" "));
                                  String upgradedDescriptionResult = String
                                          .format("(%s) %s [%d]: %s, %s: %s",
-                                                 card.color.name().toLowerCase(), card.name, card.cost,
+                                                 card.color.name()
+                                                           .toLowerCase(), card.name, card.cost,
                                                  card.rarity.name().toLowerCase(),
-                                                 card.type.name().toLowerCase(), upgradedDescription);
+                                                 card.type.name()
+                                                          .toLowerCase(), upgradedDescription);
                                  cardsToDescriptionMap.put(upgradedName, upgradedDescriptionResult);
                              } catch (NullPointerException e) {
                                  // upgrading sometimes nulls out, hopefully just for curses.
@@ -194,5 +240,91 @@ public class QueryController {
 
         Collections.sort(relics);
         return relics;
+    }
+
+    private void runDeckQuery() {
+        long now = System.currentTimeMillis();
+        if (now > lastDeckDisplayTimestamp + DECK_DISPLAY_TIMEOUT) {
+            lastDeckDisplayTimestamp = now;
+            HashMap<String, Integer> cards = new HashMap<>();
+            AbstractDungeon.player.masterDeck.group
+                    .forEach(c -> cards.merge(c.name, 1, Integer::sum));
+
+            StringBuilder sb = new StringBuilder("[BOT] ");
+            for (AbstractCard c : AbstractDungeon.player.masterDeck.group) {
+                if (cards.containsKey(c.name)) {
+                    sb.append(c.name);
+                    int amt = cards.get(c.name);
+                    if (amt > 1) {
+                        sb.append(" x").append(amt);
+                    }
+                    sb.append(";");
+                    cards.remove(c.name);
+                }
+            }
+            if (sb.length() > 0) {
+                sb.deleteCharAt(sb.length() - 1);
+            }
+
+            TwitchController.twirk.channelMessage(sb.toString());
+        }
+    }
+
+    private void runBossQuery() {
+        long now = System.currentTimeMillis();
+        if (now > lastBossDisplayTimestamp + BOSS_DISPLAY_TIMEOUT) {
+            lastBossDisplayTimestamp = now;
+            TwitchController.twirk.channelMessage("[BOT] " + AbstractDungeon.bossKey);
+        }
+    }
+
+    private void queryAllRelics() {
+        long now = System.currentTimeMillis();
+        if (now > lastRelicDisplayTimestamp + RELIC_DISPLAY_TIMEOUT) {
+            lastRelicDisplayTimestamp = now;
+
+            String relics = AbstractDungeon.player.relics.stream()
+                                                         .map(relic -> relic.relicId)
+                                                         .collect(Collectors
+                                                                 .joining(";"));
+
+            TwitchController.twirk.channelMessage("[BOT] " + relics);
+        }
+    }
+
+    private void queryCard(String[] tokens) {
+        String queryString = "";
+        for (int i = 1; i < tokens.length; i++) {
+            queryString += tokens[i].toLowerCase();
+        }
+        Optional<String> queryResult = getDescriptionForCard(queryString);
+
+        if (queryResult.isPresent()) {
+            TwitchController.twirk.channelMessage("[BOT] " + queryResult.get());
+        }
+    }
+
+    private void queryRelic(String[] tokens) {
+        String queryString = "";
+        for (int i = 1; i < tokens.length; i++) {
+            queryString += tokens[i].toLowerCase();
+        }
+        Optional<String> queryResult = getDescriptionForRelic(queryString);
+
+        if (queryResult.isPresent()) {
+            TwitchController.twirk.channelMessage("[BOT] " + queryResult.get());
+        }
+    }
+
+    private void queryKeyword(String[] tokens) {
+        String queryString = "";
+        for (int i = 1; i < tokens.length; i++) {
+            queryString += tokens[i].toLowerCase();
+        }
+        Optional<String> queryResult = getDefinitionForKeyword(queryString);
+
+        if (queryResult.isPresent()) {
+            TwitchController.twirk.channelMessage("[BOT] " + queryResult.get());
+        }
     }
 }
