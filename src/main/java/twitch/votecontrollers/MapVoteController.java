@@ -6,10 +6,7 @@ import com.gikk.twirk.Twirk;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.map.MapRoomNode;
-import com.megacrit.cardcrawl.rooms.EventRoom;
-import com.megacrit.cardcrawl.rooms.MonsterRoom;
-import com.megacrit.cardcrawl.rooms.MonsterRoomElite;
-import com.megacrit.cardcrawl.rooms.RestRoom;
+import com.megacrit.cardcrawl.rooms.*;
 import communicationmod.ChoiceScreenUtils;
 import twitch.RenderHelpers;
 import twitch.TwitchController;
@@ -24,6 +21,7 @@ public class MapVoteController extends VoteController {
         put(MonsterRoomElite.class, "Elite Monster Room");
         put(EventRoom.class, "Event Room");
         put(RestRoom.class, "Campfire Room");
+        put(TreasureRoom.class, "Treasure Room");
     }};
 
     private final TwitchController twitchController;
