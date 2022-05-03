@@ -25,6 +25,7 @@ import hermit.characters.hermit;
 import theVacant.characters.TheVacant;
 import thecursed.TheCursedMod;
 import thecursed.characters.TheCursedCharacter;
+import twitch.Choice;
 import twitch.TwitchController;
 import twitch.VoteController;
 import twitch.games.ClimbGameController;
@@ -61,38 +62,38 @@ public class CharacterVoteController extends VoteController {
 
     @Override
     public void setUpChoices() {
-        ArrayList<TwitchController.Choice> choices = new ArrayList<>();
+        ArrayList<Choice> choices = new ArrayList<>();
 
         twitchController.choices = new ArrayList<>();
 
         int choiceIndex = 1;
 
-        choices.add(new TwitchController.Choice("ironclad", Integer
+        choices.add(new Choice("ironclad", Integer
                 .toString(choiceIndex++), "start ironclad"));
-        choices.add(new TwitchController.Choice("silent", Integer
+        choices.add(new Choice("silent", Integer
                 .toString(choiceIndex++), "start silent"));
-        choices.add(new TwitchController.Choice("defect", Integer
+        choices.add(new Choice("defect", Integer
                 .toString(choiceIndex++), "start defect"));
-        choices.add(new TwitchController.Choice("watcher", Integer
+        choices.add(new Choice("watcher", Integer
                 .toString(choiceIndex++), "start watcher"));
 
         if (BaseMod.hasModID("MarisaState:")) {
-            choices.add(new TwitchController.Choice("marisa", Integer
+            choices.add(new Choice("marisa", Integer
                     .toString(choiceIndex++), "start marisa"));
         }
 
         if (BaseMod.hasModID("HermitState:")) {
-            choices.add(new TwitchController.Choice("hermit", Integer
+            choices.add(new Choice("hermit", Integer
                     .toString(choiceIndex++), "start hermit"));
         }
 
         if (BaseMod.hasModID("VacantState:")) {
-            choices.add(new TwitchController.Choice("vacant", Integer
+            choices.add(new Choice("vacant", Integer
                     .toString(choiceIndex++), "start the_vacant"));
         }
 
         if (BaseMod.hasModID("CursedState:")) {
-            choices.add(new TwitchController.Choice("cursed", Integer
+            choices.add(new Choice("cursed", Integer
                     .toString(choiceIndex++), "start the_cursed"));
         }
 
@@ -100,7 +101,7 @@ public class CharacterVoteController extends VoteController {
         twitchController.viableChoices = choices;
 
         twitchController.choicesMap = new HashMap<>();
-        for (TwitchController.Choice choice : choices) {
+        for (Choice choice : choices) {
             twitchController.choicesMap.put(choice.voteString, choice);
         }
 
@@ -121,7 +122,7 @@ public class CharacterVoteController extends VoteController {
 
         int startX = Settings.WIDTH / (twitchController.viableChoices.size() + 1) / 2;
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            TwitchController.Choice choice = twitchController.viableChoices.get(i);
+            Choice choice = twitchController.viableChoices.get(i);
 
             boolean isWinning = (!firstFound) && winningResults.contains(choice.voteString);
             if (isWinning) {
@@ -183,7 +184,7 @@ public class CharacterVoteController extends VoteController {
     }
 
     @Override
-    public void endVote(TwitchController.Choice result) {
+    public void endVote(Choice result) {
         if (TwitchController.gameController != null && TwitchController.gameController instanceof ClimbGameController) {
             ClimbGameController gameController = (ClimbGameController) TwitchController.gameController;
 

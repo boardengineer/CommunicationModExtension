@@ -15,6 +15,7 @@ import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
 import communicationmod.ChoiceScreenUtils;
 import tssrelics.relics.DiceOfFate;
+import twitch.Choice;
 import twitch.RenderHelpers;
 import twitch.TwitchController;
 import twitch.VoteController;
@@ -61,7 +62,7 @@ public class ShopScreenVoteController extends VoteController {
                                                                                .toCollection(ArrayList::new));
 
         twitchController.viableChoices
-                .add(new TwitchController.Choice("leave", "0", "leave", "proceed"));
+                .add(new Choice("leave", "0", "leave", "proceed"));
     }
 
     @Override
@@ -70,7 +71,7 @@ public class ShopScreenVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            TwitchController.Choice choice = twitchController.viableChoices.get(i);
+            Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
@@ -176,7 +177,7 @@ public class ShopScreenVoteController extends VoteController {
         return null;
     }
 
-    private static boolean isPotionChoice(TwitchController.Choice choice) {
+    private static boolean isPotionChoice(Choice choice) {
         if (choice.choiceName.equals("Fire Potion")) {
             return true;
         }

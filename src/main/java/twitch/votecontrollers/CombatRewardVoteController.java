@@ -15,6 +15,8 @@ import com.megacrit.cardcrawl.ui.buttons.ProceedButton;
 import communicationmod.CommandExecutor;
 import tssrelics.relics.SneckoCharm;
 import tssrelics.relics.SneckoSkinBoots;
+import twitch.Choice;
+import twitch.RewardInfo;
 import twitch.TwitchController;
 import twitch.VoteController;
 
@@ -66,8 +68,8 @@ public class CombatRewardVoteController extends VoteController {
                 // the voteString will start at 1
                 String voteString = Integer.toString(twitchController.choices.size() + 1);
 
-                TwitchController.Choice toAdd = new TwitchController.Choice(choiceString, voteString, choiceCommand);
-                toAdd.rewardInfo = Optional.of(new TwitchController.RewardInfo(rewardJson));
+                Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
+                toAdd.rewardInfo = Optional.of(new RewardInfo(rewardJson));
                 if (toAdd.rewardInfo.isPresent() && toAdd.rewardInfo.get().relicName != null) {
                     toAdd.choiceName = toAdd.rewardInfo.get().relicName;
                 }
@@ -81,7 +83,7 @@ public class CombatRewardVoteController extends VoteController {
         twitchController.skipAfterCard = true;
         boolean shouldAllowLeave = false;
 
-        ArrayList<TwitchController.Choice> result = new ArrayList<>();
+        ArrayList<Choice> result = new ArrayList<>();
 
         twitchController.choices.stream()
                                 .forEach(choice -> result.add(choice));
@@ -90,23 +92,23 @@ public class CombatRewardVoteController extends VoteController {
         // If anything from the auto choice list is in the reward list, product a list with it
         // as the only choice
         for (String choiceName : AUTO_CHOICE_NAMES) {
-            Optional<TwitchController.Choice> autoChoice = result.stream()
-                                                                 .filter(choice -> choice.choiceName
+            Optional<Choice> autoChoice = result.stream()
+                                                .filter(choice -> choice.choiceName
                                                                          .equals(choiceName))
-                                                                 .findAny();
+                                                .findAny();
 
             if (autoChoice.isPresent()) {
-                ArrayList<TwitchController.Choice> onlyOption = new ArrayList<>();
+                ArrayList<Choice> onlyOption = new ArrayList<>();
                 onlyOption.add(autoChoice.get());
                 twitchController.viableChoices = onlyOption;
                 return;
             }
         }
 
-        Collection<TwitchController.Choice> potionChoices = result.stream()
-                                                                  .filter(choice -> choice.choiceName
+        Collection<Choice> potionChoices = result.stream()
+                                                 .filter(choice -> choice.choiceName
                                                                           .equals("potion"))
-                                                                  .collect(Collectors
+                                                 .collect(Collectors
                                                                           .toCollection(ArrayList::new));
 
         boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
@@ -116,7 +118,7 @@ public class CombatRewardVoteController extends VoteController {
 
         boolean shouldEvaluatePotions = !hasPotionSlot && !hasSozu;
 
-        for (TwitchController.Choice potionChoice : potionChoices) {
+        for (Choice potionChoice : potionChoices) {
             boolean skipPotion = false;
 
             // Can pick up a potion but has no slots.
@@ -152,7 +154,7 @@ public class CombatRewardVoteController extends VoteController {
             }
 
             if (!skipPotion) {
-                ArrayList<TwitchController.Choice> onlyPotion = new ArrayList<>();
+                ArrayList<Choice> onlyPotion = new ArrayList<>();
                 onlyPotion.add(potionChoice);
 
                 // Then the potion
@@ -163,21 +165,21 @@ public class CombatRewardVoteController extends VoteController {
             }
         }
 
-        Optional<TwitchController.Choice> relicChoice = result.stream()
-                                                              .filter(choice -> choice.rewardInfo
+        Optional<Choice> relicChoice = result.stream()
+                                             .filter(choice -> choice.rewardInfo
                                                                       .isPresent() && choice.rewardInfo
                                                                       .get().relicName != null)
-                                                              .findAny();
+                                             .findAny();
 
-        Optional<TwitchController.Choice> sapphireKeyChoice = result.stream()
-                                                                    .filter(choice -> choice.choiceName
+        Optional<Choice> sapphireKeyChoice = result.stream()
+                                                   .filter(choice -> choice.choiceName
                                                                             .equals("sapphire_key"))
-                                                                    .findAny();
+                                                   .findAny();
 
         // Automatically take relics unless there's a sapphire key attached.
         // TODO: Relics not attached to sapphire keys should be taken before the sapphire key vote.
         if (relicChoice.isPresent() && !sapphireKeyChoice.isPresent()) {
-            ArrayList<TwitchController.Choice> onlyRelic = new ArrayList<>();
+            ArrayList<Choice> onlyRelic = new ArrayList<>();
             onlyRelic.add(relicChoice.get());
 
             if (OPTIONAL_RELICS
@@ -195,9 +197,9 @@ public class CombatRewardVoteController extends VoteController {
         }
         if (shouldAllowLeave) {
             if (CommandExecutor.isCancelCommandAvailable()) {
-                result.add(new TwitchController.Choice("cancel", "0", "cancel"));
+                result.add(new Choice("cancel", "0", "cancel"));
             } else {
-                result.add(new TwitchController.Choice("leave", "0", "leave", "proceed"));
+                result.add(new Choice("leave", "0", "leave", "proceed"));
             }
         }
 
@@ -210,7 +212,7 @@ public class CombatRewardVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            TwitchController.Choice choice = twitchController.viableChoices.get(i);
+            Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
@@ -248,7 +250,7 @@ public class CombatRewardVoteController extends VoteController {
     public void endVote() {
         // Reset the text to avoid duped vote strings
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            TwitchController.Choice choice = twitchController.viableChoices.get(i);
+            Choice choice = twitchController.viableChoices.get(i);
             if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
                 RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
                 rewardItem.text = voteStringToOriginalRewardTextMap.get(choice.voteString);

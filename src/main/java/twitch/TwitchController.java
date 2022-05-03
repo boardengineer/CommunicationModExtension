@@ -41,25 +41,18 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private static final long RECALL_VOTE_TIME_MILLIS = 2_500;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
 
+    private static final HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
+        add("!vote");
+        add("vote");
+    }};
+
+
+    private static final HashSet<Integer> BOSS_CHEST_FLOOR_NUMS = new HashSet<Integer>() {{
+        add(17);
+        add(34);
+    }};
+
     public static int runId = 0;
-
-    private static Queue<Integer> recallQueue;
-
-    public enum VoteType {
-        // THe first vote in each dungeon
-        GAME_OVER("game_over", 15_000),
-        OTHER("other", 25_000),
-        REST("rest", 1_000),
-        SKIP("skip", 1_000);
-
-        String optionName;
-        int defaultTime;
-
-        VoteType(String optionName, int defaultTime) {
-            this.optionName = optionName;
-            this.defaultTime = defaultTime;
-        }
-    }
 
     /**
      * Used to count user votes during
@@ -72,7 +65,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      */
     private HashMap<String, Integer> voteFrequencies = new HashMap<>();
 
-    private String screenType = null;
     public static VoteController voteController;
 
     private final BetaArtController betaArtController;
@@ -127,10 +119,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             optionsMap.put("recall", 0);
             optionsMap.put("turns", 15_000);
             optionsMap.put("verbose", 1);
-
-            for (VoteType voteType : VoteType.values()) {
-                optionsMap.put(voteType.optionName, voteType.defaultTime);
-            }
+            optionsMap.put("skip", 1_000);
+            optionsMap.put("other", 25_000);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -211,29 +201,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     isActive = false;
                 } else if (tokens[1].equals("enable")) {
                     isActive = true;
-                } else if (tokens[1].equals("recall")) {
-                    System.err.println("starting recall");
-                    voteByUsernameMap = null;
-                    inBattle = false;
-                    optionsMap.put("recall", 1);
-                    previousLevel = 0;
-
-                    if (tokens.length >= 3) {
-                        new Thread(() -> {
-                            try {
-                                recallQueue = new LinkedList<>();
-                                Arrays.stream(tokens[2].split(","))
-                                      .forEach(runId -> recallQueue.add(Integer.parseInt(runId)));
-                                runId = recallQueue.poll();
-                                String command = Slayboard.queryRunCommand(runId);
-                                CommunicationMod.queueCommand(command);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }).start();
-                    }
-
-
                 }
             }
         }
@@ -279,7 +246,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             if (!inBattle) {
                 if (stateJson.has("game_state")) {
                     JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
-                    screenType = gameState.get("screen_type").getAsString();
+                    String screenType = gameState.get("screen_type").getAsString();
                     if (screenType != null) {
 
                         if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
@@ -325,7 +292,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public void startChooseVote(JsonObject stateJson) {
         if (stateJson.has("game_state")) {
             JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
-            screenType = gameState.get("screen_type").getAsString();
+            String screenType = gameState.get("screen_type").getAsString();
 
             if (screenType != null) {
                 if (screenType.equalsIgnoreCase("EVENT")) {
@@ -580,69 +547,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
-    public static class Choice {
-        public String choiceName;
-        public String voteString;
-        public Optional<RewardInfo> rewardInfo = Optional.empty();
-        public final ArrayList<String> resultCommands;
-
-        public Choice(String choiceName, String voteString, String... resultCommands) {
-            this.choiceName = choiceName;
-            this.voteString = voteString;
-
-            this.resultCommands = new ArrayList<>();
-            for (String resultCommand : resultCommands) {
-                this.resultCommands.add(resultCommand);
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "Choice{" +
-                    "choiceName='" + choiceName + '\'' +
-                    ", voteString='" + voteString + '\'' +
-                    ", resultCommands=" + resultCommands +
-                    '}';
-        }
-    }
-
-    public static class RewardInfo {
-        public final String rewardType;
-        public String potionName = null;
-        public String relicName = null;
-
-        public RewardInfo(JsonObject rewardJson) {
-            rewardType = rewardJson.get("reward_type").getAsString();
-            if (rewardType.equals("POTION")) {
-                potionName = rewardJson.get("potion").getAsJsonObject().get("name").getAsString();
-            } else if (rewardType.equals("RELIC")) {
-                relicName = rewardJson.get("relic").getAsJsonObject().get("name").getAsString();
-            }
-        }
-    }
-
-    public static HashSet<String> VOTE_PREFIXES = new HashSet<String>() {{
-        add("!vote");
-        add("vote");
-    }};
-
-    public static HashSet<Integer> FIRST_FLOOR_NUMS = new HashSet<Integer>() {{
-        add(0);
-        add(17);
-        add(34);
-    }};
-
-    public static HashSet<Integer> NO_OPT_REST_SITE_FLOORS = new HashSet<Integer>() {{
-        add(14);
-        add(31);
-        add(48);
-    }};
-
-    public static HashSet<Integer> BOSS_CHEST_FLOOR_NUMS = new HashSet<Integer>() {{
-        add(17);
-        add(34);
-    }};
-
     public HashMap<String, Integer> getVoteFrequencies() {
         if (voteByUsernameMap == null) {
             return new HashMap<>();
@@ -722,6 +626,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public void setUpDefaultVoteOptions(JsonObject stateJson) {
         JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
         JsonArray choicesJson = gameState.get("choice_list").getAsJsonArray();
+        String screenType = gameState.get("screen_type").getAsString();
 
         choices = new ArrayList<>();
         choicesJson.forEach(choice -> {
@@ -775,7 +680,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      */
     public void saveOptionsConfig() {
         new Thread(() -> {
-            JsonObject toWrite = new JsonObject();
             for (Map.Entry<String, Integer> entry : optionsMap.entrySet()) {
                 optionsConfig.setString(entry.getKey(), Integer.toString(entry.getValue()));
             }
@@ -838,6 +742,5 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         voteByUsernameMap = null;
         voteController = null;
-        screenType = null;
     }
 }

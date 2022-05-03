@@ -10,6 +10,7 @@ import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.*;
 import communicationmod.ChoiceScreenUtils;
+import twitch.Choice;
 import twitch.RenderHelpers;
 import twitch.TwitchController;
 import twitch.VoteController;
@@ -80,7 +81,7 @@ public class MapVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            TwitchController.Choice choice = twitchController.viableChoices.get(i);
+            Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
@@ -117,7 +118,7 @@ public class MapVoteController extends VoteController {
 
     @Override
     public void sendVoteMessage() {
-        List<TwitchController.Choice> viableChoices = twitchController.viableChoices;
+        List<Choice> viableChoices = twitchController.viableChoices;
         Twirk twirk = TwitchController.twirk;
 
         if (viableChoices.size() > 1) {
@@ -127,7 +128,7 @@ public class MapVoteController extends VoteController {
         }
     }
 
-    private String toMessageString(TwitchController.Choice choice) {
+    private String toMessageString(Choice choice) {
         Class roomClass = messageToRoomNodeMap.get(choice.choiceName).getRoom().getClass();
 
         String roomDisplayName = ROOM_DISPLAY_STRINGS.containsKey(roomClass) ? ROOM_DISPLAY_STRINGS

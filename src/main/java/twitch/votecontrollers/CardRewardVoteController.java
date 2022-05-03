@@ -12,6 +12,7 @@ import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.CardRewardScreen;
 import com.megacrit.cardcrawl.ui.buttons.SingingBowlButton;
 import com.megacrit.cardcrawl.ui.buttons.SkipCardButton;
+import twitch.Choice;
 import twitch.TwitchController;
 import twitch.VoteController;
 
@@ -53,10 +54,10 @@ public class CardRewardVoteController extends VoteController {
                 String skipCommand = AbstractDungeon
                         .getCurrRoom() instanceof ShopRoom ? "cancel" : "proceed";
                 twitchController.viableChoices
-                        .add(new TwitchController.Choice("Skip", "0", "skip", skipCommand));
+                        .add(new Choice("Skip", "0", "skip", skipCommand));
             } else {
                 twitchController.viableChoices
-                        .add(new TwitchController.Choice("Skip", "0", "skip"));
+                        .add(new Choice("Skip", "0", "skip"));
             }
         }
 
@@ -72,7 +73,7 @@ public class CardRewardVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            TwitchController.Choice choice = twitchController.viableChoices.get(i);
+            Choice choice = twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
