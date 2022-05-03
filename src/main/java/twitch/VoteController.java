@@ -12,6 +12,7 @@ public abstract class VoteController {
     protected final TwitchController twitchController;
 
     public abstract void setUpChoices();
+
     public abstract void render(SpriteBatch spriteBatch);
 
     protected VoteController(TwitchController twitchController) {
@@ -21,6 +22,7 @@ public abstract class VoteController {
     public Optional<String> getTipString() {
         return Optional.empty();
     }
+
     public void endVote(TwitchController.Choice result) {
         endVote();
     }
@@ -31,9 +33,13 @@ public abstract class VoteController {
     public void endVote() {
     }
 
+    public long getVoteTimerMillis() {
+        return TwitchController.optionsMap.get("other");
+    }
+
     public void sendVoteMessage() {
         List<TwitchController.Choice> viableChoices = twitchController.viableChoices;
-        Twirk twirk = twitchController.twirk;
+        Twirk twirk = TwitchController.twirk;
 
         if (twitchController.viableChoices.size() > 1) {
             int appendedSize = 0;

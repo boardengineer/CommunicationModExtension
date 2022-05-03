@@ -21,6 +21,12 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CardRewardVoteController extends VoteController {
+    private static final String CARD_REWARD_LONG_KEY = "card_select_long";
+    private static final String CARD_REWARD_SHORT_KEY = "card_select_short";
+
+    private static final int DEFAULT_LONG_VOTE_TIME_MILLIS = 30_000;
+    private static final int DEFAULT_SHORT_VOTE_TIME_MILLIS = 20_000;
+
     // Card reward rendering references
     private final HashMap<String, AbstractCard> messageToCardReward;
     private final JsonObject stateJson;
@@ -53,6 +59,11 @@ public class CardRewardVoteController extends VoteController {
                         .add(new TwitchController.Choice("Skip", "0", "skip"));
             }
         }
+
+        HashMap<String, Integer> optionsMap = TwitchController.optionsMap;
+
+        optionsMap.putIfAbsent(CARD_REWARD_LONG_KEY, DEFAULT_LONG_VOTE_TIME_MILLIS);
+        optionsMap.putIfAbsent(CARD_REWARD_SHORT_KEY, DEFAULT_SHORT_VOTE_TIME_MILLIS);
     }
 
     @Override
@@ -96,6 +107,15 @@ public class CardRewardVoteController extends VoteController {
             } else {
 //                System.err.println("no card button for " + choice.choiceName);
             }
+        }
+    }
+
+    @Override
+    public long getVoteTimerMillis() {
+        if (AbstractDungeon.floorNum == 1) {
+            return TwitchController.optionsMap.get(CARD_REWARD_LONG_KEY);
+        } else {
+            return TwitchController.optionsMap.get(CARD_REWARD_SHORT_KEY);
         }
     }
 

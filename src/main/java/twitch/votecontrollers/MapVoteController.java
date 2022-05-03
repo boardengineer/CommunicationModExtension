@@ -4,8 +4,10 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.gikk.twirk.Twirk;
 import com.google.gson.JsonObject;
+import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.map.MapRoomNode;
+import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.*;
 import communicationmod.ChoiceScreenUtils;
 import twitch.RenderHelpers;
@@ -16,7 +18,27 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MapVoteController extends VoteController {
-    public static final HashMap<Class, String> ROOM_DISPLAY_STRINGS = new HashMap<Class, String>() {{
+    private static final String MAP_LONG_KEY = "map_long";
+    private static final String MAP_SHORT_KEY = "map_short";
+    private static final String MAP_SKIP_KEY = "map_skip";
+
+    private static final int DEFAULT_LONG_VOTE_TIME_MILLIS = 30_000;
+    private static final int DEFAULT_SHORT_VOTE_TIME_MILLIS = 15_000;
+    private static final int DEFAULT_SKIP_VOTE_TIME_MILLS = 1_000;
+
+    private static final HashSet<Integer> FIRST_FLOOR_NUMS = new HashSet<Integer>() {{
+        add(0);
+        add(17);
+        add(34);
+    }};
+
+    private static final HashSet<Integer> NO_OPT_REST_SITE_FLOORS = new HashSet<Integer>() {{
+        add(14);
+        add(31);
+        add(48);
+    }};
+
+    private static final HashMap<Class, String> ROOM_DISPLAY_STRINGS = new HashMap<Class, String>() {{
         put(MonsterRoom.class, "Monster Room");
         put(MonsterRoomElite.class, "Elite Monster Room");
         put(EventRoom.class, "Event Room");
@@ -39,6 +61,12 @@ public class MapVoteController extends VoteController {
 
         this.twitchController = twitchController;
         this.stateJson = stateJson;
+
+        HashMap<String, Integer> optionsMap = TwitchController.optionsMap;
+
+        optionsMap.putIfAbsent(MAP_LONG_KEY, DEFAULT_LONG_VOTE_TIME_MILLIS);
+        optionsMap.putIfAbsent(MAP_SHORT_KEY, DEFAULT_SHORT_VOTE_TIME_MILLIS);
+        optionsMap.putIfAbsent(MAP_SKIP_KEY, DEFAULT_SKIP_VOTE_TIME_MILLS);
     }
 
     @Override
@@ -107,5 +135,19 @@ public class MapVoteController extends VoteController {
 
         return String
                 .format("[ %s | %s | %s ]", choice.voteString, choice.choiceName, roomDisplayName);
+    }
+
+    @Override
+    public long getVoteTimerMillis() {
+        if (FIRST_FLOOR_NUMS.contains(AbstractDungeon.floorNum)) {
+            return TwitchController.optionsMap.get(MAP_LONG_KEY);
+        } else if (NO_OPT_REST_SITE_FLOORS
+                .contains(AbstractDungeon.floorNum) && !AbstractDungeon.player.relics
+                .stream()
+                .anyMatch(relic -> relic instanceof WingBoots && relic.counter > 0)) {
+            return TwitchController.optionsMap.get(MAP_SKIP_KEY);
+        } else {
+            return TwitchController.optionsMap.get(MAP_SHORT_KEY);
+        }
     }
 }

@@ -37,6 +37,9 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CharacterVoteController extends VoteController {
+    private static final String VOTE_TIME_KEY = "character";
+    private static final int DEFAULT_VOTE_TIME = 25_000;
+
     private static HashMap<String, Texture> characterPortraits;
 
     public static final HashMap<String, String> MOD_CHARACTER_EXTRA_INFO = new HashMap<String, String>() {{
@@ -100,6 +103,10 @@ public class CharacterVoteController extends VoteController {
         for (TwitchController.Choice choice : choices) {
             twitchController.choicesMap.put(choice.voteString, choice);
         }
+
+        HashMap<String, Integer> optionsMap = TwitchController.optionsMap;
+
+        optionsMap.putIfAbsent(VOTE_TIME_KEY, DEFAULT_VOTE_TIME);
     }
 
     @Override
@@ -292,6 +299,11 @@ public class CharacterVoteController extends VoteController {
                         .loadImage(TheCursedMod.getResourcePath("charSelect/portrait.png")));
             }
         }
+    }
+
+    @Override
+    public long getVoteTimerMillis() {
+        return TwitchController.optionsMap.get(VOTE_TIME_KEY);
     }
 
     @SpirePatch(clz = UnlockTracker.class, method = "isCharacterLocked")

@@ -22,7 +22,6 @@ import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.FrozenEye;
 import com.megacrit.cardcrawl.relics.RunicDome;
-import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
@@ -48,11 +47,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public enum VoteType {
         // THe first vote in each dungeon
-        CHARACTER("character", 25_000),
-        MAP_LONG("map_long", 30_000),
-        MAP_SHORT("map_short", 15_000),
-        CARD_SELECT_LONG("card_select_long", 30_000),
-        CARD_SELECT_SHORT("card_select_short", 20_000),
         GAME_OVER("game_over", 15_000),
         OTHER("other", 25_000),
         REST("rest", 1_000),
@@ -330,8 +324,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public void startChooseVote(JsonObject stateJson) {
         if (stateJson.has("game_state")) {
-            VoteType voteType = VoteType.OTHER;
-
             JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
             screenType = gameState.get("screen_type").getAsString();
 
@@ -339,27 +331,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (screenType.equalsIgnoreCase("EVENT")) {
                     voteController = new EventVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("MAP")) {
-                    if (FIRST_FLOOR_NUMS.contains(AbstractDungeon.floorNum)) {
-                        voteType = VoteType.MAP_LONG;
-                    } else if (NO_OPT_REST_SITE_FLOORS
-                            .contains(AbstractDungeon.floorNum) && !AbstractDungeon.player.relics
-                            .stream()
-                            .anyMatch(relic -> relic instanceof WingBoots && relic.counter > 0)) {
-                        voteType = VoteType.SKIP;
-                    } else {
-                        voteType = VoteType.MAP_SHORT;
-                    }
-
                     voteController = new MapVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("SHOP_SCREEN")) {
                     voteController = new ShopScreenVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("CARD_REWARD")) {
-                    if (AbstractDungeon.floorNum == 1) {
-                        voteType = VoteType.CARD_SELECT_LONG;
-                    } else {
-                        voteType = VoteType.CARD_SELECT_SHORT;
-                    }
-
                     voteController = new CardRewardVoteController(this, stateJson);
                 } else if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
                     voteController = new CombatRewardVoteController(this, stateJson);
@@ -374,8 +349,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }
 
+            long voteTime = optionsMap.get("other");
             if (voteController != null) {
                 voteController.setUpChoices();
+                voteTime = voteController.getVoteTimerMillis();
             } else {
                 setUpDefaultVoteOptions(stateJson);
             }
@@ -385,7 +362,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 choicesMap.put(choice.voteString, choice);
             }
 
-            startVote(voteType, stateJson.toString());
+            startVote(voteTime, stateJson.toString());
         } else {
             System.err.println("ERROR Missing game state");
         }
@@ -403,13 +380,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             choicesMap.put(choice.voteString, choice);
         }
 
-        VoteType voteType = VoteType.SKIP;
 
-        if (screenType.equals("REST")) {
-            voteType = VoteType.REST;
-        } else if (screenType.equals("COMBAT_REWARD")) {
-            voteType = VoteType.SKIP;
-        } else if (screenType.equals("GAME_OVER")) {
+        if (screenType.equals("GAME_OVER")) {
             JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
                                                    .get("game_state").getAsJsonObject();
 
@@ -443,12 +415,11 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     victoryReturnButton.hb.clicked = true;
                     break;
             }
-            voteType = VoteType.GAME_OVER;
         } else {
             System.err.println("unknown screen type proceed timer " + screenType);
         }
 
-        startVote(voteType, true, "");
+        startVote(optionsMap.get("skip"), true, "");
     }
 
     public void startCharacterVote(JsonObject stateJson) {
@@ -458,13 +429,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         voteFrequencies = new HashMap<>();
 
-        startVote(VoteType.CHARACTER, "");
+        startVote(voteController.getVoteTimerMillis(), "");
 
         CardCrawlGame.mode = CardCrawlGame.GameMode.CHAR_SELECT;
         CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
     }
 
-    private void startVote(VoteType voteType, boolean forceWait, String stateString) {
+    private void startVote(long voteTimeMillis, boolean forceWait, String stateString) {
         voteByUsernameMap = new HashMap<>();
         voteEndTimeMillis = System.currentTimeMillis();
         long voteStart = System.currentTimeMillis();
@@ -491,8 +462,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             voteStart += viableChoices.size() > 1 ? RECALL_VOTE_TIME_MILLIS : 250L;
         } else {
             if (viableChoices.size() > 1 || forceWait) {
-                voteStart += fastMode ? FAST_VOTE_TIME_MILLIS : optionsMap
-                        .get(voteType.optionName);
+                voteStart += fastMode ? FAST_VOTE_TIME_MILLIS : voteTimeMillis;
             } else {
                 voteStart += NO_VOTE_TIME_MILLIS;
             }
@@ -501,8 +471,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         inVote = true;
     }
 
-    private void startVote(VoteType voteType, String stateString) {
-        startVote(voteType, false, stateString);
+    private void startVote(long voteTimeMillis, String stateString) {
+        startVote(voteTimeMillis, false, stateString);
     }
 
     @Override
