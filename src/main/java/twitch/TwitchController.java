@@ -1,14 +1,11 @@
 package twitch;
 
 import basemod.ReflectionHacks;
-import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
-import basemod.interfaces.StartGameSubscriber;
 import battleaimod.BattleAiMod;
 import battleaimod.networking.AiClient;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
@@ -26,7 +23,6 @@ import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.FrozenEye;
 import com.megacrit.cardcrawl.relics.RunicDome;
 import com.megacrit.cardcrawl.relics.WingBoots;
-import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
@@ -41,15 +37,11 @@ import twitch.votecontrollers.*;
 import java.io.IOException;
 import java.util.*;
 
-public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber, StartGameSubscriber {
-    private static final Texture HEART_IMAGE = new Texture("heart.png");
-
+public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long RECALL_VOTE_TIME_MILLIS = 2_500;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
-    private static final long NORMAL_VOTE_TIME_MILLIS = 20_000;
 
-    private static int startingHP = 0;
     public static int runId = 0;
 
     private static Queue<Integer> recallQueue;
@@ -85,8 +77,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      * reset when the character vote starts.
      */
     private HashMap<String, Integer> voteFrequencies = new HashMap<>();
-
-    private String stateString = "";
 
     private String screenType = null;
     public static VoteController voteController;
@@ -313,7 +303,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 } else if (availableCommands.contains("play")) {
                     // BATTLE STARTS HERE
                     new Thread(() -> {
-                        startingHP = AbstractDungeon.player.currentHealth;
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
@@ -479,7 +468,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         voteByUsernameMap = new HashMap<>();
         voteEndTimeMillis = System.currentTimeMillis();
         long voteStart = System.currentTimeMillis();
-        this.stateString = stateString;
 
         if (viableChoices.isEmpty()) {
             viableChoices.add(new Choice("proceed", "proceed", "proceed"));
@@ -792,44 +780,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         return BOSS_CHEST_FLOOR_NUMS.contains(AbstractDungeon.floorNum);
     }
 
-    @Override
-    public void receivePostBattle(AbstractRoom battleRoom) {
-        System.err.println("post battle, trying to send");
-
-        if (!shouldRecall()) {
-            // send game over stats to slayboard in another thread
-//            new Thread(() -> {
-//                try {
-//                    int floorNum = AbstractDungeon.floorNum;
-//                    int hpChange = AbstractDungeon.player.currentHealth - startingHP;
-//
-//                    Slayboard.postFloorResult(floorNum, hpChange, runId);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }).start();
-        }
-    }
-
     public static boolean shouldRecall() {
         return optionsMap.get("recall") != 0;
-    }
-
-    @Override
-    public void receiveStartGame() {
-        if (!shouldRecall()) {
-            // Update the run seed once its set
-//            new Thread(() -> {
-//                try {
-//                    int ascensionLevel = AbstractDungeon.ascensionLevel;
-//                    Slayboard.updateRunSeedAndAscension(runId, SeedHelper
-//                            .getString(Settings.seed), ascensionLevel, AbstractDungeon.player.chosenClass
-//                            .name());
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }).start();
-        }
     }
 
     public static void enable() {
