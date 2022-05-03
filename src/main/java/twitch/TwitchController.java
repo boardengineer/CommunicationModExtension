@@ -86,7 +86,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      */
     private HashMap<String, Integer> voteFrequencies = new HashMap<>();
 
-    public static VoteType currentVote = null;
     private String stateString = "";
 
     private String screenType = null;
@@ -478,7 +477,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private void startVote(VoteType voteType, boolean forceWait, String stateString) {
         voteByUsernameMap = new HashMap<>();
-        currentVote = voteType;
         voteEndTimeMillis = System.currentTimeMillis();
         long voteStart = System.currentTimeMillis();
         this.stateString = stateString;
@@ -900,7 +898,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         for (String command : result.resultCommands) {
-            if (currentVote == VoteType.CHARACTER && result.resultCommands.size() == 1) {
+            boolean isCharacterVote = voteController != null &&
+                    voteController instanceof CharacterVoteController;
+
+            if (isCharacterVote && result.resultCommands.size() == 1) {
                 int ascension = gameController.getAscension();
 
                 if (ascension > 0) {
@@ -915,7 +916,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         voteByUsernameMap = null;
         voteController = null;
-        currentVote = null;
         screenType = null;
     }
 }
