@@ -28,8 +28,6 @@ import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
-import ludicrousspeed.simulator.commands.Command;
-import savestate.SaveState;
 import twitch.games.ClimbGameController;
 import twitch.votecontrollers.*;
 
@@ -329,13 +327,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 choicesMap.put(choice.voteString, choice);
             }
 
-            startVote(voteTime, stateJson.toString());
+            startVote(voteTime, false);
         } else {
             System.err.println("ERROR Missing game state");
         }
     }
 
-    public void delayProceed(String screenType, String stateMessage) {
+    private void delayProceed(String screenType, String stateMessage) {
         choices = new ArrayList<>();
 
         choices.add(new Choice("proceed", "proceed", "proceed"));
@@ -386,7 +384,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             System.err.println("unknown screen type proceed timer " + screenType);
         }
 
-        startVote(optionsMap.get("skip"), true, "");
+        startVote(optionsMap.get("skip"), true);
     }
 
     public void startCharacterVote(JsonObject stateJson) {
@@ -396,13 +394,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         voteFrequencies = new HashMap<>();
 
-        startVote(voteController.getVoteTimerMillis(), "");
+        startVote(voteController.getVoteTimerMillis(), false);
 
         CardCrawlGame.mode = CardCrawlGame.GameMode.CHAR_SELECT;
         CardCrawlGame.mainMenuScreen.screen = MainMenuScreen.CurScreen.CHAR_SELECT;
     }
 
-    private void startVote(long voteTimeMillis, boolean forceWait, String stateString) {
+    private void startVote(long voteTimeMillis, boolean forceWait) {
         voteByUsernameMap = new HashMap<>();
         voteEndTimeMillis = System.currentTimeMillis();
         long voteStart = System.currentTimeMillis();
@@ -436,10 +434,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
         voteEndTimeMillis = voteStart;
         inVote = true;
-    }
-
-    private void startVote(long voteTimeMillis, String stateString) {
-        startVote(voteTimeMillis, false, stateString);
     }
 
     @Override
@@ -480,6 +474,31 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
+    /**
+     * Returns a map of [user vote string for a given option] to [times option was selected].
+     * This method is intended to be used by vote controllers to figure out how to draw the current
+     * vote state.
+     */
+    public HashMap<String, Integer> getVoteFrequencies() {
+        if (voteByUsernameMap == null) {
+            return new HashMap<>();
+        }
+
+        HashMap<String, Integer> frequencies = new HashMap<>();
+
+        // Concurrency error here
+        voteByUsernameMap.entrySet().forEach(entry -> {
+            String choice = entry.getValue();
+            if (!frequencies.containsKey(choice)) {
+                frequencies.put(choice, 0);
+            }
+
+            frequencies.put(choice, frequencies.get(choice) + 1);
+        });
+
+        return frequencies;
+    }
+
     private String buildDisplayString() {
         String result = "";
         HashMap<String, Integer> voteFrequencies = getVoteFrequencies();
@@ -501,70 +520,31 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         return result;
     }
 
+    /**
+     * Must be called from receivePostUpdate or a similar method on the same thread.
+     */
     private void startAiClient() {
-        if (!shouldRecall()) {
-            if (BattleAiMod.aiClient == null) {
-                try {
-                    BattleAiMod.aiClient = new AiClient();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-
-            if (BattleAiMod.aiClient != null) {
-                int numTurns = optionsMap.get("turns");
-                if (AbstractDungeon.player.hasRelic(RunicDome.ID)) {
-                    numTurns /= 2;
-                }
-
-                if (AbstractDungeon.player.hasRelic(FrozenEye.ID)) {
-                    numTurns = numTurns + numTurns / 2;
-                }
-
-                BattleAiMod.aiClient.sendState(numTurns);
-                SaveState toSend = new SaveState();
-                // send game over stats to slayboard in another thread
-//                new Thread(() -> {
-//                    try {
-//                        Slayboard.postBattleState(toSend.encode(), runId);
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }).start();
-            }
-        } else {
+        if (BattleAiMod.aiClient == null) {
             try {
-                int floorResultId = Slayboard.queryFloorResult(AbstractDungeon.floorNum, runId)
-                                             .get(0);
-                List<Command> commands = Slayboard.queryBattleCommandResult(floorResultId);
-
-                BattleAiMod.aiClient = new AiClient(false);
-                BattleAiMod.aiClient.runQueriedCommands(commands);
+                BattleAiMod.aiClient = new AiClient();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-    }
 
-    public HashMap<String, Integer> getVoteFrequencies() {
-        if (voteByUsernameMap == null) {
-            return new HashMap<>();
-        }
 
-        HashMap<String, Integer> frequencies = new HashMap<>();
-
-        // Concurrency error here
-        voteByUsernameMap.entrySet().forEach(entry -> {
-            String choice = entry.getValue();
-            if (!frequencies.containsKey(choice)) {
-                frequencies.put(choice, 0);
+        if (BattleAiMod.aiClient != null) {
+            int numTurns = optionsMap.get("turns");
+            if (AbstractDungeon.player.hasRelic(RunicDome.ID)) {
+                numTurns /= 2;
             }
 
-            frequencies.put(choice, frequencies.get(choice) + 1);
-        });
+            if (AbstractDungeon.player.hasRelic(FrozenEye.ID)) {
+                numTurns = numTurns + numTurns / 2;
+            }
 
-        return frequencies;
+            BattleAiMod.aiClient.sendState(numTurns);
+        }
     }
 
     private Choice getVoteResult() {

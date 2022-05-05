@@ -1,17 +1,9 @@
 package twitch;
 
 import com.evacipated.cardcrawl.modthespire.lib.SpireConfig;
-import com.megacrit.cardcrawl.cards.AbstractCard;
-import com.megacrit.cardcrawl.cards.colorless.RitualDagger;
-import com.megacrit.cardcrawl.core.Settings;
-import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
-import com.megacrit.cardcrawl.relics.*;
-import com.megacrit.cardcrawl.vfx.cardManip.ShowCardAndObtainEffect;
-import tssrelics.relics.FestivuePole;
-import tssrelics.relics.JadeMysticKnot;
+import twitch.cheese.CheeseOptions;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Optional;
 
 public class CheeseController {
@@ -27,74 +19,11 @@ public class CheeseController {
     private static final long POLL_DELAY = 5_000L;
 
     public static Optional<CheeseConfig> requestedCheeseConfig;
-    public static HashMap<String, CheeseConfig> availableCheeses;
 
     public static SpireConfig cheeseConfig;
 
     public CheeseController(TwitchController twitchController) {
         this.twitchController = twitchController;
-
-
-        availableCheeses = new HashMap<>();
-
-        // Prismatic Shard Cheese
-        availableCheeses.put("rainbow", new CheeseConfig("rainbow", () -> {
-            AbstractRelic shard = new PrismaticShard().makeCopy();
-
-            AbstractDungeon.getCurrRoom()
-                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), shard);
-
-            AbstractDungeon.shopRelicPool.remove(shard.relicId);
-        }, false));
-
-        availableCheeses.put("serenity", new CheeseConfig("serenity", () -> {
-            AbstractRelic pole = new FestivuePole().makeCopy();
-
-            AbstractDungeon.getCurrRoom()
-                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), pole);
-
-            AbstractDungeon.rareRelicPool.remove(pole.relicId);
-        }, true));
-
-        availableCheeses.put("tingting", new CheeseConfig("tingting", () -> {
-            AbstractRelic tingsha = new Tingsha().makeCopy();
-
-            AbstractDungeon.getCurrRoom()
-                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), tingsha);
-
-            AbstractDungeon.rareRelicPool.remove(tingsha.relicId);
-        }, true));
-
-        availableCheeses.put("uglystick", new CheeseConfig("uglystick", () -> {
-            AbstractRelic branch = new DeadBranch().makeCopy();
-
-            AbstractDungeon.getCurrRoom()
-                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), branch);
-
-            AbstractDungeon.rareRelicPool.remove(branch.relicId);
-        }, true));
-
-        availableCheeses.put("alltiedup", new CheeseConfig("alltiedup", () -> {
-            AbstractRelic knot = new JadeMysticKnot().makeCopy();
-
-            AbstractDungeon.getCurrRoom()
-                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), knot);
-
-            AbstractDungeon.rareRelicPool.remove(knot.relicId);
-        }, true));
-
-        availableCheeses.put("knifeyspooney", new CheeseConfig("knifeyspooney", () -> {
-            AbstractRelic knot = new StrangeSpoon().makeCopy();
-
-            AbstractDungeon.getCurrRoom()
-                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), knot);
-
-            AbstractDungeon.shopRelicPool.remove(knot.relicId);
-
-            AbstractDungeon.topLevelEffects
-                    .add(new ShowCardAndObtainEffect(new RitualDagger()
-                            .makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
-        }, true));
 
         // Start a background thread to read the SpireConfig containing any pending cheese
         // request.
@@ -105,7 +34,8 @@ public class CheeseController {
 
                 if (cheeseConfig.has("cheese_id")) {
                     requestedCheeseConfig = Optional
-                            .of(availableCheeses.get(cheeseConfig.getString("cheese_id")));
+                            .of(CheeseOptions.AVAILABLE_CHEESES
+                                    .get(cheeseConfig.getString("cheese_id")));
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -135,8 +65,8 @@ public class CheeseController {
                                     .channelMessage("[Bot] Cheese Redemption Cancelled, a cheese run is already queued up; Try again later.");
                         }
 
-                        if (availableCheeses.containsKey(queryName)) {
-                            requestedCheeseConfig = Optional.of(availableCheeses.get(queryName));
+                        if (CheeseOptions.AVAILABLE_CHEESES.containsKey(queryName)) {
+                            requestedCheeseConfig = Optional.of(CheeseOptions.AVAILABLE_CHEESES.get(queryName));
 
                             cheeseConfig.setString("cheese_id", queryName);
                             cheeseConfig.save();
