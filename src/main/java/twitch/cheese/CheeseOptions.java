@@ -6,8 +6,10 @@ import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.vfx.cardManip.ShowCardAndObtainEffect;
+import theVacant.cards.Skills.Expand;
 import tssrelics.relics.FestivuePole;
 import tssrelics.relics.JadeMysticKnot;
+import tssrelics.relics.SneckoCharm;
 import twitch.CheeseController;
 
 import java.util.ArrayList;
@@ -39,12 +41,24 @@ public class CheeseOptions {
         put("alltiedup", new CheeseController.CheeseConfig("alltiedup", () ->
                 addRelic(new JadeMysticKnot().makeCopy()), true));
 
+        put("likeasensei", new CheeseController.CheeseConfig("likeasensei", () ->
+                addRelic(new UnceasingTop().makeCopy()), true));
+
+        put("weallscream", new CheeseController.CheeseConfig("weallscream", () ->
+                addRelic(new IceCream().makeCopy()), true));
+
+        put("riskandreward", new CheeseController.CheeseConfig("riskandreward", () ->
+                addRelic(new SneckoCharm().makeCopy()), false));
+
         put("knifeyspooney", new CheeseController.CheeseConfig("knifeyspooney", () -> {
             addRelic(new StrangeSpoon().makeCopy());
+            addCard(new RitualDagger().makeCopy());
+        }, true));
 
-            AbstractDungeon.topLevelEffects
-                    .add(new ShowCardAndObtainEffect(new RitualDagger()
-                            .makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
+        put("eminentdomain", new CheeseController.CheeseConfig("eminentdomain", () -> {
+            addRelic(new MeatOnTheBone().makeCopy());
+            addCard(new Expand().makeCopy());
+            addCard(new Expand().makeCopy());
         }, true));
     }};
 
@@ -57,5 +71,10 @@ public class CheeseOptions {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static void addCard(AbstractCard card) {
+        AbstractDungeon.topLevelEffects
+                .add(new ShowCardAndObtainEffect(card, (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
     }
 }
