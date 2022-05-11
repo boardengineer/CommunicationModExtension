@@ -76,7 +76,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private long voteEndTimeMillis;
 
     public ArrayList<Choice> choices;
-    public ArrayList<Choice> viableChoices;
+    public static ArrayList<Choice> viableChoices;
     public HashMap<String, Choice> choicesMap;
 
     public static Twirk twirk;
@@ -420,6 +420,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             if (voteController != null) {
                 voteController.sendVoteMessage();
+            } else {
+                VoteController.sendDefaultVoteMessage();
             }
         }
 

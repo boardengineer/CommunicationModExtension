@@ -38,10 +38,14 @@ public abstract class VoteController {
     }
 
     public void sendVoteMessage() {
-        List<Choice> viableChoices = twitchController.viableChoices;
+        sendDefaultVoteMessage();
+    }
+
+    public static void sendDefaultVoteMessage() {
+        List<Choice> viableChoices = TwitchController.viableChoices;
         Twirk twirk = TwitchController.twirk;
 
-        if (twitchController.viableChoices.size() > 1) {
+        if (TwitchController.viableChoices.size() > 1) {
             int appendedSize = 0;
             ArrayList<Choice> toSend = new ArrayList<>();
             for (int i = 0; i < viableChoices.size(); i++) {
