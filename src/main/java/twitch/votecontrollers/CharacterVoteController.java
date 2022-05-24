@@ -20,6 +20,8 @@ import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.ImageMaster;
 import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
+import com.megacrit.cardcrawl.screens.charSelect.CharacterSelectScreen;
+import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import hermit.characters.hermit;
 import theVacant.characters.TheVacant;
@@ -98,7 +100,7 @@ public class CharacterVoteController extends VoteController {
         }
 
         twitchController.choices = choices;
-        twitchController.viableChoices = choices;
+        TwitchController.viableChoices = choices;
 
         twitchController.choicesMap = new HashMap<>();
         for (Choice choice : choices) {
@@ -120,9 +122,9 @@ public class CharacterVoteController extends VoteController {
         boolean firstFound = false;
 
 
-        int startX = Settings.WIDTH / (twitchController.viableChoices.size() + 1) / 2;
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            Choice choice = twitchController.viableChoices.get(i);
+        int startX = Settings.WIDTH / (TwitchController.viableChoices.size() + 1) / 2;
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            Choice choice = TwitchController.viableChoices.get(i);
 
             boolean isWinning = (!firstFound) && winningResults.contains(choice.voteString);
             if (isWinning) {
@@ -312,6 +314,47 @@ public class CharacterVoteController extends VoteController {
         @SpirePrefixPatch
         public static SpireReturn<Boolean> unlockAll(String key) {
             return SpireReturn.Return(false);
+        }
+    }
+
+    @SpirePatch(clz = MainMenuScreen.class, method = "render")
+    public static class NoRenderPatch {
+        @SpirePrefixPatch
+        public static SpireReturn noRender(MainMenuScreen screen, SpriteBatch sb) {
+            if (screen.isFadingOut || TwitchController.voteController != null &&
+                    TwitchController.voteController instanceof CharacterVoteController) {
+                float yOffset = ReflectionHacks
+                        .getPrivate(screen.charSelectScreen, CharacterSelectScreen.class, "bg_y_offset");
+                if (screen.charSelectScreen.bgCharImg != null) {
+                    if (Settings.isSixteenByTen) {
+                        sb.draw(screen.charSelectScreen.bgCharImg, (float) Settings.WIDTH / 2.0F - 960.0F, (float) Settings.HEIGHT / 2.0F - 600.0F, 960.0F, 600.0F, 1920.0F, 1200.0F, Settings.scale, Settings.scale, 0.0F, 0, 0, 1920, 1200, false, false);
+                    } else if (Settings.isFourByThree) {
+                        sb.draw(screen.charSelectScreen.bgCharImg, (float) Settings.WIDTH / 2.0F - 960.0F, (float) Settings.HEIGHT / 2.0F - 600.0F + yOffset, 960.0F, 600.0F, 1920.0F, 1200.0F, Settings.yScale, Settings.yScale, 0.0F, 0, 0, 1920, 1200, false, false);
+                    } else if (Settings.isLetterbox) {
+                        sb.draw(screen.charSelectScreen.bgCharImg, (float) Settings.WIDTH / 2.0F - 960.0F, (float) Settings.HEIGHT / 2.0F - 600.0F + yOffset, 960.0F, 600.0F, 1920.0F, 1200.0F, Settings.xScale, Settings.xScale, 0.0F, 0, 0, 1920, 1200, false, false);
+                    } else {
+                        sb.draw(screen.charSelectScreen.bgCharImg, (float) Settings.WIDTH / 2.0F - 960.0F, (float) Settings.HEIGHT / 2.0F - 600.0F + yOffset, 960.0F, 600.0F, 1920.0F, 1200.0F, Settings.scale, Settings.scale, 0.0F, 0, 0, 1920, 1200, false, false);
+                    }
+                } else {
+                    screen.bg.render(sb);
+                }
+
+                if (!screen.isFadingOut) {
+                    for (CharacterOption option : screen.charSelectScreen.options) {
+                        if (option.selected) {
+                            option.render(sb);
+                        }
+                    }
+                }
+
+                Color overlayColor = ReflectionHacks
+                        .getPrivate(screen, MainMenuScreen.class, "overlayColor");
+                sb.setColor(overlayColor);
+                sb.draw(ImageMaster.WHITE_SQUARE_IMG, 0.0F, 0.0F, (float) Settings.WIDTH, (float) Settings.HEIGHT);
+
+                return SpireReturn.Return(null);
+            }
+            return SpireReturn.Continue();
         }
     }
 }
