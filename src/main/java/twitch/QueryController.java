@@ -73,6 +73,9 @@ public class QueryController {
                 case "!info":
                     queryKeyword(tokens);
                     break;
+                case "!status":
+                    runStatusQuery();
+                    break;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -250,7 +253,7 @@ public class QueryController {
             AbstractDungeon.player.masterDeck.group
                     .forEach(c -> cards.merge(c.name, 1, Integer::sum));
 
-            StringBuilder sb = new StringBuilder("[BOT] ");
+            StringBuilder sb = new StringBuilder("[BOT] Deck: ");
             for (AbstractCard c : AbstractDungeon.player.masterDeck.group) {
                 if (cards.containsKey(c.name)) {
                     sb.append(c.name);
@@ -274,7 +277,19 @@ public class QueryController {
         long now = System.currentTimeMillis();
         if (now > lastBossDisplayTimestamp + BOSS_DISPLAY_TIMEOUT) {
             lastBossDisplayTimestamp = now;
-            TwitchController.twirk.channelMessage("[BOT] " + AbstractDungeon.bossKey);
+            TwitchController.twirk
+                    .channelMessage("[BOT] Upcoming Boss: " + AbstractDungeon.bossKey);
+        }
+    }
+
+    private void runStatusQuery() {
+        try {
+            String message = String
+                    .format("[BOT] HP: %d | Floor: %d | Gold: %d", AbstractDungeon.player.currentHealth, AbstractDungeon.floorNum, AbstractDungeon.player.gold);
+
+            TwitchController.twirk.channelMessage(message);
+        } catch (NullPointerException | IllegalArgumentException e) {
+
         }
     }
 
@@ -288,7 +303,7 @@ public class QueryController {
                                                          .collect(Collectors
                                                                  .joining(";"));
 
-            TwitchController.twirk.channelMessage("[BOT] " + relics);
+            TwitchController.twirk.channelMessage("[BOT] Relic List: " + relics);
         }
     }
 
