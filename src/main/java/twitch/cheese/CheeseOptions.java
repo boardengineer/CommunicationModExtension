@@ -2,6 +2,8 @@ package twitch.cheese;
 
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.colorless.RitualDagger;
+import com.megacrit.cardcrawl.cards.green.Nightmare;
+import com.megacrit.cardcrawl.cards.red.DualWield;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.*;
@@ -50,6 +52,15 @@ public class CheeseOptions {
         put("riskandreward", new CheeseController.CheeseConfig("riskandreward", () ->
                 addRelic(new SneckoCharm().makeCopy()), false));
 
+        put("powerpuff", new CheeseController.CheeseConfig("powerpuff", () ->
+                addRelic(new ChemicalX().makeCopy()), false));
+
+        put("cawcawcaw", new CheeseController.CheeseConfig("cawcawcaw", () -> {
+            addRelic(new CultistMask().makeCopy());
+            addRelic(new CultistMask().makeCopy());
+            addRelic(new CultistMask().makeCopy());
+        }, true));
+
         put("knifeyspooney", new CheeseController.CheeseConfig("knifeyspooney", () -> {
             addRelic(new StrangeSpoon().makeCopy());
             addCard(new RitualDagger().makeCopy());
@@ -59,6 +70,14 @@ public class CheeseOptions {
             addRelic(new MeatOnTheBone().makeCopy());
             addCard(new Expand().makeCopy());
             addCard(new Expand().makeCopy());
+        }, true));
+
+        put("clownswilleatme", new CheeseController.CheeseConfig("clownswilleatme", () -> {
+            addCard(new Nightmare().makeCopy());
+        }, true));
+
+        put("dualwield", new CheeseController.CheeseConfig("dualwield", () -> {
+            addCard(new DualWield().makeCopy());
         }, true));
     }};
 
