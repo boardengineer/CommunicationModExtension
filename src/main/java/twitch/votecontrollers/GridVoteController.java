@@ -8,7 +8,7 @@ import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.screens.select.GridCardSelectScreen;
-import twitch.Choice;
+import twitch.CommandChoice;
 import twitch.TwitchController;
 import twitch.VoteController;
 
@@ -55,7 +55,7 @@ public class GridVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            Choice choice = twitchController.viableChoices.get(i);
+            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);

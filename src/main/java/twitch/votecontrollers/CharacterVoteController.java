@@ -10,7 +10,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
-import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.characters.Defect;
 import com.megacrit.cardcrawl.characters.Ironclad;
 import com.megacrit.cardcrawl.characters.TheSilent;
@@ -27,7 +26,8 @@ import hermit.characters.hermit;
 import theVacant.characters.TheVacant;
 import thecursed.TheCursedMod;
 import thecursed.characters.TheCursedCharacter;
-import twitch.Choice;
+import twitch.Command;
+import twitch.CommandChoice;
 import twitch.TwitchController;
 import twitch.VoteController;
 import twitch.games.ClimbGameController;
@@ -51,51 +51,48 @@ public class CharacterVoteController extends VoteController {
         put("vacant", "(!vacant) (!vacantinfo) (!trymodchars)");
     }};
 
-    private final JsonObject stateJson;
-
     private final HashMap<String, CharacterOption> characterOptions;
 
-    public CharacterVoteController(TwitchController twitchController, JsonObject stateJson) {
+    public CharacterVoteController(TwitchController twitchController) {
         super(twitchController);
-        this.stateJson = stateJson;
 
         characterOptions = getCharacterOptions();
     }
 
     @Override
     public void setUpChoices() {
-        ArrayList<Choice> choices = new ArrayList<>();
+        ArrayList<Command> choices = new ArrayList<>();
 
         twitchController.choices = new ArrayList<>();
 
         int choiceIndex = 1;
 
-        choices.add(new Choice("ironclad", Integer
+        choices.add(new CommandChoice("ironclad", Integer
                 .toString(choiceIndex++), "start ironclad"));
-        choices.add(new Choice("silent", Integer
+        choices.add(new CommandChoice("silent", Integer
                 .toString(choiceIndex++), "start silent"));
-        choices.add(new Choice("defect", Integer
+        choices.add(new CommandChoice("defect", Integer
                 .toString(choiceIndex++), "start defect"));
-        choices.add(new Choice("watcher", Integer
+        choices.add(new CommandChoice("watcher", Integer
                 .toString(choiceIndex++), "start watcher"));
 
         if (BaseMod.hasModID("MarisaState:")) {
-            choices.add(new Choice("marisa", Integer
+            choices.add(new CommandChoice("marisa", Integer
                     .toString(choiceIndex++), "start marisa"));
         }
 
         if (BaseMod.hasModID("HermitState:")) {
-            choices.add(new Choice("hermit", Integer
+            choices.add(new CommandChoice("hermit", Integer
                     .toString(choiceIndex++), "start hermit"));
         }
 
         if (BaseMod.hasModID("VacantState:")) {
-            choices.add(new Choice("vacant", Integer
+            choices.add(new CommandChoice("vacant", Integer
                     .toString(choiceIndex++), "start the_vacant"));
         }
 
         if (BaseMod.hasModID("CursedState:")) {
-            choices.add(new Choice("cursed", Integer
+            choices.add(new CommandChoice("cursed", Integer
                     .toString(choiceIndex++), "start the_cursed"));
         }
 
@@ -103,8 +100,8 @@ public class CharacterVoteController extends VoteController {
         TwitchController.viableChoices = choices;
 
         twitchController.choicesMap = new HashMap<>();
-        for (Choice choice : choices) {
-            twitchController.choicesMap.put(choice.voteString, choice);
+        for (Command choice : choices) {
+            twitchController.choicesMap.put(choice.getVoteString(), choice);
         }
 
         HashMap<String, Integer> optionsMap = TwitchController.optionsMap;
@@ -124,7 +121,7 @@ public class CharacterVoteController extends VoteController {
 
         int startX = Settings.WIDTH / (TwitchController.viableChoices.size() + 1) / 2;
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
-            Choice choice = TwitchController.viableChoices.get(i);
+            CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
             boolean isWinning = (!firstFound) && winningResults.contains(choice.voteString);
             if (isWinning) {
@@ -186,18 +183,24 @@ public class CharacterVoteController extends VoteController {
     }
 
     @Override
-    public void endVote(Choice result) {
+    public void endVote(Command result) {
         if (TwitchController.gameController != null && TwitchController.gameController instanceof ClimbGameController) {
             ClimbGameController gameController = (ClimbGameController) TwitchController.gameController;
 
             int ascension = gameController.getAscension();
             int lives = gameController.getlives();
 
-            String titleSuffix = String
-                    .format(" Ascension: %d\t Lives: %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(result.choiceName));
+            String titleSuffix = "";
+            if (result instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) result;
 
-            if (MOD_CHARACTER_EXTRA_INFO.containsKey(result.choiceName)) {
-                titleSuffix = titleSuffix + " " + MOD_CHARACTER_EXTRA_INFO.get(result.choiceName);
+                titleSuffix = String
+                        .format(" Ascension: %d\t Lives: %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(choice.choiceName));
+
+                if (MOD_CHARACTER_EXTRA_INFO.containsKey(choice.choiceName)) {
+                    titleSuffix = titleSuffix + " " + MOD_CHARACTER_EXTRA_INFO
+                            .get(choice.choiceName);
+                }
             }
 
             final String finalSuffix = titleSuffix;

@@ -53,7 +53,7 @@ public class CheeseOptions {
                 addRelic(new SneckoCharm().makeCopy()), false));
 
         put("powerpuff", new CheeseController.CheeseConfig("powerpuff", () ->
-                addRelic(new ChemicalX().makeCopy()), false));
+                addRelic(new ChemicalX().makeCopy()), true));
 
         put("cawcawcaw", new CheeseController.CheeseConfig("cawcawcaw", () -> {
             addRelic(new CultistMask().makeCopy());

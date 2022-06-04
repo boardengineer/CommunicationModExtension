@@ -18,7 +18,6 @@ import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.FontHelper;
-import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.FrozenEye;
 import com.megacrit.cardcrawl.relics.RunicDome;
@@ -26,6 +25,7 @@ import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
+import communicationmod.ChoiceScreenUtils;
 import communicationmod.CommunicationMod;
 import ludicrousspeed.LudicrousSpeedMod;
 import twitch.games.ClimbGameController;
@@ -75,9 +75,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean inVote = false;
     private long voteEndTimeMillis;
 
-    public ArrayList<Choice> choices;
-    public static ArrayList<Choice> viableChoices;
-    public HashMap<String, Choice> choicesMap;
+    public ArrayList<Command> choices;
+    public static List<Command> viableChoices;
+    public HashMap<String, Command> choicesMap;
 
     public static Twirk twirk;
 
@@ -89,6 +89,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     private int previousLevel = -1;
     private static boolean isActive = false;
+
+    private boolean shouldWaitOnCharacterStart = false;
+    private boolean shouldStartCharacterVoteAfterTimer = false;
+    private long delayedCharacterVoteStartTime = 0L;
 
     public TwitchApiController apiController;
 
@@ -149,6 +153,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     LudicrousSpeedMod.mustRestart = false;
 //                    startAiClient();
                 }
+            }
+        }
+
+        if (shouldStartCharacterVoteAfterTimer) {
+            if (System.currentTimeMillis() > delayedCharacterVoteStartTime) {
+                shouldStartCharacterVoteAfterTimer = false;
+                startCharacterVote();
             }
         }
 
@@ -230,59 +241,69 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     public void startVote(String stateMessage) {
-        if (!isActive) {
+        if (!isActive || inBattle) {
             return;
         }
 
+
         JsonObject stateJson = new JsonParser().parse(stateMessage).getAsJsonObject();
         if (stateJson.has("available_commands")) {
-            JsonArray availableCommandsArray = stateJson.get("available_commands").getAsJsonArray();
+            JsonArray availableCommandsArray = stateJson.get("available_commands")
+                                                        .getAsJsonArray();
 
             Set<String> availableCommands = new HashSet<>();
-            availableCommandsArray.forEach(command -> availableCommands.add(command.getAsString()));
+            availableCommandsArray
+                    .forEach(command -> availableCommands.add(command.getAsString()));
 
-            if (!inBattle) {
-                if (stateJson.has("game_state")) {
-                    JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
-                    String screenType = gameState.get("screen_type").getAsString();
-                    if (screenType != null) {
+            if (stateJson.has("game_state")) {
+                JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
+                String screenType = gameState.get("screen_type").getAsString();
+                ChoiceScreenUtils.ChoiceType choiceType = ChoiceScreenUtils.ChoiceType
+                        .valueOf(screenType);
 
-                        if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
-                            if (AbstractDungeon
-                                    .getCurrRoom() instanceof ShopRoom && AbstractDungeon.combatRewardScreen.rewards
-                                    .isEmpty()) {
-                                CommunicationMod.queueCommand("cancel");
-                            }
+                if (screenType != null) {
+                    if (choiceType == ChoiceScreenUtils.ChoiceType.COMBAT_REWARD) {
+                        if (AbstractDungeon
+                                .getCurrRoom() instanceof ShopRoom &&
+                                AbstractDungeon.combatRewardScreen.rewards.isEmpty()) {
+                            CommunicationMod.queueCommand("cancel");
                         }
                     }
                 }
+            }
 
-                if (availableCommands.contains("choose")) {
-                    startChooseVote(stateJson);
-                } else if (availableCommands.contains("play")) {
-                    // BATTLE STARTS HERE
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        shouldStartClientOnUpdate = true;
-                    }).start();
-                } else if (availableCommands.contains("start")) {
-                    startCharacterVote(new JsonParser().parse(stateMessage).getAsJsonObject());
-                } else if (availableCommands.contains("proceed")) {
-                    String screenType = stateJson.get("game_state").getAsJsonObject()
-                                                 .get("screen_type").getAsString();
-                    delayProceed(screenType, stateMessage);
-                } else if (availableCommands.contains("confirm")) {
-                    System.err.println("choosing confirm");
-                    CommunicationMod.queueCommand("confirm");
-                } else if (availableCommands.contains("leave")) {
-                    // exit shop hell
-                    CommunicationMod.queueCommand("leave");
-                    CommunicationMod.queueCommand("proceed");
+            if (availableCommands.contains("choose")) {
+                startChooseVote(stateJson);
+            } else if (availableCommands.contains("play")) {
+
+                // BATTLE STARTS HERE
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    shouldStartClientOnUpdate = true;
+                }).start();
+            } else if (availableCommands.contains("start")) {
+                if (shouldWaitOnCharacterStart) {
+                    shouldWaitOnCharacterStart = false;
+                    shouldStartCharacterVoteAfterTimer = true;
+                    delayedCharacterVoteStartTime = System.currentTimeMillis() + 180_000;
+                } else {
+                    startCharacterVote();
                 }
+            } else if (availableCommands.contains("proceed")) {
+                JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
+                String screenType = gameState.get("screen_type").getAsString();
+
+                delayProceed(screenType, stateMessage);
+            } else if (availableCommands.contains("confirm")) {
+                CommunicationMod.queueCommand("confirm");
+            } else if (availableCommands.contains("leave")) {
+                // exit shop hell
+                CommunicationMod.queueCommand("leave");
+                CommunicationMod.queueCommand("proceed");
             }
         }
     }
@@ -323,8 +344,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             }
 
             choicesMap = new HashMap<>();
-            for (Choice choice : viableChoices) {
-                choicesMap.put(choice.voteString, choice);
+            for (Command choice : viableChoices) {
+                choicesMap.put(choice.getVoteString(), choice);
             }
 
             startVote(voteTime, false);
@@ -336,17 +357,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private void delayProceed(String screenType, String stateMessage) {
         choices = new ArrayList<>();
 
-        choices.add(new Choice("proceed", "proceed", "proceed"));
+        choices.add(new CommandChoice("proceed", "proceed", "proceed"));
 
         viableChoices = choices;
 
         choicesMap = new HashMap<>();
-        for (Choice choice : viableChoices) {
-            choicesMap.put(choice.voteString, choice);
+        for (Command choice : viableChoices) {
+            choicesMap.put(choice.getVoteString(), choice);
         }
 
+        ChoiceScreenUtils.ChoiceType choiceType = ChoiceScreenUtils.ChoiceType
+                .valueOf(screenType);
 
-        if (screenType.equals("GAME_OVER")) {
+        if (choiceType == ChoiceScreenUtils.ChoiceType.GAME_OVER) {
+            System.err.println("game over " + stateMessage);
+
             JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
                                                    .get("game_state").getAsJsonObject();
 
@@ -354,6 +379,21 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
             boolean reportedVictory = gameState.get("screen_state").getAsJsonObject()
                                                .get("victory").getAsBoolean();
+
+            if (reportedVictory) {
+                choices = new ArrayList<>();
+
+                choices.add(new GameOverWithCreditsCommand());
+
+                viableChoices = choices;
+
+                choicesMap = new HashMap<>();
+                for (Command choice : viableChoices) {
+                    choicesMap.put(choice.getVoteString(), choice);
+                }
+                shouldWaitOnCharacterStart = true;
+            }
+
             int floor = gameState.get("floor").getAsInt();
             boolean didClimb = reportedVictory || floor > 51;
 
@@ -380,6 +420,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                     victoryReturnButton.hb.clicked = true;
                     break;
             }
+
+            startVote(15_000, true);
+            return;
         } else {
             System.err.println("unknown screen type proceed timer " + screenType);
         }
@@ -387,8 +430,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         startVote(optionsMap.get("skip"), true);
     }
 
-    public void startCharacterVote(JsonObject stateJson) {
-        voteController = new CharacterVoteController(this, stateJson);
+    public void startCharacterVote() {
+        voteController = new CharacterVoteController(this);
 
         voteController.setUpChoices();
 
@@ -406,7 +449,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         long voteStart = System.currentTimeMillis();
 
         if (viableChoices.isEmpty()) {
-            viableChoices.add(new Choice("proceed", "proceed", "proceed"));
+            viableChoices.add(new CommandChoice("proceed", "proceed", "proceed"));
         }
 
         if (!shouldRecall() && optionsMap.getOrDefault("verbose", 0) > 0) {
@@ -429,7 +472,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             voteStart += viableChoices.size() > 1 ? RECALL_VOTE_TIME_MILLIS : 250L;
         } else {
             if (viableChoices.size() > 1 || forceWait) {
-                voteStart += fastMode ? FAST_VOTE_TIME_MILLIS : voteTimeMillis;
+                voteStart += (fastMode && !forceWait) ? FAST_VOTE_TIME_MILLIS : voteTimeMillis;
             } else {
                 voteStart += NO_VOTE_TIME_MILLIS;
             }
@@ -506,7 +549,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         HashMap<String, Integer> voteFrequencies = getVoteFrequencies();
 
         for (int i = 0; i < viableChoices.size(); i++) {
-            Choice choice = viableChoices.get(i);
+            CommandChoice choice = (CommandChoice) viableChoices.get(i);
 
             result += String
                     .format("%s [vote %s] (%s)",
@@ -549,7 +592,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
-    private Choice getVoteResult() {
+    private Command getVoteResult() {
         Set<String> bestResults = getBestVoteResultKeys();
 
         if (bestResults.size() == 0) {
@@ -618,7 +661,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             // the voteString will start at 1
             String voteString = Integer.toString(choices.size() + 1);
 
-            Choice toAdd = new Choice(choiceString, voteString, choiceCommand);
+            CommandChoice toAdd = new CommandChoice(choiceString, voteString, choiceCommand);
             choices.add(toAdd);
         });
 
@@ -629,7 +672,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 .equals("CHEST") && AbstractDungeon.player != null && AbstractDungeon.player
                 .hasRelic(CursedKey.ID)) {
             twirk.channelMessage("[BOT] Cursed Key allows skipping relics, [vote 0] to skip, [vote 1] to open");
-            viableChoices.add(new Choice("leave", "0", "leave", "proceed"));
+            viableChoices.add(new CommandChoice("leave", "0", "leave", "proceed"));
         }
     }
 
@@ -690,7 +733,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             voteFrequencies.put(userName, voteFrequencies.get(userName) + 1);
         });
 
-        Choice result;
+        Command result;
 
         result = getVoteResult();
 
@@ -701,26 +744,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         boolean shouldChannelMessageForRecall = viableChoices
                 .size() > 1 && shouldRecall();
         if (!voteByUsernameMap.isEmpty() || shouldChannelMessageForRecall) {
+            CommandChoice choice = (CommandChoice) result;
             twirk.channelMessage(String
-                    .format("[BOT] selected %s | %s", result.voteString, result.choiceName));
+                    .format("[BOT] selected %s | %s", choice.voteString, choice.choiceName));
         }
 
-        for (String command : result.resultCommands) {
-            boolean isCharacterVote = voteController != null &&
-                    voteController instanceof CharacterVoteController;
-
-            if (isCharacterVote && result.resultCommands.size() == 1) {
-                int ascension = gameController.getAscension();
-
-                if (ascension > 0) {
-                    String seedString = SeedHelper.getString(new Random().nextLong());
-
-                    command += String
-                            .format(" %d %s", gameController.getAscension(), seedString);
-                }
-            }
-            CommunicationMod.queueCommand(command);
-        }
+        result.execute();
 
         voteByUsernameMap = null;
         voteController = null;

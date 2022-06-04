@@ -23,7 +23,7 @@ public abstract class VoteController {
         return Optional.empty();
     }
 
-    public void endVote(Choice result) {
+    public void endVote(Command result) {
         endVote();
     }
 
@@ -42,14 +42,14 @@ public abstract class VoteController {
     }
 
     public static void sendDefaultVoteMessage() {
-        List<Choice> viableChoices = TwitchController.viableChoices;
+        List<Command> viableChoices = TwitchController.viableChoices;
         Twirk twirk = TwitchController.twirk;
 
         if (TwitchController.viableChoices.size() > 1) {
             int appendedSize = 0;
-            ArrayList<Choice> toSend = new ArrayList<>();
+            ArrayList<CommandChoice> toSend = new ArrayList<>();
             for (int i = 0; i < viableChoices.size(); i++) {
-                toSend.add(viableChoices.get(i));
+                toSend.add((CommandChoice) viableChoices.get(i));
                 appendedSize++;
 
                 if (appendedSize % 20 == 0) {

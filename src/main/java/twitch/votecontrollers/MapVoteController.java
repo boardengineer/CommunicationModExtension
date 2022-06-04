@@ -10,10 +10,7 @@ import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.*;
 import communicationmod.ChoiceScreenUtils;
-import twitch.Choice;
-import twitch.RenderHelpers;
-import twitch.TwitchController;
-import twitch.VoteController;
+import twitch.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -80,8 +77,8 @@ public class MapVoteController extends VoteController {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            Choice choice = twitchController.viableChoices.get(i);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
@@ -118,17 +115,18 @@ public class MapVoteController extends VoteController {
 
     @Override
     public void sendVoteMessage() {
-        List<Choice> viableChoices = twitchController.viableChoices;
+        List<Command> viableChoices = TwitchController.viableChoices;
         Twirk twirk = TwitchController.twirk;
 
         if (viableChoices.size() > 1) {
-            String messageString = viableChoices.stream().map(this::toMessageString)
+            String messageString = viableChoices.stream()
+                                                .map(choice -> toMessageString((CommandChoice) choice))
                                                 .collect(Collectors.joining(" "));
             twirk.channelMessage("[BOT] Vote: " + messageString);
         }
     }
 
-    private String toMessageString(Choice choice) {
+    private String toMessageString(CommandChoice choice) {
         Class roomClass = messageToRoomNodeMap.get(choice.choiceName).getRoom().getClass();
 
         String roomDisplayName = ROOM_DISPLAY_STRINGS.containsKey(roomClass) ? ROOM_DISPLAY_STRINGS

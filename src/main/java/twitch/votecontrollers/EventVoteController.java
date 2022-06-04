@@ -16,7 +16,7 @@ import com.megacrit.cardcrawl.neow.NeowEvent;
 import com.megacrit.cardcrawl.ui.buttons.LargeDialogOptionButton;
 import communicationmod.ChoiceScreenUtils;
 import mintySpire.patches.map.MiniMapDisplay;
-import twitch.Choice;
+import twitch.CommandChoice;
 import twitch.TwitchController;
 import twitch.VoteController;
 
@@ -99,7 +99,7 @@ public class EventVoteController extends VoteController {
 
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            Choice choice = twitchController.viableChoices.get(i);
+            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
             String message = choice.voteString;
             if (voteStringToEventButtonMap.containsKey(message)) {
                 voteStringToEventButtonMap.get(message).msg = String

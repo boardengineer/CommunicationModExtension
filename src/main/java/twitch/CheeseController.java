@@ -52,9 +52,8 @@ public class CheeseController {
                 try {
                     Optional<CheeseRequest> cheeseRequestOptional = twitchController.apiController
                             .queryCheeseRequests();
-                    System.err.println("cheese controller querried");
+
                     if (cheeseRequestOptional.isPresent()) {
-                        System.err.println("cheese found");
                         CheeseRequest cheeseRequest = cheeseRequestOptional.get();
                         String queryName = cheeseRequest.userInput.replace(" ", "").toLowerCase();
 

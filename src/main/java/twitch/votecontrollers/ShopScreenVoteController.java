@@ -15,7 +15,7 @@ import com.megacrit.cardcrawl.shop.StorePotion;
 import com.megacrit.cardcrawl.shop.StoreRelic;
 import communicationmod.ChoiceScreenUtils;
 import tssrelics.relics.DiceOfFate;
-import twitch.Choice;
+import twitch.CommandChoice;
 import twitch.RenderHelpers;
 import twitch.TwitchController;
 import twitch.VoteController;
@@ -57,12 +57,12 @@ public class ShopScreenVoteController extends VoteController {
         boolean canTakePotion = hasPotionSlot && !hasSozu;
 
         twitchController.viableChoices = twitchController.viableChoices.stream()
-                                                                       .filter(choice -> (canTakePotion) || !isPotionChoice(choice))
+                                                                       .filter(choice -> (canTakePotion) || !isPotionChoice((CommandChoice) choice))
                                                                        .collect(Collectors
                                                                                .toCollection(ArrayList::new));
 
         twitchController.viableChoices
-                .add(new Choice("leave", "0", "leave", "proceed"));
+                .add(new CommandChoice("leave", "0", "leave", "proceed"));
     }
 
     @Override
@@ -70,8 +70,8 @@ public class ShopScreenVoteController extends VoteController {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            Choice choice = twitchController.viableChoices.get(i);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
 
             Color messageColor = winningResults
                     .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
@@ -177,7 +177,7 @@ public class ShopScreenVoteController extends VoteController {
         return null;
     }
 
-    private static boolean isPotionChoice(Choice choice) {
+    private static boolean isPotionChoice(CommandChoice choice) {
         if (choice.choiceName.equals("Fire Potion")) {
             return true;
         }
