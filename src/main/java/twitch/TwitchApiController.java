@@ -192,6 +192,67 @@ public class TwitchApiController {
         return hasAllRequiredFields;
     }
 
+    public ArrayList<String> queryChannelSubscribers() throws IOException {
+        ArrayList<String> result = new ArrayList<>();
+        boolean isDone = false;
+        boolean isFirst = true;
+        String cursor = "";
+
+        while (!isDone) {
+            isDone = true;
+
+            String urlString = "https://api.twitch.tv/helix/subscriptions?broadcaster_id=" + BROADCASTER_ID;
+
+            if(!isFirst) {
+                urlString += "&after="  + cursor;
+            }
+
+            isFirst = false;
+
+            URL url = new URL(urlString);
+
+            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http.setRequestMethod("GET");
+            http.setDoOutput(true);
+            http.setRequestProperty("Client-Id", clientId);
+            http.setRequestProperty("Authorization", "Bearer " + token);
+
+            if (http.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        http.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
+
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                // print result
+                System.out.println(response.toString());
+
+                JsonObject jsonObject = new JsonParser().parse(response.toString())
+                                                        .getAsJsonObject();
+                JsonArray array = jsonObject.getAsJsonArray("data");
+
+                array.forEach(jsonElement -> result
+                        .add(jsonElement.getAsJsonObject().get("user_name").getAsString()));
+
+                JsonObject pagination = jsonObject.get("pagination").getAsJsonObject();
+                if (pagination.has("cursor")) {
+                    isDone = false;
+                    cursor = pagination.get("cursor").getAsString();
+                }
+            } else {
+                System.out.println("failed with code " + http.getResponseCode() + " " + http
+                        .getResponseMessage());
+                result.add("ERROR QUERYING SUBS, contact dev");
+            }
+        }
+
+        return result;
+    }
+
     public Optional<JsonObject> queryRedemptions(String rewardId) throws IOException {
         String baseUrl = "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions";
         String queryUrl = String.format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED",

@@ -20,8 +20,8 @@ public class SampleTwitchInterface {
     private static final Field MODIFIERS_FIELD;
 
 
-//  twitchslaysspiretest
-//    private static final String BROADCASTER_ID = "777541093";
+//  slaystreamtester
+//    private static final String BROADCASTER_ID = "799503719";
 
 
     //  twitchslaysspire
@@ -68,7 +68,7 @@ public class SampleTwitchInterface {
             token = properties.getProperty("token");
             clientId = properties.getProperty("client_id");
 
-            createBetaRedemption();
+            System.out.println(queryChannelSubscribers());
 
 //            Optional<PredictionInfo> info = createPrediction();
 //
@@ -118,7 +118,7 @@ public class SampleTwitchInterface {
     }
 
     public static void queryChannel() throws IOException {
-        URL url = new URL("https://api.twitch.tv/helix/users?login=twitchslaysspiretest");
+        URL url = new URL("https://api.twitch.tv/helix/users?login=slaystreamtester");
         HttpURLConnection http = (HttpURLConnection) url.openConnection();
         http.setRequestMethod("GET");
         http.setDoOutput(true);
@@ -168,6 +168,66 @@ public class SampleTwitchInterface {
                     .getResponseMessage());
         }
 
+    }
+
+    public static ArrayList<String> queryChannelSubscribers() throws IOException {
+        ArrayList<String> result = new ArrayList<>();
+        boolean isDone = false;
+        boolean isFirst = true;
+        String cursor = "";
+
+        while (!isDone) {
+            isDone = true;
+
+            String urlString = "https://api.twitch.tv/helix/subscriptions?broadcaster_id=" + BROADCASTER_ID;
+
+            if(!isFirst) {
+                urlString += "&after="  + cursor;
+            }
+
+            isFirst = false;
+
+            URL url = new URL(urlString);
+
+            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http.setRequestMethod("GET");
+            http.setDoOutput(true);
+            http.setRequestProperty("Client-Id", clientId);
+            http.setRequestProperty("Authorization", "Bearer " + token);
+
+            if (http.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        http.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
+
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                // print result
+                System.out.println(response.toString());
+
+                JsonObject jsonObject = new JsonParser().parse(response.toString())
+                                                        .getAsJsonObject();
+                JsonArray array = jsonObject.getAsJsonArray("data");
+
+                array.forEach(jsonElement -> result
+                        .add(jsonElement.getAsJsonObject().get("user_name").getAsString()));
+
+                JsonObject pagination = jsonObject.get("pagination").getAsJsonObject();
+                if (pagination.has("cursor")) {
+                    isDone = false;
+                    cursor = pagination.get("cursor").getAsString();
+                }
+            } else {
+                System.out.println("failed with code " + http.getResponseCode() + " " + http
+                        .getResponseMessage());
+            }
+        }
+
+        return result;
     }
 
 

@@ -66,7 +66,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     public static VoteController voteController;
 
     private final BetaArtController betaArtController;
-    private final CheeseController cheeseController;
+    public final CheeseController cheeseController;
     public static GameController gameController;
     public QueryController queryController;
 
@@ -94,7 +94,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private boolean shouldStartCharacterVoteAfterTimer = false;
     private long delayedCharacterVoteStartTime = 0L;
 
-    public TwitchApiController apiController;
+    public static TwitchApiController apiController;
 
     public SpireConfig optionsConfig;
 
@@ -245,7 +245,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             return;
         }
 
-
         JsonObject stateJson = new JsonParser().parse(stateMessage).getAsJsonObject();
         if (stateJson.has("available_commands")) {
             JsonArray availableCommandsArray = stateJson.get("available_commands")
@@ -370,8 +369,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 .valueOf(screenType);
 
         if (choiceType == ChoiceScreenUtils.ChoiceType.GAME_OVER) {
-            System.err.println("game over " + stateMessage);
-
             JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
                                                    .get("game_state").getAsJsonObject();
 
