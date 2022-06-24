@@ -56,23 +56,6 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
         public static SpireReturn startNetworkCommunications(CommunicationMod communicationMod) {
             switch (communicationMethod) {
                 case SOCKET:
-                    // THIS IS EXPERIMENTAL CODE
-//                    BaseMod.subscribe(new LudicrousSpeedMod());
-//                    Settings.MASTER_VOLUME = 0;
-//                    CardCrawlGame.sound.update();
-//                    Settings.isDemo = true;
-//                    SaveStateMod.shouldGoFast = true;
-//                    LudicrousSpeedMod.plaidMode = true;
-//
-//                    Settings.ACTION_DUR_XFAST = 0.001F;
-//                    Settings.ACTION_DUR_FASTER = 0.002F;
-//                    Settings.ACTION_DUR_FAST = 0.0025F;
-//                    Settings.ACTION_DUR_MED = 0.005F;
-//                    Settings.ACTION_DUR_LONG = .01F;
-//                    Settings.ACTION_DUR_XLONG = .015F;
-//
-//                    LudicrousSpeedMod.controller = new ColonelSanders();
-
                     setSocketThreads();
                     return SpireReturn.Return(true);
                 case TWITCH_CHAT:
@@ -97,45 +80,33 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
                     try {
                         DataOutputStream out = new DataOutputStream(socket
                                 .getOutputStream());
-                        LinkedBlockingQueue<String> writeQueue = new LinkedBlockingQueue<>();
 
-                        ReflectionHacks
-                                .setPrivateStatic(CommunicationMod.class, "writeQueue", writeQueue);
-
-                        while (true) {
-                            if (!writeQueue.isEmpty()) {
-                                out.writeUTF(writeQueue.remove());
+                        CommunicationMod.subscribe(() -> {
+                            try {
+                                out.writeUTF(GameStateConverter.getCommunicationState());
+                            } catch (IOException e) {
+                                e.printStackTrace();
                             }
-                        }
+                        });
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
                 writeThread.start();
 
-                ReflectionHacks
-                        .setPrivateStatic(CommunicationMod.class, "writeThread", writeThread);
-
                 Thread readThread = new Thread(() -> {
                     try {
                         DataInputStream in = new DataInputStream(new BufferedInputStream(socket
                                 .getInputStream()));
-                        LinkedBlockingQueue<String> readQueue = new LinkedBlockingQueue<>();
-
-                        ReflectionHacks
-                                .setPrivateStatic(CommunicationMod.class, "readQueue", readQueue);
 
                         while (true) {
-                            readQueue.add(in.readUTF());
+                            CommunicationMod.queueCommand(in.readUTF());
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
                 readThread.start();
-
-                ReflectionHacks
-                        .setPrivateStatic(CommunicationMod.class, "readThread", readThread);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -216,9 +187,12 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
 
     @Override
     public void receivePostInitialize() {
-        if (BattleAiMod.isClient) {
-            setTwitchThreads();
-            sendSuccessToController();
+        if (BaseMod
+                .hasModID("BattleAiMod:") && communicationMethod == CommunicationMethod.TWITCH_CHAT) {
+            if (BattleAiMod.isClient) {
+                setTwitchThreads();
+                sendSuccessToController();
+            }
         }
     }
 

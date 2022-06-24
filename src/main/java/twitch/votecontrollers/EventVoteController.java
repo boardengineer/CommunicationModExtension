@@ -97,22 +97,36 @@ public class EventVoteController extends VoteController {
             }
         }
 
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
-            String message = choice.voteString;
-            if (voteStringToEventButtonMap.containsKey(message)) {
-                voteStringToEventButtonMap.get(message).msg = String
-                        .format("%s [vote %s] (%s)",
-                                voteStringToOriginalEventButtonMessageMap.get(message),
-                                choice.voteString,
-                                voteFrequencies.getOrDefault(choice.voteString, 0));
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+                String message = choice.voteString;
+                if (voteStringToEventButtonMap.containsKey(message)) {
+                    voteStringToEventButtonMap.get(message).msg = String
+                            .format("%s [vote %s] (%s)",
+                                    voteStringToOriginalEventButtonMessageMap.get(message),
+                                    choice.voteString,
+                                    voteFrequencies.getOrDefault(choice.voteString, 0));
+                }
             }
         }
     }
 
     @Override
     public void endVote() {
-
+        // Reset The event button text in case those buttons are going to be used for the next
+        // phase.
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+                String message = choice.voteString;
+                if (voteStringToEventButtonMap.containsKey(message)) {
+                    voteStringToEventButtonMap
+                            .get(message).msg = voteStringToOriginalEventButtonMessageMap
+                            .get(message);
+                }
+            }
+        }
     }
 }

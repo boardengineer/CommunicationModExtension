@@ -45,35 +45,39 @@ public class BossRewardVoteController extends VoteController {
 
     @Override
     public void render(SpriteBatch spriteBatch) {
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        Set<String> winningResults = TwitchController.getBestVoteResultKeys();
 
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+                Color messageColor = winningResults
+                        .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
-            String message = choice.choiceName.toLowerCase(Locale.ROOT);
-            if (messageToBossRelicMap.containsKey(message)) {
-                AbstractRelic rewardItem = messageToBossRelicMap.get(message);
-                Hitbox rewardItemHitbox = rewardItem.hb;
-                String rewardItemMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                String message = choice.choiceName.toLowerCase(Locale.ROOT);
+                if (messageToBossRelicMap.containsKey(message)) {
+                    AbstractRelic rewardItem = messageToBossRelicMap.get(message);
+                    Hitbox rewardItemHitbox = rewardItem.hb;
+                    String rewardItemMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                RenderHelpers.renderTextBelowHitbox(spriteBatch, rewardItemMessage, rewardItemHitbox, messageColor);
-            } else if (message.equalsIgnoreCase("skip")) {
-                String skipMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                    RenderHelpers
+                            .renderTextBelowHitbox(spriteBatch, rewardItemMessage, rewardItemHitbox, messageColor);
+                } else if (message.equalsIgnoreCase("skip")) {
+                    String skipMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                MenuCancelButton cancelButton = ReflectionHacks
-                        .getPrivate(AbstractDungeon.bossRelicScreen, BossRelicSelectScreen.class, "cancelButton");
+                    MenuCancelButton cancelButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.bossRelicScreen, BossRelicSelectScreen.class, "cancelButton");
 
-                RenderHelpers.renderTextBelowHitbox(spriteBatch, skipMessage, cancelButton.hb, messageColor);
-            } else {
-                System.err.println("no boss relic button for " + choice.choiceName);
+                    RenderHelpers
+                            .renderTextBelowHitbox(spriteBatch, skipMessage, cancelButton.hb, messageColor);
+                } else {
+                    System.err.println("no boss relic button for " + choice.choiceName);
+                }
             }
         }
     }

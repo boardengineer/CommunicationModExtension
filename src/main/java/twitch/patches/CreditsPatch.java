@@ -45,9 +45,6 @@ public class CreditsPatch {
                         }
                     }
                 }
-
-                System.err
-                        .println(String.format("%s %s", line.text, font == FontHelper.tipBodyFont));
             }
 
             linesIterator = lines.listIterator();

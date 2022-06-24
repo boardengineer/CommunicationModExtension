@@ -122,6 +122,13 @@
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/TheCursedMod.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>chronoMods</groupId>
+            <artifactId>TogetherManager</artifactId>
+            <version>3.1.2</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/Spire with Friends.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

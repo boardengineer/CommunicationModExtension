@@ -90,23 +90,25 @@ public class CombatRewardVoteController extends VoteController {
         // as the only choice
         for (String choiceName : AUTO_CHOICE_NAMES) {
             Optional<Command> autoChoice = result.stream()
-                                                 .filter(choice -> ((CommandChoice)choice).choiceName
-                                                                         .equals(choiceName))
+                                                 .filter(choice -> choice instanceof CommandChoice)
+                                                 .filter(choice -> ((CommandChoice) choice).choiceName
+                                                         .equals(choiceName))
                                                  .findAny();
 
             if (autoChoice.isPresent()) {
                 ArrayList<Command> onlyOption = new ArrayList<>();
                 onlyOption.add(autoChoice.get());
-                twitchController.viableChoices = onlyOption;
+                TwitchController.viableChoices = onlyOption;
                 return;
             }
         }
 
         Collection<Command> potionChoices = result.stream()
-                                                        .filter(choice -> ((CommandChoice)choice).choiceName
-                                                                          .equals("potion"))
-                                                        .collect(Collectors
-                                                                          .toCollection(ArrayList::new));
+                                                  .filter(choice -> choice instanceof CommandChoice)
+                                                  .filter(choice -> ((CommandChoice) choice).choiceName
+                                                          .equals("potion"))
+                                                  .collect(Collectors
+                                                          .toCollection(ArrayList::new));
 
         boolean hasSozu = AbstractDungeon.player.hasRelic(Sozu.ID);
 
@@ -156,7 +158,7 @@ public class CombatRewardVoteController extends VoteController {
                 onlyPotion.add(potionChoice);
 
                 // Then the potion
-                twitchController.viableChoices = onlyPotion;
+                TwitchController.viableChoices = onlyPotion;
                 return;
             } else {
                 result.remove(potionChoice);
@@ -164,15 +166,17 @@ public class CombatRewardVoteController extends VoteController {
         }
 
         Optional<Command> relicChoice = result.stream()
-                                                    .filter(choice -> ((CommandChoice)choice).rewardInfo
-                                                                      .isPresent() && ((CommandChoice)choice).rewardInfo
-                                                                      .get().relicName != null)
-                                                    .findAny();
+                                              .filter(choice -> choice instanceof CommandChoice)
+                                              .filter(choice -> ((CommandChoice) choice).rewardInfo
+                                                      .isPresent() && ((CommandChoice) choice).rewardInfo
+                                                      .get().relicName != null)
+                                              .findAny();
 
         Optional<Command> sapphireKeyChoice = result.stream()
-                                                          .filter(choice -> ((CommandChoice)choice).choiceName
-                                                                            .equals("sapphire_key"))
-                                                          .findAny();
+                                                    .filter(choice -> choice instanceof CommandChoice)
+                                                    .filter(choice -> ((CommandChoice) choice).choiceName
+                                                            .equals("sapphire_key"))
+                                                    .findAny();
 
         // Automatically take relics unless there's a sapphire key attached.
         // TODO: Relics not attached to sapphire keys should be taken before the sapphire key vote.
@@ -181,10 +185,10 @@ public class CombatRewardVoteController extends VoteController {
             onlyRelic.add(relicChoice.get());
 
             if (OPTIONAL_RELICS
-                    .contains(((CommandChoice)relicChoice.get()).rewardInfo.get().relicName)) {
+                    .contains(((CommandChoice) relicChoice.get()).rewardInfo.get().relicName)) {
                 shouldAllowLeave = true;
             } else {
-                twitchController.viableChoices = onlyRelic;
+                TwitchController.viableChoices = onlyRelic;
                 return;
             }
         }
@@ -201,7 +205,7 @@ public class CombatRewardVoteController extends VoteController {
             }
         }
 
-        twitchController.viableChoices = result;
+        TwitchController.viableChoices = result;
     }
 
     @Override
@@ -209,37 +213,39 @@ public class CombatRewardVoteController extends VoteController {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+                Color messageColor = winningResults
+                        .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
-            String message = choice.choiceName;
-            if (message.equals("leave")) {
-                String leaveMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                String message = choice.choiceName;
+                if (message.equals("leave")) {
+                    String leaveMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
-                        .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb"), messageColor);
-            } else if (message.equals("cancel")) {
-                String leaveMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                    renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
+                            .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb"), messageColor);
+                } else if (message.equals("cancel")) {
+                    String leaveMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
-                        .getPrivate(AbstractDungeon.overlayMenu.cancelButton, CancelButton.class, "hb"), messageColor);
-            } else if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
-                RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
-                String rewardItemMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                    renderTextBelowHitbox(spriteBatch, leaveMessage, ReflectionHacks
+                            .getPrivate(AbstractDungeon.overlayMenu.cancelButton, CancelButton.class, "hb"), messageColor);
+                } else if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
+                    RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
+                    String rewardItemMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                rewardItem.text = voteStringToOriginalRewardTextMap
-                        .get(choice.voteString) + rewardItemMessage;
-            } else {
-                System.err.println("no card button for " + choice.choiceName);
+                    rewardItem.text = voteStringToOriginalRewardTextMap
+                            .get(choice.voteString) + rewardItemMessage;
+                } else {
+                    System.err.println("no card button for " + choice.choiceName);
+                }
             }
         }
     }
@@ -247,11 +253,13 @@ public class CombatRewardVoteController extends VoteController {
     @Override
     public void endVote() {
         // Reset the text to avoid duped vote strings
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
-            if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
-                RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
-                rewardItem.text = voteStringToOriginalRewardTextMap.get(choice.voteString);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+                if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
+                    RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
+                    rewardItem.text = voteStringToOriginalRewardTextMap.get(choice.voteString);
+                }
             }
         }
     }

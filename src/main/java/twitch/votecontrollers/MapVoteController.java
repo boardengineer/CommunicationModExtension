@@ -78,32 +78,34 @@ public class MapVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+                Color messageColor = winningResults
+                        .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
 
-            String message = choice.choiceName;
-            if (messageToRoomNodeMap.containsKey(message)) {
-                MapRoomNode mapRoomNode = messageToRoomNodeMap.get(message);
-                Hitbox roomHitbox = mapRoomNode.hb;
+                String message = choice.choiceName;
+                if (messageToRoomNodeMap.containsKey(message)) {
+                    MapRoomNode mapRoomNode = messageToRoomNodeMap.get(message);
+                    Hitbox roomHitbox = mapRoomNode.hb;
 
-                String mapMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                    String mapMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                // Alternate having the vote above and below so that the messages don't
-                // run into each other
-                if (i % 2 == 0) {
-                    RenderHelpers
-                            .renderTextBelowHitbox(spriteBatch, mapMessage, roomHitbox, messageColor);
+                    // Alternate having the vote above and below so that the messages don't
+                    // run into each other
+                    if (i % 2 == 0) {
+                        RenderHelpers
+                                .renderTextBelowHitbox(spriteBatch, mapMessage, roomHitbox, messageColor);
+                    } else {
+                        RenderHelpers
+                                .renderTextAboveHitbox(spriteBatch, mapMessage, roomHitbox, messageColor);
+                    }
                 } else {
-                    RenderHelpers
-                            .renderTextAboveHitbox(spriteBatch, mapMessage, roomHitbox, messageColor);
+                    System.err.println("no room button for " + choice.choiceName);
                 }
-            } else {
-                System.err.println("no room button for " + choice.choiceName);
             }
         }
     }
@@ -120,13 +122,21 @@ public class MapVoteController extends VoteController {
 
         if (viableChoices.size() > 1) {
             String messageString = viableChoices.stream()
-                                                .map(choice -> toMessageString((CommandChoice) choice))
+                                                .map(choice -> toMessageString(choice))
                                                 .collect(Collectors.joining(" "));
             twirk.channelMessage("[BOT] Vote: " + messageString);
         }
     }
 
-    private String toMessageString(CommandChoice choice) {
+    private String toMessageString(Command command) {
+        if (command instanceof ExtendTimerCommand) {
+            return String
+                    .format("[ Extend Timer | %s]", command.getVoteString());
+        }
+        if (!(command instanceof CommandChoice)) {
+            return "";
+        }
+        CommandChoice choice = (CommandChoice) command;
         Class roomClass = messageToRoomNodeMap.get(choice.choiceName).getRoom().getClass();
 
         String roomDisplayName = ROOM_DISPLAY_STRINGS.containsKey(roomClass) ? ROOM_DISPLAY_STRINGS

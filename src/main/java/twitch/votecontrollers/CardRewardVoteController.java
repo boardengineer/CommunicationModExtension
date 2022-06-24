@@ -53,10 +53,10 @@ public class CardRewardVoteController extends VoteController {
             if (twitchController.skipAfterCard) {
                 String skipCommand = AbstractDungeon
                         .getCurrRoom() instanceof ShopRoom ? "cancel" : "proceed";
-                twitchController.viableChoices
+                TwitchController.viableChoices
                         .add(new CommandChoice("Skip", "0", "skip", skipCommand));
             } else {
-                twitchController.viableChoices
+                TwitchController.viableChoices
                         .add(new CommandChoice("Skip", "0", "skip"));
             }
         }
@@ -72,41 +72,43 @@ public class CardRewardVoteController extends VoteController {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+                Color messageColor = winningResults
+                        .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
-            String message = choice.choiceName;
-            if (message.equalsIgnoreCase("skip")) {
-                String skipMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                String message = choice.choiceName;
+                if (message.equalsIgnoreCase("skip")) {
+                    String skipMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                SkipCardButton skipCardButton = ReflectionHacks
-                        .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "skipButton");
+                    SkipCardButton skipCardButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "skipButton");
 
-                renderTextBelowHitbox(spriteBatch, skipMessage, cardRewardAdjust(skipCardButton.hb), messageColor);
-            } else if (message.equalsIgnoreCase("bowl")) {
-                String bowlMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                    renderTextBelowHitbox(spriteBatch, skipMessage, cardRewardAdjust(skipCardButton.hb), messageColor);
+                } else if (message.equalsIgnoreCase("bowl")) {
+                    String bowlMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                SingingBowlButton bowlButton = ReflectionHacks
-                        .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "bowlButton");
+                    SingingBowlButton bowlButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "bowlButton");
 
-                renderTextBelowHitbox(spriteBatch, bowlMessage, cardRewardAdjust(bowlButton.hb), messageColor);
-            } else if (messageToCardReward.containsKey(message)) {
-                AbstractCard card = messageToCardReward.get(message);
-                Hitbox cardHitbox = card.hb;
-                String cardMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                    renderTextBelowHitbox(spriteBatch, bowlMessage, cardRewardAdjust(bowlButton.hb), messageColor);
+                } else if (messageToCardReward.containsKey(message)) {
+                    AbstractCard card = messageToCardReward.get(message);
+                    Hitbox cardHitbox = card.hb;
+                    String cardMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, cardMessage, cardRewardAdjust(cardHitbox), messageColor);
-            } else {
+                    renderTextBelowHitbox(spriteBatch, cardMessage, cardRewardAdjust(cardHitbox), messageColor);
+                } else {
 //                System.err.println("no card button for " + choice.choiceName);
+                }
             }
         }
     }

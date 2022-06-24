@@ -56,12 +56,13 @@ public class ShopScreenVoteController extends VoteController {
                                                               .anyMatch(potion -> potion instanceof PotionSlot);
         boolean canTakePotion = hasPotionSlot && !hasSozu;
 
-        twitchController.viableChoices = twitchController.viableChoices.stream()
+        TwitchController.viableChoices = TwitchController.viableChoices.stream()
+                                                                       .filter(choice -> choice instanceof CommandChoice)
                                                                        .filter(choice -> (canTakePotion) || !isPotionChoice((CommandChoice) choice))
                                                                        .collect(Collectors
                                                                                .toCollection(ArrayList::new));
 
-        twitchController.viableChoices
+        TwitchController.viableChoices
                 .add(new CommandChoice("leave", "0", "leave", "proceed"));
     }
 
@@ -71,45 +72,47 @@ public class ShopScreenVoteController extends VoteController {
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+                Color messageColor = winningResults
+                        .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
-            String message = choice.choiceName;
-            String voteString = choice.voteString;
+                String message = choice.choiceName;
+                String voteString = choice.voteString;
 
-            if (message.equals("leave")) {
-                String leaveMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
-
-                RenderHelpers
-                        .renderTextBelowHitbox(spriteBatch, leaveMessage, AbstractDungeon.overlayMenu.cancelButton.hb, messageColor);
-            } else if (message.equals("purge")) {
-                String purgeMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
-
-                RenderHelpers
-                        .renderTextBelowHitbox(spriteBatch, purgeMessage, addGoldHitbox(getShopPurgeHitbox(), 1), messageColor);
-            } else if (voteStringToShopItemMap.containsKey(voteString)) {
-                Hitbox shopItemHitbox = getShopItemHitbox(voteStringToShopItemMap
-                        .get(voteString));
-
-
-                if (shopItemHitbox != null) {
-                    String shopMessage = String.format("[vote %s] (%s)",
+                if (message.equals("leave")) {
+                    String leaveMessage = String.format("[vote %s] (%s)",
                             choice.voteString,
                             voteFrequencies.getOrDefault(choice.voteString, 0));
 
                     RenderHelpers
-                            .renderTextBelowHitbox(spriteBatch, shopMessage, shopItemHitbox, messageColor);
+                            .renderTextBelowHitbox(spriteBatch, leaveMessage, AbstractDungeon.overlayMenu.cancelButton.hb, messageColor);
+                } else if (message.equals("purge")) {
+                    String purgeMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
+
+                    RenderHelpers
+                            .renderTextBelowHitbox(spriteBatch, purgeMessage, addGoldHitbox(getShopPurgeHitbox(), 1), messageColor);
+                } else if (voteStringToShopItemMap.containsKey(voteString)) {
+                    Hitbox shopItemHitbox = getShopItemHitbox(voteStringToShopItemMap
+                            .get(voteString));
+
+
+                    if (shopItemHitbox != null) {
+                        String shopMessage = String.format("[vote %s] (%s)",
+                                choice.voteString,
+                                voteFrequencies.getOrDefault(choice.voteString, 0));
+
+                        RenderHelpers
+                                .renderTextBelowHitbox(spriteBatch, shopMessage, shopItemHitbox, messageColor);
+                    } else {
+                        System.err.println("no hitbox for" + choice.choiceName);
+                    }
                 } else {
-                    System.err.println("no hitbox for" + choice.choiceName);
+                    System.err.println("no shop button for " + choice.choiceName);
                 }
-            } else {
-                System.err.println("no shop button for " + choice.choiceName);
             }
         }
     }

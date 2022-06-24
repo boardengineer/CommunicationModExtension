@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public abstract class VoteController {
-    protected final TwitchController twitchController;
+    public final TwitchController twitchController;
 
     public abstract void setUpChoices();
 
@@ -47,17 +47,14 @@ public abstract class VoteController {
 
         if (TwitchController.viableChoices.size() > 1) {
             int appendedSize = 0;
-            ArrayList<CommandChoice> toSend = new ArrayList<>();
+            ArrayList<Command> toSend = new ArrayList<>();
             for (int i = 0; i < viableChoices.size(); i++) {
-                toSend.add((CommandChoice) viableChoices.get(i));
+                toSend.add(viableChoices.get(i));
                 appendedSize++;
 
                 if (appendedSize % 20 == 0) {
-                    // TODO kill print
-                    String messageString = toSend.stream().peek(choice -> System.err
-                            .println(choice.rewardInfo.isPresent() ? choice.rewardInfo
-                                    .get().relicName : " ")).map(choice -> String
-                            .format("[%s| %s]", choice.voteString, choice.choiceName))
+                    String messageString = toSend.stream()
+                                                 .map(command -> messageForCommand(command))
                                                  .collect(Collectors.joining(" "));
 
                     twirk.channelMessage("[BOT] Vote: " + messageString);
@@ -68,14 +65,24 @@ public abstract class VoteController {
             }
 
             if (!toSend.isEmpty()) {
-                String messageString = toSend.stream().peek(choice -> System.err
-                        .println(choice.rewardInfo.isPresent() ? choice.rewardInfo
-                                .get().relicName : " ")).map(choice -> String
-                        .format("[%s| %s]", choice.voteString, choice.choiceName))
+                String messageString = toSend.stream()
+                                             .map(command -> messageForCommand(command))
                                              .collect(Collectors.joining(" "));
 
                 twirk.channelMessage("[BOT] Vote: " + messageString);
             }
         }
+    }
+
+    static String messageForCommand(Command command) {
+        if (command instanceof CommandChoice) {
+            CommandChoice choice = (CommandChoice) command;
+            return String
+                    .format("[%s| %s]", choice.voteString, choice.choiceName);
+        } else if (command instanceof ExtendTimerCommand) {
+            return String
+                    .format("[%s| Extend Vote Timer]", command.getVoteString());
+        }
+        return "";
     }
 }

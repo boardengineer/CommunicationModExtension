@@ -55,13 +55,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     /**
      * Used to count user votes during
      */
-    private HashMap<String, String> voteByUsernameMap = null;
+    private static HashMap<String, String> voteByUsernameMap = null;
 
     /**
      * Tallies the votes by user for a given run. Increments at the end of each vote and gets
      * reset when the character vote starts.
      */
-    private HashMap<String, Integer> voteFrequencies = new HashMap<>();
+    private static HashMap<String, Integer> voteFrequencies = new HashMap<>();
 
     public static VoteController voteController;
 
@@ -72,22 +72,22 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public static HashMap<String, Integer> optionsMap;
 
-    private boolean inVote = false;
-    private long voteEndTimeMillis;
+    private static boolean inVote = false;
+    public static long voteEndTimeMillis;
 
     public ArrayList<Command> choices;
     public static List<Command> viableChoices;
-    public HashMap<String, Command> choicesMap;
+    public static HashMap<String, Command> choicesMap;
 
     public static Twirk twirk;
 
     private boolean shouldStartClientOnUpdate = false;
     public static boolean inBattle = false;
-    private boolean fastMode = false;
-    int consecutiveNoVotes = 0;
+    private static boolean fastMode = false;
+    static int consecutiveNoVotes = 0;
     public boolean skipAfterCard = true;
 
-    private int previousLevel = -1;
+    private static int previousLevel = -1;
     private static boolean isActive = false;
 
     private boolean shouldWaitOnCharacterStart = false;
@@ -165,7 +165,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         try {
             if (voteByUsernameMap != null && inVote && isVoteOver()) {
-                inVote = false;
                 resolveVote();
             }
         } catch (ConcurrentModificationException | NullPointerException e) {
@@ -271,7 +270,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 }
             }
 
-            if (availableCommands.contains("choose")) {
+            if (availableCommands.contains("coop")) {
+                startFriendsVote(stateJson);
+            } else if (availableCommands.contains("choose")) {
                 startChooseVote(stateJson);
             } else if (availableCommands.contains("play")) {
 
@@ -307,8 +308,51 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
+    private void startFriendsVote(JsonObject stateJson) {
+        JsonArray availableCommandsArray = stateJson.get("available_commands")
+                                                    .getAsJsonArray();
+
+        Set<String> availableCommands = new HashSet<>();
+        availableCommandsArray
+                .forEach(command -> availableCommands.add(command.getAsString()));
+
+        choices = new ArrayList<>();
+        if (availableCommands.contains("coop")) {
+            String voteString = Integer.toString(choices.size() + 1);
+            choices.add(new CommandChoice("coop", voteString, "coop"));
+        }
+
+        if (availableCommands.contains("bingo")) {
+            String voteString = Integer.toString(choices.size() + 1);
+            choices.add(new CommandChoice("bingo", voteString, "bingo"));
+        }
+
+        if (availableCommands.contains("versus")) {
+            String voteString = Integer.toString(choices.size() + 1);
+            choices.add(new CommandChoice("versus", voteString, "versus"));
+        }
+
+        viableChoices = choices;
+        long voteTime = optionsMap.get("other");
+
+        choicesMap = new HashMap<>();
+        for (Command choice : viableChoices) {
+            choicesMap.put(choice.getVoteString(), choice);
+        }
+
+        startVote(voteTime, false);
+    }
+
     public void startChooseVote(JsonObject stateJson) {
         if (stateJson.has("game_state")) {
+            if (voteController != null) {
+                try {
+                    voteController.endVote();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
             JsonObject gameState = stateJson.get("game_state").getAsJsonObject();
             String screenType = gameState.get("screen_type").getAsString();
 
@@ -521,7 +565,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      * This method is intended to be used by vote controllers to figure out how to draw the current
      * vote state.
      */
-    public HashMap<String, Integer> getVoteFrequencies() {
+    public static HashMap<String, Integer> getVoteFrequencies() {
         if (voteByUsernameMap == null) {
             return new HashMap<>();
         }
@@ -546,13 +590,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         HashMap<String, Integer> voteFrequencies = getVoteFrequencies();
 
         for (int i = 0; i < viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) viableChoices.get(i);
-
             result += String
-                    .format("%s [vote %s] (%s)",
-                            choice.choiceName,
-                            choice.voteString,
-                            voteFrequencies.getOrDefault(choice.voteString, 0));
+                    .format("%s (%s)", messageForCommand(viableChoices.get(i)),
+                            voteFrequencies.getOrDefault(viableChoices.get(i).getVoteString(), 0));
 
             if (i < viableChoices.size() - 1) {
                 result += "\n";
@@ -560,6 +600,18 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
 
         return result;
+    }
+
+    static String messageForCommand(Command command) {
+        if (command instanceof CommandChoice) {
+            CommandChoice choice = (CommandChoice) command;
+            return String
+                    .format("%s [vote %s]", choice.choiceName, choice.voteString);
+        } else if (command instanceof ExtendTimerCommand) {
+            return String
+                    .format("Extend Vote Timer [vote %s]", command.getVoteString());
+        }
+        return command.getVoteString();
     }
 
     /**
@@ -589,7 +641,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         }
     }
 
-    private Command getVoteResult() {
+    private static Command getVoteResult() {
         Set<String> bestResults = getBestVoteResultKeys();
 
         if (bestResults.size() == 0) {
@@ -625,7 +677,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         return choicesMap.get(bestResult.toLowerCase());
     }
 
-    public Set<String> getBestVoteResultKeys() {
+    public static Set<String> getBestVoteResultKeys() {
         HashMap<String, Integer> frequencies = getVoteFrequencies();
         HashSet<String> result = new HashSet<>();
 
@@ -719,6 +771,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     private void resolveVote() {
+        inVote = false;
+
         if (AbstractDungeon.floorNum != previousLevel) {
             previousLevel = AbstractDungeon.floorNum;
         }
@@ -734,19 +788,38 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         result = getVoteResult();
 
+        boolean shouldChannelMessageForRecall = viableChoices
+                .size() > 1 && shouldRecall();
+
+        if (!voteByUsernameMap.isEmpty() || shouldChannelMessageForRecall) {
+            if (result instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) result;
+                twirk.channelMessage(String
+                        .format("[BOT] selected %s | %s", choice.voteString, choice.choiceName));
+            }
+        }
+
+        result.execute();
+
+        if (result instanceof ExtendTimerCommand) {
+            inVote = true;
+            return;
+        }
+
         if (voteController != null) {
             voteController.endVote(result);
         }
 
-        boolean shouldChannelMessageForRecall = viableChoices
-                .size() > 1 && shouldRecall();
-        if (!voteByUsernameMap.isEmpty() || shouldChannelMessageForRecall) {
-            CommandChoice choice = (CommandChoice) result;
-            twirk.channelMessage(String
-                    .format("[BOT] selected %s | %s", choice.voteString, choice.choiceName));
-        }
+        voteByUsernameMap = null;
+        voteController = null;
+    }
 
-        result.execute();
+    public static void disableVote() {
+        inVote = false;
+
+        if (voteController != null) {
+            voteController.endVote();
+        }
 
         voteByUsernameMap = null;
         voteController = null;

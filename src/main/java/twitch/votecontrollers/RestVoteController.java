@@ -67,23 +67,25 @@ public class RestVoteController extends VoteController {
         HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
         Set<String> winningResults = twitchController.getBestVoteResultKeys();
 
-        for (int i = 0; i < twitchController.viableChoices.size(); i++) {
-            CommandChoice choice = (CommandChoice) twitchController.viableChoices.get(i);
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
-            Color messageColor = winningResults
-                    .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
+                Color messageColor = winningResults
+                        .contains(choice.voteString) ? new Color(1.f, 1.f, 0, 1.f) : new Color(1.f, 0, 0, 1.f);
 
-            String message = choice.choiceName;
-            if (messageToRestOption.containsKey(message)) {
-                AbstractCampfireOption fireOption = messageToRestOption.get(message);
-                Hitbox hitbox = fireOption.hb;
-                String voteMessage = String.format("[vote %s] (%s)",
-                        choice.voteString,
-                        voteFrequencies.getOrDefault(choice.voteString, 0));
+                String message = choice.choiceName;
+                if (messageToRestOption.containsKey(message)) {
+                    AbstractCampfireOption fireOption = messageToRestOption.get(message);
+                    Hitbox hitbox = fireOption.hb;
+                    String voteMessage = String.format("[vote %s] (%s)",
+                            choice.voteString,
+                            voteFrequencies.getOrDefault(choice.voteString, 0));
 
-                renderTextBelowHitbox(spriteBatch, voteMessage, adjustSelectionHitbox(hitbox), messageColor);
-            } else {
-                System.err.println("no boss relic button for " + choice.choiceName);
+                    renderTextBelowHitbox(spriteBatch, voteMessage, adjustSelectionHitbox(hitbox), messageColor);
+                } else {
+                    System.err.println("no boss relic button for " + choice.choiceName);
+                }
             }
         }
     }
