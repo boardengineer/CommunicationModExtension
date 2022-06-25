@@ -5,6 +5,7 @@ import chronoMods.TogetherManager;
 import chronoMods.coop.*;
 import chronoMods.network.NetworkHelper;
 import com.evacipated.cardcrawl.modthespire.lib.*;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.blights.AbstractBlight;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -18,16 +19,14 @@ import communicationmod.ChoiceScreenUtils;
 import communicationmod.CommunicationMod;
 import communicationmod.patches.DungeonMapPatch;
 import communicationmod.patches.MapRoomNodeHoverPatch;
-import twitch.Command;
-import twitch.CommandChoice;
-import twitch.ExtendTimerCommand;
-import twitch.TwitchController;
+import friends.votecontrollers.CoopCourierVoteController;
+import twitch.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
-public class CoopCourierPatches {
+public class CoopChoicePatches {
     @SpireEnum
     static ChoiceScreenUtils.ChoiceType COURIER_ROOM;
     @SpireEnum
@@ -87,6 +86,18 @@ public class CoopCourierPatches {
                 TwitchController.viableChoices
                         .add(new CommandChoice("leave", "0", "leave", "proceed"));
             }
+        }
+    }
+
+    @SpirePatch(clz = TwitchController.class, method = "voteControllerForScreenType", optional = true, requiredModId = "chronoMods")
+    public static class CoopScreenVoteControllerPatch {
+        @SpirePrefixPatch
+        public static SpireReturn<VoteController> checkCourChoiceType(TwitchController twitchController, String screenType, JsonObject stateJson) {
+            if (screenType.equalsIgnoreCase(COURIER_SCREEN.name())) {
+                return SpireReturn
+                        .Return(new CoopCourierVoteController(twitchController, stateJson));
+            }
+            return SpireReturn.Continue();
         }
     }
 
@@ -231,6 +242,14 @@ public class CoopCourierPatches {
         }
     }
 
+    @SpirePatch(clz = CoopNeowEvent.class, method = "advanceScreen", optional = true, requiredModId = "chronoMods")
+    public static class SendNeowStateUpdatePatch {
+        @SpirePostfixPatch
+        public static void sendMessage() {
+            CommunicationMod.mustSendGameState = true;
+        }
+    }
+
     @SpirePatch(clz = ChoiceScreenUtils.class, method = "executeChoice", optional = true, requiredModId = "chronoMods")
     public static class ExecuteCourierOptionsPatch {
         @SpirePrefixPatch
@@ -301,7 +320,7 @@ public class CoopCourierPatches {
                                                 .toCollection(ArrayList::new));
     }
 
-    private static ArrayList<CourChoice> getCourierScreenChoices() {
+    public static ArrayList<CourChoice> getCourierScreenChoices() {
         ArrayList<CourChoice> choices = new ArrayList<>();
         CoopCourierScreen screen = TogetherManager.courierScreen;
         boolean hasRecipient = false;
@@ -381,14 +400,14 @@ public class CoopCourierPatches {
         return choices;
     }
 
-    interface CourChoice {
+    public interface CourChoice {
         void select();
 
         String getDisplayString();
     }
 
-    static class RelicCourChoice implements CourChoice {
-        CoopCourierRelic relic;
+    public static class RelicCourChoice implements CourChoice {
+        public CoopCourierRelic relic;
 
         @Override
         public void select() {
@@ -401,9 +420,9 @@ public class CoopCourierPatches {
         }
     }
 
-    static class CardCourChoice implements CourChoice {
+    public static class CardCourChoice implements CourChoice {
         int cardIndex;
-        AbstractCard card;
+        public AbstractCard card;
 
         @Override
         public void select() {
@@ -430,8 +449,8 @@ public class CoopCourierPatches {
         }
     }
 
-    static class PotionCourChoice implements CourChoice {
-        CoopCourierPotion potion;
+    public static class PotionCourChoice implements CourChoice {
+        public CoopCourierPotion potion;
 
         @Override
         public void select() {

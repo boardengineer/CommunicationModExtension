@@ -1,17 +1,9 @@
 package friends.patches;
 
-import basemod.DevConsole;
 import basemod.ReflectionHacks;
 import chronoMods.TogetherManager;
-import chronoMods.chat.ChatScreen;
-import chronoMods.coop.CoopDeathNotification;
-import chronoMods.coop.CoopNeowEvent;
 import chronoMods.network.NetworkHelper;
-import chronoMods.network.RemotePlayer;
 import chronoMods.network.steam.SteamCallbacks;
-import chronoMods.ui.deathScreen.EndScreenCoopLoss;
-import chronoMods.ui.deathScreen.NewDeathScreenPatches;
-import chronoMods.ui.hud.InfoPopupPatches;
 import chronoMods.ui.lobby.MainLobbyScreen;
 import chronoMods.ui.lobby.NewGameScreen;
 import chronoMods.ui.mainMenu.NewMenuButtons;
@@ -20,62 +12,17 @@ import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
-import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MenuButton;
 import communicationmod.CommandExecutor;
 import communicationmod.CommunicationMod;
 import savestate.SaveStateMod;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-public class MainMenu {
+public class MainMenuPatches {
     public static NetworkHelper.dataType toSend = null;
     public static boolean inLobby = false;
-
-    @SpirePatch(clz = TogetherManager.class, method = "receivePostInitialize", optional = true, requiredModId = "chronoMods")
-    public static class EnableDebugPatch {
-
-        @SpirePrefixPatch
-        public static SpireReturn spyBefore() {
-            if (SaveStateMod.shouldGoFast) {
-                return SpireReturn.Return(null);
-            }
-
-            return SpireReturn.Continue();
-        }
-
-        @SpirePostfixPatch
-        public static void spyAfter() {
-            DevConsole.enabled = true;
-        }
-    }
-
-    @SpirePatch(clz = ChatScreen.IsJustPressedFix.class, method = "Prefix", optional = true, requiredModId = "chronoMods")
-    public static class DisablePress {
-        @SpirePrefixPatch
-        public static SpireReturn<SpireReturn<Boolean>> spyBefore() {
-            if (SaveStateMod.shouldGoFast) {
-                return SpireReturn.Return(SpireReturn.Continue());
-            }
-
-            return SpireReturn.Continue();
-        }
-    }
-
-    @SpirePatch(clz = InfoPopupPatches.infoDungeonUpdate.class, method = "Insert", optional = true, requiredModId = "chronoMods")
-    @SpirePatch(clz = InfoPopupPatches.infoRender.class, method = "Insert", optional = true, requiredModId = "chronoMods")
-    public static class DisableChatBox {
-        @SpirePrefixPatch
-        public static SpireReturn spyBefore() {
-            if (SaveStateMod.shouldGoFast) {
-                return SpireReturn.Return(null);
-            }
-
-            return SpireReturn.Continue();
-        }
-    }
 
     @SpirePatch(clz = TogetherManager.class, method = "receivePostDungeonInitialize", optional = true, requiredModId = "chronoMods")
     public static class SpyOnPostDunInit {
@@ -88,67 +35,6 @@ public class MainMenu {
             return SpireReturn.Continue();
         }
 
-    }
-
-    @SpirePatch(clz = TogetherManager.ConvenienceDebugPresses.class, method = "Postfix", optional = true, requiredModId = "chronoMods")
-    public static class EnableDebugPatch2 {
-        @SpirePostfixPatch
-        public static void enableDebug() {
-            DevConsole.enabled = true;
-        }
-    }
-
-    @SpirePatch(clz = NetworkHelper.class, method = "parseData", optional = true, requiredModId = "chronoMods")
-    public static class DelayLifeLossPatch {
-        @SpirePrefixPatch
-        public static SpireReturn delayLifeLoss(ByteBuffer data, RemotePlayer playerInfo) {
-            data.mark();
-            SpireReturn result = delayLifeLossHelper(data, playerInfo);
-            if (result == SpireReturn.Continue()) {
-                data.reset();
-            }
-            return result;
-        }
-
-        private static SpireReturn delayLifeLossHelper(ByteBuffer data, RemotePlayer playerInfo) {
-            int enumIndex = data.getInt();
-
-            if (enumIndex > NetworkHelper.dataType.values().length || enumIndex < 0) {
-                return SpireReturn.Return(null);
-            }
-
-            NetworkHelper.dataType type = NetworkHelper.dataType.values()[enumIndex];
-            if (type == NetworkHelper.dataType.LoseLife) {
-                // TODO: the stuff eventually
-                int counter = data.getInt(4);
-                if (counter >= 0) {
-                    AbstractDungeon.effectList.add(new CoopDeathNotification(playerInfo));
-                    if (AbstractDungeon.player.hasBlight("StringOfFate")) {
-                        if (AbstractDungeon.player.getBlight("StringOfFate").increment > 0) {
-                            AbstractDungeon.player.getBlight("StringOfFate").increment = 0;
-                            SpireReturn.Return(null);
-                        }
-
-                        AbstractDungeon.player.getBlight("StringOfFate").counter = counter;
-                        AbstractDungeon.player
-                                .decreaseMaxHealth(AbstractDungeon.player.maxHealth / 4);
-                        if (AbstractDungeon.player.currentHealth > AbstractDungeon.player.maxHealth) {
-                            AbstractDungeon.player.currentHealth = AbstractDungeon.player.maxHealth;
-                        }
-                    }
-                } else {
-                    AbstractDungeon.player.currentHealth = 0;
-                    AbstractDungeon.player.isDead = true;
-                    NewDeathScreenPatches.EndScreenBase = new EndScreenCoopLoss(AbstractDungeon
-                            .getCurrRoom().monsters);
-                    AbstractDungeon.screen = NewDeathScreenPatches.Enum.RACEEND;
-                }
-
-                return SpireReturn.Return(null);
-            }
-
-            return SpireReturn.Continue();
-        }
     }
 
     @SpirePatch(clz = CommandExecutor.class, method = "getAvailableCommands", optional = true, requiredModId = "chronoMods")
@@ -214,7 +100,6 @@ public class MainMenu {
         public static void sendMessage(NewGameScreen newGameScreen) {
             if (inLobby && toSend != null && System.currentTimeMillis() > messageSendTime) {
                 newGameScreen.playerList.toggleReadyState();
-                System.err.println("Should be sending " + toSend);
                 NetworkHelper.dataType tempSend = toSend;
                 NetworkHelper.sendData(tempSend);
 
@@ -222,15 +107,8 @@ public class MainMenu {
                 NetworkHelper.sendData(NetworkHelper.dataType.Rules);
                 NetworkHelper.sendData(NetworkHelper.dataType.Start);
                 toSend = null;
+                inLobby = false;
             }
-        }
-    }
-
-    @SpirePatch(clz = CoopNeowEvent.class, method = "advanceScreen", optional = true, requiredModId = "chronoMods")
-    public static class SendNeowStateUpdatePatch {
-        @SpirePostfixPatch
-        public static void sendMessage() {
-            CommunicationMod.mustSendGameState = true;
         }
     }
 
@@ -248,10 +126,9 @@ public class MainMenu {
         }
     }
 
-
     @SpirePatch(
             clz = CommandExecutor.class, method = "executeCommand", optional = true, requiredModId = "chronoMods")
-    public static class AlsoExecuteSaveAndLoadState {
+    public static class SpireWithFriendsInMainMenuPatch {
         @SpirePrefixPatch
         public static SpireReturn doMoreActions(String command) {
             command = command.toLowerCase();

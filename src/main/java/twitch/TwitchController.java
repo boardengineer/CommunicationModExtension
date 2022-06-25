@@ -357,22 +357,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             String screenType = gameState.get("screen_type").getAsString();
 
             if (screenType != null) {
-                if (screenType.equalsIgnoreCase("EVENT")) {
-                    voteController = new EventVoteController(this, stateJson);
-                } else if (screenType.equalsIgnoreCase("MAP")) {
-                    voteController = new MapVoteController(this, stateJson);
-                } else if (screenType.equalsIgnoreCase("SHOP_SCREEN")) {
-                    voteController = new ShopScreenVoteController(this, stateJson);
-                } else if (screenType.equalsIgnoreCase("CARD_REWARD")) {
-                    voteController = new CardRewardVoteController(this, stateJson);
-                } else if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
-                    voteController = new CombatRewardVoteController(this, stateJson);
-                } else if (screenType.equalsIgnoreCase("REST")) {
-                    voteController = new RestVoteController(this, stateJson);
-                } else if (screenType.equalsIgnoreCase("BOSS_REWARD")) {
-                    voteController = new BossRewardVoteController(this, stateJson);
-                } else if (screenType.equals("GRID")) {
-                    voteController = new GridVoteController(this, stateJson);
+                VoteController controllerForType = voteControllerForScreenType(screenType, stateJson);
+
+                if (controllerForType != null) {
+                    voteController = controllerForType;
                 } else {
                     System.err.println("Starting generic vote for " + screenType);
                 }
@@ -395,6 +383,27 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } else {
             System.err.println("ERROR Missing game state");
         }
+    }
+
+    VoteController voteControllerForScreenType(String screenType, JsonObject stateJson) {
+        if (screenType.equalsIgnoreCase("EVENT")) {
+            return new EventVoteController(this, stateJson);
+        } else if (screenType.equalsIgnoreCase("MAP")) {
+            return new MapVoteController(this, stateJson);
+        } else if (screenType.equalsIgnoreCase("SHOP_SCREEN")) {
+            return new ShopScreenVoteController(this, stateJson);
+        } else if (screenType.equalsIgnoreCase("CARD_REWARD")) {
+            return new CardRewardVoteController(this, stateJson);
+        } else if (screenType.equalsIgnoreCase("COMBAT_REWARD")) {
+            return new CombatRewardVoteController(this, stateJson);
+        } else if (screenType.equalsIgnoreCase("REST")) {
+            return new RestVoteController(this, stateJson);
+        } else if (screenType.equalsIgnoreCase("BOSS_REWARD")) {
+            return new BossRewardVoteController(this, stateJson);
+        } else if (screenType.equals("GRID")) {
+            return new GridVoteController(this, stateJson);
+        }
+        return null;
     }
 
     private void delayProceed(String screenType, String stateMessage) {
