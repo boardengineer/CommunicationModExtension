@@ -131,7 +131,7 @@ public class MapVoteController extends VoteController {
     private String toMessageString(Command command) {
         if (command instanceof ExtendTimerCommand) {
             return String
-                    .format("[ Extend Timer | %s]", command.getVoteString());
+                    .format("[ %s | Extend Timer]", command.getVoteString());
         }
         if (!(command instanceof CommandChoice)) {
             return "";

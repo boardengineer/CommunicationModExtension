@@ -354,6 +354,7 @@ public class CoopChoicePatches {
                     if (card.price <= AbstractDungeon.player.gold) {
                         CardCourChoice cardCourChoice = new CardCourChoice();
                         cardCourChoice.card = card;
+                        cardCourChoice.cardIndex = cardIndex;
                         choices.add(cardCourChoice);
                     }
                 } else {
@@ -435,8 +436,14 @@ public class CoopChoicePatches {
         }
     }
 
-    static class BoosterCourChoice implements CourChoice {
-        int boosterindex;
+    public static class BoosterCourChoice implements CourChoice {
+        public int boosterindex;
+
+        private static final ArrayList<String> BOOSTER_DISPLAY_STRINGS = new ArrayList<String>() {{
+            add("common booster");
+            add("uncommon booster");
+            add("rare booster");
+        }};
 
         @Override
         public void select() {
@@ -445,7 +452,7 @@ public class CoopChoicePatches {
 
         @Override
         public String getDisplayString() {
-            return "booster";
+            return BOOSTER_DISPLAY_STRINGS.get(boosterindex);
         }
     }
 
@@ -475,7 +482,7 @@ public class CoopChoicePatches {
 
         @Override
         public String getDisplayString() {
-            return recipient.player.userName;
+            return "send to " + recipient.player.userName;
         }
     }
 

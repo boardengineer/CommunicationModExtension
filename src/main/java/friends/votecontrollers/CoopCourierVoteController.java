@@ -1,5 +1,8 @@
 package friends.votecontrollers;
 
+import chronoMods.TogetherManager;
+import chronoMods.coop.CoopCourierRecipient;
+import chronoMods.coop.CoopCourierScreen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
@@ -39,6 +42,26 @@ public class CoopCourierVoteController extends VoteController {
     @Override
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
+    }
+
+    @Override
+    public void sendVoteMessage() {
+        CoopCourierScreen screen = TogetherManager.courierScreen;
+
+        boolean hasRecipient = false;
+        for (CoopCourierRecipient player : screen.players) {
+            if (player.selected) {
+                hasRecipient = true;
+                break;
+            }
+        }
+
+        if (!hasRecipient) {
+            TwitchController.twirk
+                    .channelMessage("[BOT] Choose a recipient then choose what to send");
+        }
+
+        super.sendVoteMessage();
     }
 
     @Override
@@ -89,6 +112,8 @@ public class CoopCourierVoteController extends VoteController {
             return ((CoopChoicePatches.CardCourChoice) choice).card.hb;
         } else if (choice instanceof CoopChoicePatches.PotionCourChoice) {
             return ((CoopChoicePatches.PotionCourChoice) choice).potion.potion.hb;
+        } else if (choice instanceof CoopChoicePatches.BoosterCourChoice) {
+            return TogetherManager.courierScreen.boosterHBs[((CoopChoicePatches.BoosterCourChoice) choice).boosterindex];
         }
         return null;
     }

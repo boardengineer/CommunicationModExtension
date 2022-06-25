@@ -82,14 +82,14 @@ public class EventVoteController extends VoteController {
                 }
             }
 
+            // Don't show the map for the events with the event text on the left and battle on the
+            // right.
             if (!(event instanceof Mushrooms) &&
                     !(event instanceof MaskedBandits) &&
                     !(event instanceof MysteriousSphere) &&
                     !(event instanceof DeadAdventurer) &&
                     !disableMapForCustomEvent) {
 
-                // Don't show the map for the events with the event text on the left and battle on the
-                // right.
                 if (BaseMod.hasModID("mintyspire:")) {
                     MiniMapDisplay
                             .renderMinimap(spriteBatch, Settings.WIDTH / 8 * 3 * -1, 0, camera);
