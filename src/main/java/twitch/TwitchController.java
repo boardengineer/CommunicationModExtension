@@ -1,6 +1,7 @@
 package twitch;
 
 import basemod.ReflectionHacks;
+import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
 import battleaimod.BattleAiMod;
@@ -21,12 +22,14 @@ import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.relics.CursedKey;
 import com.megacrit.cardcrawl.relics.FrozenEye;
 import com.megacrit.cardcrawl.relics.RunicDome;
+import com.megacrit.cardcrawl.rooms.AbstractRoom;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.GameOverScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.ui.buttons.ReturnToMenuButton;
 import communicationmod.ChoiceScreenUtils;
 import communicationmod.CommunicationMod;
+import friends.patches.NetworkingPatches;
 import ludicrousspeed.LudicrousSpeedMod;
 import twitch.games.ClimbGameController;
 import twitch.votecontrollers.*;
@@ -34,7 +37,7 @@ import twitch.votecontrollers.*;
 import java.io.IOException;
 import java.util.*;
 
-public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber {
+public class TwitchController implements PostUpdateSubscriber, PostRenderSubscriber, PostBattleSubscriber {
     private static final long NO_VOTE_TIME_MILLIS = 1_000;
     private static final long RECALL_VOTE_TIME_MILLIS = 2_500;
     private static final long FAST_VOTE_TIME_MILLIS = 3_000;
@@ -64,6 +67,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     private static HashMap<String, Integer> voteFrequencies = new HashMap<>();
 
     public static VoteController voteController;
+    public static Queue<NetworkingPatches.DelayedMessage> messageQueue = new LinkedList<>();
 
     private final BetaArtController betaArtController;
     public final CheeseController cheeseController;
@@ -170,6 +174,13 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         } catch (ConcurrentModificationException | NullPointerException e) {
             System.err.println("Null pointer caught, clean up this crap");
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void receivePostBattle(AbstractRoom battleRoom) {
+        while (!messageQueue.isEmpty()) {
+            messageQueue.poll().execute();
         }
     }
 

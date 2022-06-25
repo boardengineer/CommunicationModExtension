@@ -37,10 +37,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @SpireInitializer
 public class CommunicationModExtension implements PostInitializeSubscriber {
-    public static void initialize() {
-        BaseMod.subscribe(new CommunicationModExtension());
-    }
-
     public static CommunicationMethod communicationMethod = CommunicationMethod.TWITCH_CHAT;
     private static final int PORT = 8080;
 
@@ -49,6 +45,11 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
         TWITCH_CHAT,
         EXTERNAL_PROCESS
     }
+
+    public static void initialize() {
+        BaseMod.subscribe(new CommunicationModExtension());
+    }
+
 
     @SpirePatch(clz = CommunicationMod.class, method = "startExternalProcess", paramtypez = {})
     public static class NetworkCommunicationPatch {
