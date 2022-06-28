@@ -1,11 +1,13 @@
 package twitch;
 
+import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import basemod.interfaces.PostBattleSubscriber;
 import basemod.interfaces.PostRenderSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
 import battleaimod.BattleAiMod;
 import battleaimod.networking.AiClient;
+import chronoMods.coop.CoopCourierRoom;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -46,7 +48,6 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
         add("!vote");
         add("vote");
     }};
-
 
     private static final HashSet<Integer> BOSS_CHEST_FLOOR_NUMS = new HashSet<Integer>() {{
         add(17);
@@ -272,9 +273,19 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
                 if (screenType != null) {
                     if (choiceType == ChoiceScreenUtils.ChoiceType.COMBAT_REWARD) {
-                        if (AbstractDungeon
-                                .getCurrRoom() instanceof ShopRoom &&
-                                AbstractDungeon.combatRewardScreen.rewards.isEmpty()) {
+                        boolean backToRoom = false;
+
+                        if (BaseMod.hasModID("chronoMods:")) {
+                            if (AbstractDungeon.getCurrRoom() instanceof CoopCourierRoom) {
+                                backToRoom = true;
+                            }
+                        }
+
+                        if (AbstractDungeon.getCurrRoom() instanceof ShopRoom) {
+                            backToRoom = true;
+                        }
+
+                        if (backToRoom && AbstractDungeon.combatRewardScreen.rewards.isEmpty()) {
                             CommunicationMod.queueCommand("cancel");
                         }
                     }

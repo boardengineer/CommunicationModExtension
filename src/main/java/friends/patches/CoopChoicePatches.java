@@ -174,7 +174,7 @@ public class CoopChoicePatches {
         public static SpireReturn checkAdjustedBossPosition() {
             MapRoomNode currMapNode = AbstractDungeon.getCurrMapNode();
             return SpireReturn.Return(currMapNode.y == 15 || (AbstractDungeon.id
-                    .equals(TheEnding.ID) && currMapNode.y == 2));
+                    .equals(TheEnding.ID) && currMapNode.y == 3));
         }
     }
 
@@ -185,7 +185,7 @@ public class CoopChoicePatches {
             System.err.println("makeMapChoice patch triggering");
             MapRoomNode currMapNode = AbstractDungeon.getCurrMapNode();
             if (currMapNode.y == 15 || (AbstractDungeon.id
-                    .equals(TheEnding.ID) && currMapNode.y == 2)) {
+                    .equals(TheEnding.ID) && currMapNode.y == 3)) {
                 if (choice == 0) {
                     CoopBossPatches.activateBossNode();
                     return SpireReturn.Return(null);
@@ -339,6 +339,11 @@ public class CoopChoicePatches {
             }
         }
 
+        if (AbstractDungeon.player
+                .hasBlight("PneumaticPost") && !screen.rerollButton.isDisabled) {
+            choices.add(new RerollCourChoice());
+        }
+
         if (hasRecipient) {
             for (CoopCourierRelic relic : screen.relics) {
                 if (relic.price <= AbstractDungeon.player.gold) {
@@ -486,7 +491,7 @@ public class CoopChoicePatches {
         }
     }
 
-    static class RewardCourChoice implements CourChoice {
+    public static class RewardCourChoice implements CourChoice {
         @Override
         public void select() {
             AbstractDungeon.getCurrRoom().rewards.clear();
@@ -502,6 +507,21 @@ public class CoopChoicePatches {
         @Override
         public String getDisplayString() {
             return "reward box";
+        }
+    }
+
+    public static class RerollCourChoice implements CourChoice {
+
+        @Override
+        public void select() {
+            CoopCourierScreen screen = TogetherManager.courierScreen;
+            screen.rollInventory();
+            screen.rerollButton.isDisabled = true;
+        }
+
+        @Override
+        public String getDisplayString() {
+            return "reroll";
         }
     }
 }

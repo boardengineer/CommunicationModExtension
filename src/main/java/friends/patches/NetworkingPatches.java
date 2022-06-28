@@ -1,6 +1,7 @@
 package friends.patches;
 
 import chronoMods.TogetherManager;
+import chronoMods.coop.CoopCourierScreen;
 import chronoMods.coop.CoopDeathNotification;
 import chronoMods.network.NetworkHelper;
 import chronoMods.network.RemotePlayer;
@@ -10,11 +11,20 @@ import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import communicationmod.CommunicationMod;
 import twitch.TwitchController;
 
 import java.nio.ByteBuffer;
+import java.util.HashSet;
 
 public class NetworkingPatches {
+    private static final HashSet<NetworkHelper.dataType> TRANSFER_TYPES = new HashSet<NetworkHelper.dataType>() {{
+        add(NetworkHelper.dataType.TransferPotion);
+        add(NetworkHelper.dataType.TransferCard);
+        add(NetworkHelper.dataType.TransferBooster);
+        add(NetworkHelper.dataType.TransferRelic);
+    }};
+
     @SpirePatch(clz = NetworkHelper.class, method = "parseData", optional = true, requiredModId = "chronoMods")
     public static class DelayLifeLossPatch {
         @SpirePrefixPatch
@@ -35,8 +45,8 @@ public class NetworkingPatches {
             }
 
             NetworkHelper.dataType type = NetworkHelper.dataType.values()[enumIndex];
-            if (type == NetworkHelper.dataType.LoseLife) {
-                if(playerInfo.isUser(TogetherManager.currentUser)) {
+            if (type == NetworkHelper.dataType.LoseLife && TwitchController.inBattle) {
+                if (playerInfo.isUser(TogetherManager.currentUser)) {
                     int counter = data.getInt(4);
                     if (counter >= 0) {
                         AbstractDungeon.effectList.add(new CoopDeathNotification(playerInfo));
@@ -69,6 +79,16 @@ public class NetworkingPatches {
 
                     return SpireReturn.Return(null);
                 }
+            } else if (TRANSFER_TYPES.contains(type)) {
+                // Restart the vote of someone sent us something
+                if (AbstractDungeon.isScreenUp &&
+                        AbstractDungeon.screen == CoopCourierScreen.Enum.COURIER) {
+                    long steamId = data.getLong(4);
+                    if (TogetherManager.currentUser.isUser(steamId)) {
+                        TwitchController.disableVote();
+                        CommunicationMod.mustSendGameState = true;
+                    }
+                }
             }
 
             return SpireReturn.Continue();
@@ -92,7 +112,7 @@ public class NetworkingPatches {
                 if (AbstractDungeon.player.hasBlight("StringOfFate")) {
                     if (AbstractDungeon.player.getBlight("StringOfFate").increment > 0) {
                         AbstractDungeon.player.getBlight("StringOfFate").increment = 0;
-                        SpireReturn.Return(null);
+                        return;
                     }
 
                     AbstractDungeon.player.getBlight("StringOfFate").counter = counter;

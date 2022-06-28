@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
 
-public class CreditsPatch {
+public class  CreditsPatch {
     @SpirePatch(clz = CreditsScreen.class, method = SpirePatch.CONSTRUCTOR)
     public static class ChangeCreditsPatch {
         @SpirePostfixPatch

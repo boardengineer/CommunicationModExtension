@@ -15,7 +15,6 @@ import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MenuButton;
 import communicationmod.CommandExecutor;
-import communicationmod.CommunicationMod;
 import savestate.SaveStateMod;
 
 import java.util.ArrayList;
@@ -139,37 +138,37 @@ public class MainMenuPatches {
 
             switch (tokens[0]) {
                 case "coop":
-                    TogetherManager.gameMode = TogetherManager.mode.Coop;
-                    OpenNewGameFromLobbyPatch.createNewGameLobbyonOpen = true;
-                    NewMenuButtons.openLobby();
-
-                    SendMessageAtUpdate.messageSendTime = System.currentTimeMillis() + 15_000;
-                    toSend = NetworkHelper.dataType.Ready;
-
-                    CommunicationMod.mustSendGameState = true;
+//                    TogetherManager.gameMode = TogetherManager.mode.Coop;
+//                    OpenNewGameFromLobbyPatch.createNewGameLobbyonOpen = true;
+//                    NewMenuButtons.openLobby();
+//
+//                    SendMessageAtUpdate.messageSendTime = System.currentTimeMillis() + 15_000;
+//                    toSend = NetworkHelper.dataType.Ready;
+//
+//                    CommunicationMod.mustSendGameState = true;
                     return SpireReturn.Return(true);
                 case "bingo":
-                    TogetherManager.gameMode = TogetherManager.mode.Bingo;
-                    NewMenuButtons.openLobby();
-                    CommunicationMod.mustSendGameState = true;
+//                    TogetherManager.gameMode = TogetherManager.mode.Bingo;
+//                    NewMenuButtons.openLobby();
+//                    CommunicationMod.mustSendGameState = true;
                     return SpireReturn.Return(true);
                 case "versus":
-                    TogetherManager.gameMode = TogetherManager.mode.Versus;
-                    NewMenuButtons.openLobby();
-                    CommunicationMod.mustSendGameState = true;
+//                    TogetherManager.gameMode = TogetherManager.mode.Versus;
+//                    NewMenuButtons.openLobby();
+//                    CommunicationMod.mustSendGameState = true;
                     return SpireReturn.Return(true);
                 case "create":
-                    NewMenuButtons.openNewGame();
-                    CommunicationMod.mustSendGameState = true;
+//                    NewMenuButtons.openNewGame();
+//                    CommunicationMod.mustSendGameState = true;
                     return SpireReturn.Return(true);
                 case "launch":
-                    if (TogetherManager.gameMode == TogetherManager.mode.Bingo) {
-                        NetworkHelper.sendData(NetworkHelper.dataType.BingoRules);
-                    }
-
-                    NetworkHelper.sendData(NetworkHelper.dataType.Rules);
-                    NetworkHelper.sendData(NetworkHelper.dataType.Start);
-                    CommunicationMod.mustSendGameState = true;
+//                    if (TogetherManager.gameMode == TogetherManager.mode.Bingo) {
+//                        NetworkHelper.sendData(NetworkHelper.dataType.BingoRules);
+//                    }
+//
+//                    NetworkHelper.sendData(NetworkHelper.dataType.Rules);
+//                    NetworkHelper.sendData(NetworkHelper.dataType.Start);
+//                    CommunicationMod.mustSendGameState = true;
                     return SpireReturn.Return(true);
             }
 

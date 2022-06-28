@@ -97,8 +97,6 @@ public class CoopCourierVoteController extends VoteController {
 
                         RenderHelpers
                                 .renderTextBelowHitbox(spriteBatch, courMessage, hitbox, messageColor);
-                    } else {
-                        System.err.println("missing hit box for " + message + " " + voteString);
                     }
                 }
             }
@@ -114,6 +112,8 @@ public class CoopCourierVoteController extends VoteController {
             return ((CoopChoicePatches.PotionCourChoice) choice).potion.potion.hb;
         } else if (choice instanceof CoopChoicePatches.BoosterCourChoice) {
             return TogetherManager.courierScreen.boosterHBs[((CoopChoicePatches.BoosterCourChoice) choice).boosterindex];
+        } else if (choice instanceof CoopChoicePatches.RerollCourChoice) {
+            return TogetherManager.courierScreen.rerollButton.hb;
         }
         return null;
     }

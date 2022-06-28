@@ -1,6 +1,8 @@
 package twitch.votecontrollers;
 
+import basemod.BaseMod;
 import basemod.ReflectionHacks;
+import chronoMods.coop.CoopCourierRoom;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonObject;
@@ -51,8 +53,19 @@ public class CardRewardVoteController extends VoteController {
 
         if (skippable) {
             if (twitchController.skipAfterCard) {
-                String skipCommand = AbstractDungeon
-                        .getCurrRoom() instanceof ShopRoom ? "cancel" : "proceed";
+                boolean backToRoom = false;
+
+                if (BaseMod.hasModID("chronoMods:")) {
+                    if (AbstractDungeon.getCurrRoom() instanceof CoopCourierRoom) {
+                        backToRoom = true;
+                    }
+                }
+
+                if (AbstractDungeon.getCurrRoom() instanceof ShopRoom) {
+                    backToRoom = true;
+                }
+
+                String skipCommand = backToRoom ? "cancel" : "proceed";
                 TwitchController.viableChoices
                         .add(new CommandChoice("Skip", "0", "skip", skipCommand));
             } else {
@@ -69,8 +82,8 @@ public class CardRewardVoteController extends VoteController {
 
     @Override
     public void render(SpriteBatch spriteBatch) {
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        Set<String> winningResults = TwitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
             if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
