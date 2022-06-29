@@ -195,7 +195,7 @@ public class CharacterVoteController extends VoteController {
                 CommandChoice choice = (CommandChoice) result;
 
                 titleSuffix = String
-                        .format(" Ascension: %d\t Lives: %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(choice.choiceName));
+                        .format(" Ascension %d: Lives %d Currently Playing %s", ascension, lives, capitalizeFirstLetter(choice.choiceName));
 
                 if (MOD_CHARACTER_EXTRA_INFO.containsKey(choice.choiceName)) {
                     titleSuffix = titleSuffix + " " + MOD_CHARACTER_EXTRA_INFO
