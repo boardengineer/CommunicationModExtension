@@ -7,6 +7,7 @@ import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.AsyncSaver;
 import com.megacrit.cardcrawl.helpers.File;
+import com.megacrit.cardcrawl.helpers.SeedHelper;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -18,10 +19,30 @@ public class SavePatches {
             BlockingQueue<File> saveQueue = ReflectionHacks
                     .getPrivateStatic(AsyncSaver.class, "saveQueue");
 
-            String backupFilePath = String
-                    .format("savealls\\%s_%02d_%s", filePath, AbstractDungeon.floorNum, Settings.seed);
 
-            saveQueue.add(new File(backupFilePath, data));
+            try {
+                String fileName = String.format("startstates\\%s\\%s\\%s", SeedHelper
+                        .getString(Settings.seed), AbstractDungeon.floorNum, filePath);
+
+
+                System.err.println("(before) writing to " + fileName);
+                if (fileName.contains("saves\\")) {
+                    fileName = fileName.replace("saves\\", "");
+                } else {
+                    return;
+                }
+
+                java.io.File saveFile = new java.io.File(fileName);
+                boolean endFileExists = saveFile.exists() && !saveFile.isDirectory();
+
+                System.err.println("(after) writing to " + fileName);
+                if (!endFileExists) {
+                    saveQueue.add(new File(fileName, data));
+                } else {
+                    System.err.println("not overwriting");
+                }
+            } catch (NullPointerException e) {
+            }
         }
     }
 }
