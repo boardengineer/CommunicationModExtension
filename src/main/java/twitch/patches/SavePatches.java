@@ -21,7 +21,7 @@ public class SavePatches {
 
 
             try {
-                String fileName = String.format("startstates\\%s\\%s\\%s", SeedHelper
+                String fileName = String.format("startstates\\%s\\%02d\\%s", SeedHelper
                         .getString(Settings.seed), AbstractDungeon.floorNum, filePath);
 
 
