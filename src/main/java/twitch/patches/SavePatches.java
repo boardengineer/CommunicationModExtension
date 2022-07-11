@@ -8,6 +8,7 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.AsyncSaver;
 import com.megacrit.cardcrawl.helpers.File;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
+import ludicrousspeed.LudicrousSpeedMod;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -16,6 +17,9 @@ public class SavePatches {
     public static class BackUpAllSavesPatch {
         @SpirePostfixPatch
         public static void backUpSave(String filePath, String data) {
+            if (LudicrousSpeedMod.plaidMode) {
+                return;
+            }
             BlockingQueue<File> saveQueue = ReflectionHacks
                     .getPrivateStatic(AsyncSaver.class, "saveQueue");
 
