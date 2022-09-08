@@ -99,9 +99,9 @@ public class CharacterVoteController extends VoteController {
         twitchController.choices = choices;
         TwitchController.viableChoices = choices;
 
-        twitchController.choicesMap = new HashMap<>();
+        TwitchController.choicesMap = new HashMap<>();
         for (Command choice : choices) {
-            twitchController.choicesMap.put(choice.getVoteString(), choice);
+            TwitchController.choicesMap.put(choice.getVoteString(), choice);
         }
 
         HashMap<String, Integer> optionsMap = TwitchController.optionsMap;
@@ -111,15 +111,19 @@ public class CharacterVoteController extends VoteController {
 
     @Override
     public void render(SpriteBatch spriteBatch) {
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        Set<String> winningResults = TwitchController.getBestVoteResultKeys();
 
         // Only take the first winning result, the text blurs together if there are multiple
         // winners.
         boolean firstFound = false;
 
+        int numCharacters = TwitchController.viableChoices.size();
+        int step = Math.max(225, 3 * Settings.WIDTH / (numCharacters * 4));
 
-        int startX = Settings.WIDTH / (TwitchController.viableChoices.size() + 1) / 2;
+        int taken = step * (numCharacters - 1) + 150;
+        int startX = (Settings.WIDTH - taken) / 2;
+
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
             CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
 
@@ -169,7 +173,7 @@ public class CharacterVoteController extends VoteController {
 
 //            Settings.WIDTH
 
-            int xpos = startX + 225 * i;
+            int xpos = startX + step * i;
             spriteBatch.draw(charButton, xpos, 50, charButton.getWidth(), charButton.getHeight());
 
             String voteMessage = String.format("[vote %s] (%s)",
@@ -206,13 +210,13 @@ public class CharacterVoteController extends VoteController {
             final String finalSuffix = titleSuffix;
             new Thread(() -> {
                 try {
-                    twitchController.apiController.setStreamTitle(finalSuffix);
+                    TwitchController.apiController.setStreamTitle(finalSuffix);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
                 try {
-                    twitchController.currentPrediction = twitchController.apiController
+                    twitchController.currentPrediction = TwitchController.apiController
                             .createPrediction();
                 } catch (IOException e) {
                     e.printStackTrace();
