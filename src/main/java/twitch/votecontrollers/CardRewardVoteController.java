@@ -5,11 +5,14 @@ import basemod.ReflectionHacks;
 import chronoMods.coop.CoopCourierRoom;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
+import com.megacrit.cardcrawl.relics.TinyHouse;
 import com.megacrit.cardcrawl.rooms.ShopRoom;
 import com.megacrit.cardcrawl.screens.CardRewardScreen;
 import com.megacrit.cardcrawl.ui.buttons.SingingBowlButton;
@@ -24,6 +27,8 @@ import java.util.Set;
 import static twitch.RenderHelpers.renderTextBelowHitbox;
 
 public class CardRewardVoteController extends VoteController {
+    private static boolean inTinyHouse = false;
+
     private static final String CARD_REWARD_LONG_KEY = "card_select_long";
     private static final String CARD_REWARD_SHORT_KEY = "card_select_short";
 
@@ -53,21 +58,28 @@ public class CardRewardVoteController extends VoteController {
 
         if (skippable) {
             if (twitchController.skipAfterCard) {
-                boolean backToRoom = false;
+                if (inTinyHouse) {
+                    inTinyHouse = false;
 
-                if (BaseMod.hasModID("chronoMods:")) {
-                    if (AbstractDungeon.getCurrRoom() instanceof CoopCourierRoom) {
+                    TwitchController.viableChoices
+                            .add(new CommandChoice("Skip", "0", "skip", "cancel", "leave"));
+                } else {
+                    boolean backToRoom = false;
+
+                    if (BaseMod.hasModID("chronoMods:")) {
+                        if (AbstractDungeon.getCurrRoom() instanceof CoopCourierRoom) {
+                            backToRoom = true;
+                        }
+                    }
+
+                    if (AbstractDungeon.getCurrRoom() instanceof ShopRoom) {
                         backToRoom = true;
                     }
-                }
 
-                if (AbstractDungeon.getCurrRoom() instanceof ShopRoom) {
-                    backToRoom = true;
+                    String skipCommand = backToRoom ? "cancel" : "proceed";
+                    TwitchController.viableChoices
+                            .add(new CommandChoice("Skip", "0", "skip", skipCommand));
                 }
-
-                String skipCommand = backToRoom ? "cancel" : "proceed";
-                TwitchController.viableChoices
-                        .add(new CommandChoice("Skip", "0", "skip", skipCommand));
             } else {
                 TwitchController.viableChoices
                         .add(new CommandChoice("Skip", "0", "skip"));
@@ -137,5 +149,13 @@ public class CardRewardVoteController extends VoteController {
 
     private static Hitbox cardRewardAdjust(Hitbox hitbox) {
         return new Hitbox(hitbox.x, hitbox.y - 15.0F * Settings.scale, hitbox.width, hitbox.height + 25 * Settings.scale);
+    }
+
+    @SpirePatch(clz = TinyHouse.class, method = "onEquip")
+    public static class toggleTinyHouseBooleanPatch {
+        @SpirePostfixPatch
+        public static void toggleBoolean(TinyHouse tinyHouse) {
+            inTinyHouse = true;
+        }
     }
 }
