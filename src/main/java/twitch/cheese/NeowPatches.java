@@ -27,11 +27,11 @@ public class NeowPatches {
 //                    .add(new ShowCardAndObtainEffect(new Injury().makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
 //            AbstractDungeon.topLevelEffects
 //                    .add(new ShowCardAndObtainEffect(new Injury().makeCopy(), (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
-
-
-
 //            AbstractDungeon.getCurrRoom()
 //                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), new PrismaticBranch()
+//                                   .makeCopy());
+//            AbstractDungeon.getCurrRoom()
+//                           .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), new TinyHouse()
 //                                   .makeCopy());
 
 
