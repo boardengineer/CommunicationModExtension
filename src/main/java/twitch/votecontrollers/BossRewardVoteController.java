@@ -38,7 +38,6 @@ public class BossRewardVoteController extends VoteController {
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
 
-        // TODO: fix this an re-enable
         TwitchController.viableChoices
                 .add(new CommandChoice("Skip", "0", "skip", "leave", "proceed"));
     }
