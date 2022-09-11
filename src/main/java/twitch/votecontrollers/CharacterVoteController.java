@@ -132,9 +132,13 @@ public class CharacterVoteController extends VoteController {
         boolean firstFound = false;
 
         int numCharacters = TwitchController.viableChoices.size();
-        int step = Math.max(225, 3 * Settings.WIDTH / (numCharacters * 4));
 
-        int taken = step * (numCharacters - 1) + 150;
+
+        int requiredRows = ((numCharacters - 1) / 8) + 1;
+        int mostColumns = (numCharacters - 1) / requiredRows + 1;
+
+        int step = Math.max(225, 3 * Settings.WIDTH / (mostColumns * 4));
+        int taken = step * (mostColumns - 1) + 150;
         int startX = (Settings.WIDTH - taken) / 2;
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
@@ -192,16 +196,16 @@ public class CharacterVoteController extends VoteController {
                     break;
             }
 
-//            Settings.WIDTH
-
-            int xpos = startX + step * i;
-            spriteBatch.draw(charButton, xpos, 50, charButton.getWidth(), charButton.getHeight());
+            int xpos = startX + step * (i % mostColumns);
+            int rowIndex = requiredRows - (i / mostColumns) - 1;
+            int ypos = 50 + 200 * rowIndex;
+            spriteBatch.draw(charButton, xpos, ypos, charButton.getWidth(), charButton.getHeight());
 
             String voteMessage = String.format("[vote %s] (%s)",
                     choice.voteString,
                     voteFrequencies.getOrDefault(choice.voteString, 0));
 
-            Hitbox hitbox = new Hitbox(xpos, 50, 200, 200);
+            Hitbox hitbox = new Hitbox(xpos, ypos + 15, 200, 200);
 
             renderTextBelowHitbox(spriteBatch, voteMessage, hitbox, messageColor);
         }
