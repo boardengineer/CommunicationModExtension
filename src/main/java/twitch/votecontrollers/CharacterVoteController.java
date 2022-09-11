@@ -1,5 +1,6 @@
 package twitch.votecontrollers;
 
+import RobotSpaceExplorer.characters.RobotSpaceExplorer;
 import ThMod.characters.Marisa;
 import basemod.BaseMod;
 import basemod.CustomCharacterSelectScreen;
@@ -103,6 +104,11 @@ public class CharacterVoteController extends VoteController {
                     .toString(choiceIndex++), "start the_fishing"));
         }
 
+        if (BaseMod.hasModID("RobotSpaceExplorerState:")) {
+            choices.add(new CommandChoice("robotspaceexplorer", Integer
+                    .toString(choiceIndex++), "start robotspaceexplorer"));
+        }
+
         twitchController.choices = choices;
         TwitchController.viableChoices = choices;
 
@@ -179,6 +185,10 @@ public class CharacterVoteController extends VoteController {
                 case "adventurer":
                     charButton = ImageMaster
                             .loadImage(FishingMod.makeImagePath("charSelect/charButton.png"));
+                    break;
+                case "robotspaceexplorer":
+                    charButton = ImageMaster
+                            .loadImage("RobotSpaceExplorerResources/images/charSelect/DefaultCharacterButton.png");
                     break;
             }
 
@@ -273,6 +283,8 @@ public class CharacterVoteController extends VoteController {
                 characterOptions.put("cursed", option);
             } else if (BaseMod.hasModID("AdventurerState:") && option.c instanceof TheFishing) {
                 characterOptions.put("adventurer", option);
+            } else if (BaseMod.hasModID("RobotSpaceExplorerState:") && option.c instanceof RobotSpaceExplorer) {
+                characterOptions.put("robotspaceexplorer", option);
             } else {
                 System.err.println("no character option for " + option.c.getClass());
             }
@@ -325,6 +337,11 @@ public class CharacterVoteController extends VoteController {
             if (BaseMod.hasModID("AdventurerState:")) {
                 characterPortraits.put("adventurer", ImageMaster
                         .loadImage(FishingMod.makeImagePath("charSelect/charBG.png")));
+            }
+
+            if (BaseMod.hasModID("RobotSpaceExplorerState:")) {
+                characterPortraits.put("robotspaceexplorer", ImageMaster
+                        .loadImage("RobotSpaceExplorerResources/images/charSelect/DefaultCharacterPortraitBG.png"));
             }
         }
     }
