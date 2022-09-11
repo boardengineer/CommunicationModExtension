@@ -23,6 +23,8 @@ import com.megacrit.cardcrawl.screens.charSelect.CharacterSelectScreen;
 import com.megacrit.cardcrawl.screens.mainMenu.MainMenuScreen;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import hermit.characters.hermit;
+import theFishing.FishingMod;
+import theFishing.TheFishing;
 import theVacant.characters.TheVacant;
 import thecursed.TheCursedMod;
 import thecursed.characters.TheCursedCharacter;
@@ -94,6 +96,11 @@ public class CharacterVoteController extends VoteController {
         if (BaseMod.hasModID("CursedState:")) {
             choices.add(new CommandChoice("cursed", Integer
                     .toString(choiceIndex++), "start the_cursed"));
+        }
+
+        if (BaseMod.hasModID("AdventurerState:")) {
+            choices.add(new CommandChoice("adventurer", Integer
+                    .toString(choiceIndex++), "start the_fishing"));
         }
 
         twitchController.choices = choices;
@@ -168,6 +175,10 @@ public class CharacterVoteController extends VoteController {
                 case "cursed":
                     charButton = ImageMaster
                             .loadImage(TheCursedMod.getResourcePath("charSelect/button.png"));
+                    break;
+                case "adventurer":
+                    charButton = ImageMaster
+                            .loadImage(FishingMod.makeImagePath("charSelect/charButton.png"));
                     break;
             }
 
@@ -260,6 +271,8 @@ public class CharacterVoteController extends VoteController {
                 characterOptions.put("vacant", option);
             } else if (BaseMod.hasModID("CursedState:") && option.c instanceof TheCursedCharacter) {
                 characterOptions.put("cursed", option);
+            } else if (BaseMod.hasModID("AdventurerState:") && option.c instanceof TheFishing) {
+                characterOptions.put("adventurer", option);
             } else {
                 System.err.println("no character option for " + option.c.getClass());
             }
@@ -307,6 +320,11 @@ public class CharacterVoteController extends VoteController {
             if (BaseMod.hasModID("CursedState:")) {
                 characterPortraits.put("cursed", ImageMaster
                         .loadImage(TheCursedMod.getResourcePath("charSelect/portrait.png")));
+            }
+
+            if (BaseMod.hasModID("AdventurerState:")) {
+                characterPortraits.put("adventurer", ImageMaster
+                        .loadImage(FishingMod.makeImagePath("charSelect/charBG.png")));
             }
         }
     }
