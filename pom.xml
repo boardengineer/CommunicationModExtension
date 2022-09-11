@@ -123,11 +123,39 @@
             <systemPath>${basedir}/../_ModTheSpire/mods/TheCursedMod.jar</systemPath>
         </dependency>
         <dependency>
+            <groupId>UnimportantInfo</groupId>
+            <artifactId>TheAdventurer</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/TheAdventurer.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>autoplay</groupId>
+            <artifactId>AdventurerState</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/AdventurerState.jar</systemPath>
+        </dependency>
+        <dependency>
             <groupId>chronoMods</groupId>
             <artifactId>TogetherManager</artifactId>
             <version>3.1.2</version>
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/Spire with Friends.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>RobotSpaceExplorer</groupId>
+            <artifactId>RobotSpaceExplorer</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/RobotSpaceExplorer.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>autoplay</groupId>
+            <artifactId>RobotSpaceExplorerState</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/../_ModTheSpire/mods/RobotSpaceExplorerState.jar</systemPath>
         </dependency>
     </dependencies>
 
