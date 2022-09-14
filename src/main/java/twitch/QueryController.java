@@ -4,6 +4,7 @@ import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
+import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.helpers.GameDictionary;
@@ -11,6 +12,7 @@ import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.potions.AbstractPotion;
 import com.megacrit.cardcrawl.potions.PotionSlot;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
+import com.megacrit.cardcrawl.screens.stats.CharStat;
 import com.megacrit.cardcrawl.shop.ShopScreen;
 import hermit.HermitMod;
 
@@ -84,6 +86,9 @@ public class QueryController {
                     break;
                 case "!purgecost":
                     runPurgeCostQuery();
+                    break;
+                case "!runstats":
+                    runStatsQuery();
                     break;
             }
         } catch (Exception e) {
@@ -312,6 +317,23 @@ public class QueryController {
 
         }
     }
+
+    private void runStatsQuery() {
+        try {
+            String statsString = CardCrawlGame.characterManager.getAllCharacters().stream().map(character -> {
+                CharStat stats = character.getCharStat();
+                return character.chosenClass.name() + " " + stats.getVictoryCount() + "-" + stats.getDeathCount();
+            }).collect(Collectors.joining(";"));
+
+            String message = String
+                    .format("[BOT] Run History Stats--- %s", statsString);
+
+            TwitchController.twirk.channelMessage(message);
+        } catch (NullPointerException | IllegalArgumentException e) {
+
+        }
+    }
+
 
     private void runPotionQuery() {
         try {
