@@ -11,6 +11,7 @@ import com.megacrit.cardcrawl.helpers.RelicLibrary;
 import com.megacrit.cardcrawl.potions.AbstractPotion;
 import com.megacrit.cardcrawl.potions.PotionSlot;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
+import com.megacrit.cardcrawl.shop.ShopScreen;
 import hermit.HermitMod;
 
 import java.util.ArrayList;
@@ -80,6 +81,9 @@ public class QueryController {
                     break;
                 case "!potions":
                     runPotionQuery();
+                    break;
+                case "!purgecost":
+                    runPurgeCostQuery();
                     break;
             }
         } catch (Exception e) {
@@ -298,12 +302,25 @@ public class QueryController {
         }
     }
 
+    private void runPurgeCostQuery() {
+        try {
+            String message = String
+                    .format("[BOT] purge cost: %d", ShopScreen.actualPurgeCost);
+
+            TwitchController.twirk.channelMessage(message);
+        } catch (NullPointerException | IllegalArgumentException e) {
+
+        }
+    }
+
     private void runPotionQuery() {
         try {
             ArrayList<AbstractPotion> potions = AbstractDungeon.player.potions;
 
-            String potionsString = potions.stream().filter(potion -> !(potion instanceof PotionSlot))
-                   .map(potion -> potion.name).collect(Collectors.joining(" : "));
+            String potionsString = potions.stream()
+                                          .filter(potion -> !(potion instanceof PotionSlot))
+                                          .map(potion -> potion.name)
+                                          .collect(Collectors.joining(" : "));
 
             String message = String
                     .format("[BOT] potions: %s", potionsString);
