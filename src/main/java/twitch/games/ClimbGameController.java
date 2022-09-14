@@ -59,6 +59,7 @@ public class ClimbGameController implements GameController {
         boolean didClimb = reportedVictory || floor > 51;
         if (didClimb) {
             int newAsc = optionsMap.getOrDefault(ASCENSION_KEY, 0) + 1;
+            newAsc = Math.min(20, newAsc);
             optionsMap.put(ASCENSION_KEY, newAsc);
             if (reportedVictory && floor > 51) {
                 // Heart kills get an extra life
