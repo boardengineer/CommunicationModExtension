@@ -64,7 +64,7 @@ public class DuctTapeCardState extends CardState {
         return jsonEncode().toString();
     }
 
-    @SpirePatch(clz = SaveStateMod.class, method = "receivePostInitialize")
+    @SpirePatch(clz = SaveStateMod.class, method = "receivePostInitialize", requiredModId = "chronoMods")
     public static class AddToMapPatch {
         @SpirePostfixPatch
         public static void addThing(SaveStateMod mod) {

@@ -1,5 +1,6 @@
 package twitch.cheese;
 
+import basemod.BaseMod;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.colorless.RitualDagger;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
@@ -31,26 +32,26 @@ public class CheeseOptions {
         put("rainbow", new CheeseController.CheeseConfig("rainbow", () ->
                 addRelic(new PrismaticShard().makeCopy()), false));
 
-        put("serenity", new CheeseController.CheeseConfig("serenity", () ->
-                addRelic(new FestivuePole().makeCopy()), true));
-
         put("tingting", new CheeseController.CheeseConfig("tingting", () ->
                 addRelic(new Tingsha().makeCopy()), true));
 
         put("uglystick", new CheeseController.CheeseConfig("uglystick", () ->
                 addRelic(new DeadBranch().makeCopy()), true));
 
-        put("alltiedup", new CheeseController.CheeseConfig("alltiedup", () ->
-                addRelic(new JadeMysticKnot().makeCopy()), true));
+        if (BaseMod.hasModID("TSSRelics:")) {
+            put("alltiedup", new CheeseController.CheeseConfig("alltiedup", () ->
+                    addRelic(new JadeMysticKnot().makeCopy()), true));
+            put("serenity", new CheeseController.CheeseConfig("serenity", () ->
+                    addRelic(new FestivuePole().makeCopy()), true));
+            put("riskandreward", new CheeseController.CheeseConfig("riskandreward", () ->
+                    addRelic(new SneckoCharm().makeCopy()), false));
+        }
 
         put("likeasensei", new CheeseController.CheeseConfig("likeasensei", () ->
                 addRelic(new UnceasingTop().makeCopy()), true));
 
         put("weallscream", new CheeseController.CheeseConfig("weallscream", () ->
                 addRelic(new IceCream().makeCopy()), true));
-
-        put("riskandreward", new CheeseController.CheeseConfig("riskandreward", () ->
-                addRelic(new SneckoCharm().makeCopy()), false));
 
         put("powerpuff", new CheeseController.CheeseConfig("powerpuff", () ->
                 addRelic(new ChemicalX().makeCopy()), true));
@@ -66,11 +67,14 @@ public class CheeseOptions {
             addCard(new RitualDagger().makeCopy());
         }, true));
 
-        put("eminentdomain", new CheeseController.CheeseConfig("eminentdomain", () -> {
-            addRelic(new MeatOnTheBone().makeCopy());
-            addCard(new Expand().makeCopy());
-            addCard(new Expand().makeCopy());
-        }, true));
+
+        if (BaseMod.hasModID("VacantState:")) {
+            put("eminentdomain", new CheeseController.CheeseConfig("eminentdomain", () -> {
+                addRelic(new MeatOnTheBone().makeCopy());
+                addCard(new Expand().makeCopy());
+                addCard(new Expand().makeCopy());
+            }, true));
+        }
 
         put("clownswilleatme", new CheeseController.CheeseConfig("clownswilleatme", () -> {
             addCard(new Nightmare().makeCopy());
