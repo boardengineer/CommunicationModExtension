@@ -90,6 +90,9 @@ public class QueryController {
                 case "!runstats":
                     runStatsQuery();
                     break;
+                case "!notecard":
+                    runNotecardQuery();
+                    break;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -320,13 +323,31 @@ public class QueryController {
 
     private void runStatsQuery() {
         try {
-            String statsString = CardCrawlGame.characterManager.getAllCharacters().stream().map(character -> {
-                CharStat stats = character.getCharStat();
-                return character.chosenClass.name() + " " + stats.getVictoryCount() + "-" + stats.getDeathCount();
-            }).collect(Collectors.joining(";"));
+            String statsString = CardCrawlGame.characterManager.getAllCharacters().stream()
+                                                               .map(character -> {
+                                                                   CharStat stats = character
+                                                                           .getCharStat();
+                                                                   return character.chosenClass
+                                                                           .name() + " " + stats
+                                                                           .getVictoryCount() + "-" + stats
+                                                                           .getDeathCount();
+                                                               }).collect(Collectors.joining(";"));
 
             String message = String
                     .format("[BOT] Run History Stats--- %s", statsString);
+
+            TwitchController.twirk.channelMessage(message);
+        } catch (NullPointerException | IllegalArgumentException e) {
+
+        }
+    }
+
+    private void runNotecardQuery() {
+        try {
+            String message = String
+                    .format("[BOT] Card in the wall - %s", CardLibrary
+                            .getCard(CardCrawlGame.playerPref
+                                    .getString("NOTE_CARD", "Iron Wave")).name);
 
             TwitchController.twirk.channelMessage(message);
         } catch (NullPointerException | IllegalArgumentException e) {
