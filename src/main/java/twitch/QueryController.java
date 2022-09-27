@@ -5,10 +5,12 @@ import basemod.ReflectionHacks;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
+import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.CardLibrary;
 import com.megacrit.cardcrawl.helpers.GameDictionary;
 import com.megacrit.cardcrawl.helpers.RelicLibrary;
+import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.potions.AbstractPotion;
 import com.megacrit.cardcrawl.potions.PotionSlot;
 import com.megacrit.cardcrawl.relics.AbstractRelic;
@@ -93,11 +95,15 @@ public class QueryController {
                 case "!notecard":
                     runNotecardQuery();
                     break;
+                case "!seed":
+                    runSeedQuery();
+                    break;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     public Optional<String> getDescriptionForCard(String rawCardName) {
         String key = prepNameString(rawCardName);
@@ -422,5 +428,10 @@ public class QueryController {
         if (queryResult.isPresent()) {
             TwitchController.twirk.channelMessage("[BOT] " + queryResult.get());
         }
+    }
+
+    private void runSeedQuery() {
+        TwitchController.twirk.channelMessage("[BOT] Game Seed: " + SeedHelper
+                .getString(Settings.seed));
     }
 }

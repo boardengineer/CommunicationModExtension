@@ -38,9 +38,9 @@ public class EventVoteController extends VoteController {
 
         if (BaseMod.hasModID("mintyspire:")) {
             if (camera == null) {
-                camera = new OrthographicCamera(MiniMapDisplay.FRAME_BUFFER
-                        .getWidth() * SCALE, MiniMapDisplay.FRAME_BUFFER
-                        .getHeight() * SCALE);
+                camera = new OrthographicCamera(
+                        MiniMapDisplay.FRAME_BUFFER.getWidth() * SCALE,
+                        MiniMapDisplay.FRAME_BUFFER.getHeight() * SCALE);
             }
         }
 
@@ -70,6 +70,7 @@ public class EventVoteController extends VoteController {
     public void render(SpriteBatch spriteBatch) {
         if (AbstractDungeon.getCurrRoom().event instanceof NeowEvent) {
             if (BaseMod.hasModID("mintyspire:")) {
+
                 MiniMapDisplay.renderMinimap(spriteBatch, Settings.WIDTH / 8.f, 0, camera);
             }
         } else {
