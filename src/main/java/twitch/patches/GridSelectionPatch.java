@@ -1,6 +1,7 @@
 package twitch.patches;
 
 import basemod.ReflectionHacks;
+import com.evacipated.cardcrawl.mod.stslib.patches.CenterGridCardSelectScreen;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
@@ -18,6 +19,7 @@ public class GridSelectionPatch {
         @SpirePrefixPatch
         public static SpireReturn messWithGridSelect(GridCardSelectScreen gridCardSelectScreen) {
             if (TwitchController.voteController != null && TwitchController.voteController instanceof GridVoteController) {
+                CenterGridCardSelectScreen.Prefix(gridCardSelectScreen);
                 ArrayList<AbstractCard> cards = gridCardSelectScreen.targetGroup.group;
 
                 int lineNum = 0;
