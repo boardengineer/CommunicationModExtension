@@ -350,10 +350,16 @@ public class QueryController {
 
     private void runNotecardQuery() {
         try {
+            AbstractCard card = CardLibrary
+                    .getCard(CardCrawlGame.playerPref
+                            .getString("NOTE_CARD", "Iron Wave")).makeCopy();
+
+            for(int i = 0; i < CardCrawlGame.playerPref.getInteger("NOTE_UPGRADE", 0); ++i) {
+                card.upgrade();
+            }
+
             String message = String
-                    .format("[BOT] Card in the wall - %s", CardLibrary
-                            .getCard(CardCrawlGame.playerPref
-                                    .getString("NOTE_CARD", "Iron Wave")).name);
+                    .format("[BOT] Card in the wall - %s", card.name);
 
             TwitchController.twirk.channelMessage(message);
         } catch (NullPointerException | IllegalArgumentException e) {
