@@ -83,6 +83,19 @@ public class CheeseOptions {
         put("dualwield", new CheeseController.CheeseConfig("dualwield", () -> {
             addCard(new DualWield().makeCopy());
         }, true));
+
+        put("iknowkungfu", new CheeseController.CheeseConfig("iknowkungfu", () -> {
+            removeStartRelic();
+            addRelic(new PandorasBox().makeCopy());
+        }, true));
+
+        put("makesthewholeworldblind", new CheeseController.CheeseConfig("makesthewholeworldblind", () -> {
+            removeStartRelic();
+            addRelic(new SneckoEye().makeCopy());
+        }, true));
+
+        put("ineedamedic", new CheeseController.CheeseConfig("ineedamedic", () ->
+                addRelic(new ToughBandages().makeCopy()), true));
     }};
 
     private static void addRelic(AbstractRelic relic) {
@@ -99,5 +112,10 @@ public class CheeseOptions {
     private static void addCard(AbstractCard card) {
         AbstractDungeon.topLevelEffects
                 .add(new ShowCardAndObtainEffect(card, (float) Settings.WIDTH / 2.0F - AbstractCard.IMG_WIDTH / 2.0F - 30.0F * Settings.scale, (float) Settings.HEIGHT / 2.0F));
+    }
+
+    private static void removeStartRelic() {
+        AbstractDungeon.player
+                .loseRelic(AbstractDungeon.player.relics.get(0).relicId);
     }
 }
