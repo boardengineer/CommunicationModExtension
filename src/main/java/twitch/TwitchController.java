@@ -105,6 +105,12 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
     public Optional<PredictionInfo> currentPrediction = Optional.empty();
 
+    // When true, the vote will just end
+    private static boolean forceEndVote = false;
+
+    // When true, the first vote will trigger the end of the vote
+    private static boolean chaosMode = false;
+
     public TwitchController(Twirk twirk) {
         this.betaArtController = new BetaArtController(this);
         this.cheeseController = new CheeseController(this);
@@ -170,6 +176,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
 
         try {
             if (voteByUsernameMap != null && inVote && isVoteOver()) {
+                forceEndVote = false;
                 resolveVote();
             }
         } catch (ConcurrentModificationException | NullPointerException e) {
@@ -200,7 +207,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 String command = message.substring(message.indexOf(' ') + 1);
                 CommunicationMod.queueCommand(command);
             } else if (tokens.length >= 2 && tokens[0].equals("!admin")) {
-                if (tokens[1].equals("set")) {
+                if (tokens[1].equals("chaos")) {
+                    chaosMode = !chaosMode;
+                } else if (tokens[1].equals("set")) {
                     if (tokens.length >= 4) {
                         String optionName = tokens[2];
                         if (optionsMap.containsKey(optionName)) {
@@ -243,6 +252,9 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 if (choicesMap.containsKey(voteValue)) {
                     try {
                         voteByUsernameMap.put(userName, voteValue);
+                        if (chaosMode) {
+                            forceEndVote = true;
+                        }
                     } catch (ConcurrentModificationException e) {
                         System.err.println("Skipping user vote");
                     }
@@ -798,7 +810,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     }
 
     private boolean isVoteOver() {
-        return System.currentTimeMillis() > voteEndTimeMillis;
+        return forceEndVote || System.currentTimeMillis() > voteEndTimeMillis;
     }
 
     private void resolveVote() {
