@@ -96,6 +96,9 @@ public class CheeseOptions {
 
         put("ineedamedic", new CheeseController.CheeseConfig("ineedamedic", () ->
                 addRelic(new ToughBandages().makeCopy()), true));
+
+        put("esuna", new CheeseController.CheeseConfig("esuna", () ->
+                addRelic(new MedicalKit().makeCopy()), true));
     }};
 
     private static void addRelic(AbstractRelic relic) {
