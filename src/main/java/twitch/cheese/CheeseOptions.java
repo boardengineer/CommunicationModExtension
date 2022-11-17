@@ -111,6 +111,8 @@ public class CheeseOptions {
             AbstractDungeon.uncommonRelicPool.add(0, MoltenEgg2.ID);
             AbstractDungeon.commonRelicPool.add(0, FrozenEgg2.ID);
 
+            addRelic(new CallingBell().makeCopy());
+
         }, true));
     }};
 
