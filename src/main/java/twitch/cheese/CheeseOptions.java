@@ -99,12 +99,28 @@ public class CheeseOptions {
 
         put("esuna", new CheeseController.CheeseConfig("esuna", () ->
                 addRelic(new MedicalKit().makeCopy()), true));
+
+        put("cursedbreakfast", new CheeseController.CheeseConfig("cursedbreakfast", () -> {
+            removeStartRelic();
+
+            removeRelic(new ToxicEgg2().makeCopy());
+            removeRelic(new MoltenEgg2().makeCopy());
+            removeRelic(new FrozenEgg2().makeCopy());
+
+            AbstractDungeon.rareRelicPool.add(0, ToxicEgg2.ID);
+            AbstractDungeon.uncommonRelicPool.add(0, MoltenEgg2.ID);
+            AbstractDungeon.commonRelicPool.add(0, FrozenEgg2.ID);
+
+        }, true));
     }};
 
     private static void addRelic(AbstractRelic relic) {
         AbstractDungeon.getCurrRoom()
                        .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), relic);
+        removeRelic(relic);
+    }
 
+    private static void removeRelic(AbstractRelic relic) {
         try {
             TIER_TO_LIST_MAP.get(relic.tier).call().remove(relic.relicId);
         } catch (Exception e) {
