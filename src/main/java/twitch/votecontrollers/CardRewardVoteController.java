@@ -1,5 +1,6 @@
 package twitch.votecontrollers;
 
+import FightPredictor.FightPredictor;
 import basemod.BaseMod;
 import basemod.ReflectionHacks;
 import chronoMods.coop.CoopCourierRoom;
@@ -136,6 +137,45 @@ public class CardRewardVoteController extends VoteController {
                 }
             }
         }
+    }
+
+    @Override
+    public int getDefaultResult() {
+        if (BaseMod.hasModID("FightPredictor:")) {
+            int bestFound = -1;
+            int bestPercentile = -1;
+
+            for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+                if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                    CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+
+                    String message = choice.choiceName;
+
+                    if (messageToCardReward.containsKey(message)) {
+                        AbstractCard card = messageToCardReward.get(message);
+                        System.out.println("trying to match " + card);
+
+                        System.out.println(FightPredictor.percentiles.get(card.name));
+
+                        if (FightPredictor.percentiles.containsKey(card.name)) {
+                            int percentile = FightPredictor.percentiles.get(card.name);
+                            if (percentile > bestPercentile) {
+                                bestFound = i;
+                                bestPercentile = percentile;
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            if (bestFound > -1) {
+                System.out.println("Voting for " + bestFound);
+                return bestFound;
+            }
+        }
+
+        return super.getDefaultResult();
     }
 
     @Override

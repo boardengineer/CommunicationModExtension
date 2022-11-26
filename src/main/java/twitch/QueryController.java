@@ -209,15 +209,7 @@ public class QueryController {
 
     private void populateRelicMap() {
         getAllRelics().forEach(relic -> {
-            String key = relic.name;
-
-            key = key.replace("thevacant:", "");
-
-            if (BaseMod.hasModID("HermitState:")) {
-                key = key.replace(HermitMod.getModID() + ":", "");
-            }
-
-            key = key.toLowerCase().replace(" ", "");
+            String key = makeKey(relic);
 
             String description = relic.description;
 
@@ -235,6 +227,24 @@ public class QueryController {
         });
     }
 
+    public static String makeKey(AbstractRelic relic) {
+        return makeKey(relic.name);
+    }
+
+    public static String makeKey(String relicName) {
+        String key = relicName;
+
+        key = key.replace("thevacant:", "");
+
+        if (BaseMod.hasModID("HermitState:")) {
+            key = key.replace(HermitMod.getModID() + ":", "");
+        }
+
+        key = key.toLowerCase().replace(" ", "");
+
+        return key;
+    }
+
     private static String replaceStringSegmentsForCard(DescriptionLine line, AbstractCard card) {
         String result = line.text;
 
@@ -249,7 +259,7 @@ public class QueryController {
         return name.toLowerCase().replace(" ", "");
     }
 
-    private static ArrayList<AbstractRelic> getAllRelics() {
+    public static ArrayList<AbstractRelic> getAllRelics() {
         ArrayList<AbstractRelic> relics = new ArrayList<>();
         @SuppressWarnings("unchecked")
         HashMap<String, AbstractRelic> sharedRelics = ReflectionHacks
@@ -354,7 +364,7 @@ public class QueryController {
                     .getCard(CardCrawlGame.playerPref
                             .getString("NOTE_CARD", "Iron Wave")).makeCopy();
 
-            for(int i = 0; i < CardCrawlGame.playerPref.getInteger("NOTE_UPGRADE", 0); ++i) {
+            for (int i = 0; i < CardCrawlGame.playerPref.getInteger("NOTE_UPGRADE", 0); ++i) {
                 card.upgrade();
             }
 

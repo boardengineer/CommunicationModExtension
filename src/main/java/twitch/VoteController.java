@@ -6,6 +6,7 @@ import com.gikk.twirk.Twirk;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public abstract class VoteController {
@@ -25,6 +26,10 @@ public abstract class VoteController {
 
     public void endVote(Command result) {
         endVote();
+    }
+
+    public int getDefaultResult() {
+        return new Random().nextInt(TwitchController.viableChoices.size());
     }
 
     /**
@@ -85,4 +90,6 @@ public abstract class VoteController {
         }
         return "";
     }
+
+
 }

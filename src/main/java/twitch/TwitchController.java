@@ -697,7 +697,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 System.err.println("choosing random for no votes");
             }
 
-            int randomResult = new Random().nextInt(viableChoices.size());
+            int randomResult = voteController == null ? new Random()
+                    .nextInt(viableChoices.size()) : voteController.getDefaultResult();
 
             return viableChoices.get(randomResult);
         } else {

@@ -15,13 +15,18 @@ import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.actions.common.DamageAllEnemiesAction;
 import com.megacrit.cardcrawl.actions.common.LoseHPAction;
 import com.megacrit.cardcrawl.cards.DamageInfo;
+import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.RelicLibrary;
+import com.megacrit.cardcrawl.relics.AbstractRelic;
+import com.megacrit.cardcrawl.vfx.ObtainKeyEffect;
 import communicationmod.CommandExecutor;
 import communicationmod.CommunicationMod;
 import communicationmod.GameStateConverter;
 import communicationmod.InvalidCommandException;
 import de.robojumper.ststwitch.TwitchConfig;
 import ludicrousspeed.Controller;
+import twitch.QueryController;
 import twitch.TwitchController;
 
 import java.io.BufferedInputStream;
@@ -31,6 +36,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -46,10 +52,11 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
         EXTERNAL_PROCESS
     }
 
+    public static final HashMap<String, String> relicNameToIdmap = new HashMap<>();
+
     public static void initialize() {
         BaseMod.subscribe(new CommunicationModExtension());
     }
-
 
     @SpirePatch(clz = CommunicationMod.class, method = "startExternalProcess", paramtypez = {})
     public static class NetworkCommunicationPatch {
@@ -195,6 +202,9 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
                 sendSuccessToController();
             }
         }
+
+        QueryController.getAllRelics().forEach(relic -> relicNameToIdmap
+                .put(QueryController.makeKey(relic), relic.relicId));
     }
 
     private static final String HOST_IP = "127.0.0.1";
@@ -235,9 +245,50 @@ public class CommunicationModExtension implements PostInitializeSubscriber {
                     } else if (controllerLine.equals("advancegame")) {
                         CommunicationMod.mustSendGameState = true;
                         TwitchController.inBattle = false;
+                    } else if (controllerLine.equals("addkeys")) {
+                        if (!Settings.hasRubyKey) {
+                            AbstractDungeon.topLevelEffects.add(new ObtainKeyEffect(ObtainKeyEffect.KeyColor.RED));
+                        }
+
+                        if (!Settings.hasSapphireKey) {
+                            AbstractDungeon.topLevelEffects.add(new ObtainKeyEffect(ObtainKeyEffect.KeyColor.BLUE));
+                        }
+
+                        if (!Settings.hasEmeraldKey) {
+                            AbstractDungeon.topLevelEffects.add(new ObtainKeyEffect(ObtainKeyEffect.KeyColor.GREEN));
+                        }
                     } else if (controllerLine.equals("losebattle")) {
                         AbstractDungeon.actionManager
                                 .addToTop(new LoseHPAction(AbstractDungeon.player, AbstractDungeon.player, 999));
+                    } else if (controllerLine.startsWith("loserelic")) {
+                        try {
+                            String[] commandTokens = controllerLine.split(" ");
+                            if (commandTokens.length >= 2) {
+                                String relicId = relicNameToIdmap
+                                        .get(QueryController.makeKey(commandTokens[1]));
+                                AbstractDungeon.player.loseRelic(relicId);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else if (controllerLine.startsWith("addrelic")) {
+                        try {
+                            String[] commandTokens = controllerLine.split(" ");
+                            if (commandTokens.length >= 2) {
+                                String relicId = relicNameToIdmap
+                                        .get(QueryController.makeKey(commandTokens[1]));
+
+                                AbstractRelic relic = RelicLibrary
+                                        .getRelic(relicId).makeCopy();
+
+                                if (relic.img != null) {
+                                    AbstractDungeon.getCurrRoom()
+                                                   .spawnRelicAndObtain((float) (Settings.WIDTH / 2), (float) (Settings.HEIGHT / 2), relic);
+                                }
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             } catch (IOException | InterruptedException e) {
