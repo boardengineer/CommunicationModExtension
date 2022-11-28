@@ -67,6 +67,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
      */
     private static HashMap<String, Integer> voteFrequencies = new HashMap<>();
 
+    // the previous seed for the game so that users can query a seed for game that's recently
+    // ended.
+    public static long previousSeed;
+
     public static VoteController voteController;
     public static Queue<NetworkingPatches.DelayedMessage> messageQueue = new LinkedList<>();
 
@@ -456,6 +460,8 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
                 .valueOf(screenType);
 
         if (choiceType == ChoiceScreenUtils.ChoiceType.GAME_OVER) {
+            previousSeed = Settings.seed;
+
             JsonObject gameState = new JsonParser().parse(stateMessage).getAsJsonObject()
                                                    .get("game_state").getAsJsonObject();
 

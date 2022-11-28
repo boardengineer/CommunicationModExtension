@@ -101,6 +101,9 @@ public class QueryController {
                 case "!seed":
                     runSeedQuery();
                     break;
+                case "!previousseed":
+                    runPreviousSeedQuery();
+                    break;
                 case "!mods":
                     runModsQuery();
                     break;
@@ -462,6 +465,11 @@ public class QueryController {
     private void runSeedQuery() {
         TwitchController.twirk.channelMessage("[BOT] Game Seed: " + SeedHelper
                 .getString(Settings.seed));
+    }
+
+    private void runPreviousSeedQuery() {
+        TwitchController.twirk.channelMessage("[BOT] Previous Game Seed: " + SeedHelper
+                .getString(TwitchController.previousSeed));
     }
 
     private void runModsQuery() {
