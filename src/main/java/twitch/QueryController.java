@@ -1,7 +1,10 @@
 package twitch;
 
+import RobotSpaceExplorer.RobotSpaceExplorerMod;
 import basemod.BaseMod;
 import basemod.ReflectionHacks;
+import com.evacipated.cardcrawl.modthespire.Loader;
+import com.evacipated.cardcrawl.modthespire.ModInfo;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
@@ -97,6 +100,9 @@ public class QueryController {
                     break;
                 case "!seed":
                     runSeedQuery();
+                    break;
+                case "!mods":
+                    runModsQuery();
                     break;
             }
         } catch (Exception e) {
@@ -194,6 +200,13 @@ public class QueryController {
             if (BaseMod.hasModID("HermitState:")) {
                 key = key.replace(HermitMod.getModID() + ":", "");
             }
+
+            if (BaseMod.hasModID("RobotSpaceExplorer:")) {
+                System.err.println(key);
+                key = key.replace(RobotSpaceExplorerMod.getModID().toLowerCase() + ":", "");
+            }
+
+            System.err.println(key);
 
             key = key.toLowerCase().replace(" ", "");
 
@@ -449,5 +462,15 @@ public class QueryController {
     private void runSeedQuery() {
         TwitchController.twirk.channelMessage("[BOT] Game Seed: " + SeedHelper
                 .getString(Settings.seed));
+    }
+
+    private void runModsQuery() {
+        ArrayList<String> modNames = new ArrayList<>();
+        for (ModInfo modInfo : Loader.MODINFOS) {
+            modNames.add(modInfo.Name);
+        }
+        TwitchController.twirk.channelMessage("[BOT] Installed Mods: " + modNames.stream()
+                                                                                 .collect(Collectors
+                                                                                         .joining(" - ")));
     }
 }
