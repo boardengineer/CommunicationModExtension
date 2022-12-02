@@ -59,4 +59,21 @@ public class GridSelectionPatch {
             return SpireReturn.Continue();
         }
     }
+
+    // Nix these centering patches, they don't play nice with the patches above
+    @SpirePatch(clz = CenterGridCardSelectScreen.class, method = "Prefix")
+    public static class NixGridSelectCenterBullshitPatch {
+        @SpirePrefixPatch
+        public static SpireReturn doNothing() {
+            return SpireReturn.Return(null);
+        }
+    }
+
+    @SpirePatch(clz = CenterGridCardSelectScreen.class, method = "Postfix")
+    public static class NixGridSelectCenterBullshitPatch2 {
+        @SpirePrefixPatch
+        public static SpireReturn doNothing() {
+            return SpireReturn.Return(null);
+        }
+    }
 }
