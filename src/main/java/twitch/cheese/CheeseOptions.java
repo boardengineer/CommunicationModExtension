@@ -2,7 +2,11 @@ package twitch.cheese;
 
 import basemod.BaseMod;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.colorless.Chrysalis;
+import com.megacrit.cardcrawl.cards.colorless.HandOfGreed;
+import com.megacrit.cardcrawl.cards.colorless.Metamorphosis;
 import com.megacrit.cardcrawl.cards.colorless.RitualDagger;
+import com.megacrit.cardcrawl.cards.curses.Pride;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
 import com.megacrit.cardcrawl.cards.red.DualWield;
 import com.megacrit.cardcrawl.core.Settings;
@@ -10,9 +14,7 @@ import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.*;
 import com.megacrit.cardcrawl.vfx.cardManip.ShowCardAndObtainEffect;
 import theVacant.cards.Skills.Expand;
-import tssrelics.relics.FestivuePole;
-import tssrelics.relics.JadeMysticKnot;
-import tssrelics.relics.SneckoCharm;
+import tssrelics.relics.*;
 import twitch.CheeseController;
 
 import java.util.ArrayList;
@@ -113,6 +115,43 @@ public class CheeseOptions {
 
             addRelic(new CallingBell().makeCopy());
 
+        }, true));
+
+        put("choasmode", new CheeseController.CheeseConfig("choasmode", () -> {
+            addRelic(new PrismaticBranch().makeCopy());
+        }, true));
+
+        put("ihatecards", new CheeseController.CheeseConfig("ihatecards", () -> {
+            removeStartRelic();
+            addRelic(new BustedCrown().makeCopy());
+            addRelic(new SmilingMask().makeCopy());
+            addRelic(new SingingBowl().makeCopy());
+            addRelic(new BusinessContract().makeCopy());
+        }, true));
+
+        put("homeontherange", new CheeseController.CheeseConfig("homeontherange", () -> {
+            removeStartRelic();
+
+            addRelic(new HappyFlowerBed().makeCopy());
+            addRelic(new TinyHouse().makeCopy());
+        }, true));
+
+        put("myfriendthemerchant", new CheeseController.CheeseConfig("myfriendthemerchant", () -> {
+            addRelic(new WingBoots().makeCopy());
+            addRelic(new Courier().makeCopy());
+            addRelic(new MembershipCard().makeCopy() );
+        }, true));
+
+        put("sinsinprogress", new CheeseController.CheeseConfig("sinsinprogress", () -> {
+            addCard(new Pride().makeCopy());
+            addCard(new HandOfGreed().makeCopy());
+            addCard(new Pride().makeCopy());
+            addCard(new HandOfGreed().makeCopy());
+        }, true));
+
+        put("kafkaesque", new CheeseController.CheeseConfig("kafkaesque", () -> {
+            addCard(new Metamorphosis().makeCopy());
+            addCard(new Chrysalis().makeCopy());
         }, true));
     }};
 
