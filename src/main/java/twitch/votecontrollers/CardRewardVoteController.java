@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePostfixPatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
@@ -91,6 +92,57 @@ public class CardRewardVoteController extends VoteController {
 
         optionsMap.putIfAbsent(CARD_REWARD_LONG_KEY, DEFAULT_LONG_VOTE_TIME_MILLIS);
         optionsMap.putIfAbsent(CARD_REWARD_SHORT_KEY, DEFAULT_SHORT_VOTE_TIME_MILLIS);
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+
+                String message = choice.choiceName;
+                if (message.equalsIgnoreCase("skip")) {
+                    SkipCardButton skipCardButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "skipButton");
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", skipCardButton.hb.x);
+                    optionJson.addProperty("y_pos", skipCardButton.hb.y);
+                    optionJson.addProperty("height", skipCardButton.hb.height);
+                    optionJson.addProperty("width", skipCardButton.hb.width);
+
+                } else if (message.equalsIgnoreCase("bowl")) {
+                    SingingBowlButton bowlButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.cardRewardScreen, CardRewardScreen.class, "bowlButton");
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", bowlButton.hb.x);
+                    optionJson.addProperty("y_pos", bowlButton.hb.y);
+                    optionJson.addProperty("height", bowlButton.hb.height);
+                    optionJson.addProperty("width", bowlButton.hb.width);
+                } else if (messageToCardReward.containsKey(message)) {
+                    AbstractCard card = messageToCardReward.get(message);
+
+                    if (card.target_x != card.current_x || card.target_y != card.current_y) {
+                        System.err.println("Animating Option, Return empty");
+                        return new JsonArray();
+                    }
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", card.hb.x);
+                    optionJson.addProperty("y_pos", card.hb.y);
+                    optionJson.addProperty("height", card.hb.height);
+                    optionJson.addProperty("width", card.hb.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
     }
 
     @Override

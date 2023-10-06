@@ -3,6 +3,7 @@ package twitch.votecontrollers;
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -42,6 +43,38 @@ public class GridVoteController extends VoteController {
     }
 
     @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+                JsonObject optionJson = new JsonObject();
+
+                String message = choice.voteString;
+                if (voteStringToCardMap.containsKey(message)) {
+                    AbstractCard card = voteStringToCardMap.get(message);
+
+                    float width = card.hb.width * card.drawScale;
+                    float height = card.hb.height * card.drawScale;
+
+                    Hitbox hitbox = new Hitbox(card.current_x - width / 2.f, card.current_y - height / 2.f, width, height);
+
+                    optionJson.addProperty("value", message);
+                    optionJson.addProperty("x_pos", hitbox.x);
+                    optionJson.addProperty("y_pos", hitbox.y);
+                    optionJson.addProperty("height", hitbox.height);
+                    optionJson.addProperty("width", hitbox.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
+    }
+
+    @Override
     public Optional<String> getTipString() {
         String tipMsg = ReflectionHacks
                 .getPrivate(AbstractDungeon.gridSelectScreen, GridCardSelectScreen.class, "tipMsg");
@@ -51,8 +84,8 @@ public class GridVoteController extends VoteController {
 
     @Override
     public void render(SpriteBatch spriteBatch) {
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        Set<String> winningResults = TwitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
             if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {

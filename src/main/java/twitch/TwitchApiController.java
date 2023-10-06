@@ -175,8 +175,8 @@ public class TwitchApiController {
             }
             in.close();
         } else {
-            System.out.println("failed with code " + responseCode + " " + http
-                    .getResponseMessage());
+//            System.out.println("failed with code " + responseCode + " " + http
+//                    .getResponseMessage());
         }
     }
 
@@ -258,7 +258,6 @@ public class TwitchApiController {
         String queryUrl = String.format("%s?broadcaster_id=%s&reward_id=%s&status=UNFULFILLED",
                 baseUrl, BROADCASTER_ID, rewardId);
 
-        System.out.println(queryUrl);
         URL url = new URL(queryUrl);
         HttpURLConnection http = (HttpURLConnection) url.openConnection();
         http.setRequestMethod("GET");
@@ -285,10 +284,10 @@ public class TwitchApiController {
                 return Optional.of(dataArray.get(0).getAsJsonObject());
             }
 
-            System.out.println(response.toString());
+//            System.out.println(response.toString());
         } else {
-            System.out.println("failed with code " + http.getResponseCode() + " " + http
-                    .getResponseMessage());
+//            System.out.println("failed with code " + http.getResponseCode() + " " + http
+//                    .getResponseMessage());
         }
 
         return Optional.empty();
@@ -405,7 +404,7 @@ public class TwitchApiController {
             in.close();
 
             // print result
-            System.out.println(response.toString());
+//            System.out.println(response.toString());
         } else {
             System.out.println("failed with code " + responseCode + " " + http
                     .getResponseMessage());

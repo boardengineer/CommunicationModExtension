@@ -5,6 +5,7 @@ import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.helpers.Hitbox;
@@ -56,6 +57,34 @@ public class RestVoteController extends VoteController {
     @Override
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+
+                String message = choice.choiceName;
+                if (messageToRestOption.containsKey(message)) {
+                    AbstractCampfireOption fireOption = messageToRestOption.get(message);
+                    Hitbox hitbox = fireOption.hb;
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", hitbox.x);
+                    optionJson.addProperty("y_pos", hitbox.y);
+                    optionJson.addProperty("height", hitbox.height);
+                    optionJson.addProperty("width", hitbox.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
     }
 
     @Override

@@ -3,6 +3,7 @@ package twitch.votecontrollers;
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
@@ -40,6 +41,42 @@ public class BossRewardVoteController extends VoteController {
 
         TwitchController.viableChoices
                 .add(new CommandChoice("Skip", "0", "skip", "leave", "proceed"));
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+                String message = choice.choiceName.toLowerCase(Locale.ROOT);
+                if (messageToBossRelicMap.containsKey(message)) {
+                    AbstractRelic rewardItem = messageToBossRelicMap.get(message);
+                    Hitbox rewardItemHitbox = rewardItem.hb;
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", rewardItemHitbox.x);
+                    optionJson.addProperty("y_pos", rewardItemHitbox.y);
+                    optionJson.addProperty("height", rewardItemHitbox.height);
+                    optionJson.addProperty("width", rewardItemHitbox.width);
+                } else if (message.equalsIgnoreCase("skip")) {
+                    MenuCancelButton cancelButton = ReflectionHacks
+                            .getPrivate(AbstractDungeon.bossRelicScreen, BossRelicSelectScreen.class, "cancelButton");
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", cancelButton.hb.x);
+                    optionJson.addProperty("y_pos", cancelButton.hb.y);
+                    optionJson.addProperty("height", cancelButton.hb.height);
+                    optionJson.addProperty("width", cancelButton.hb.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
     }
 
     @Override

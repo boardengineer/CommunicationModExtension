@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.helpers.PotionHelper;
 import com.megacrit.cardcrawl.potions.*;
 import com.megacrit.cardcrawl.relics.*;
@@ -209,9 +210,56 @@ public class CombatRewardVoteController extends VoteController {
     }
 
     @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+
+                String message = choice.choiceName;
+                if (message.equals("leave")) {
+                    Hitbox proceedButtonHitbox =
+                            ReflectionHacks
+                                    .getPrivate(AbstractDungeon.overlayMenu.proceedButton, ProceedButton.class, "hb");
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", proceedButtonHitbox.x);
+                    optionJson.addProperty("y_pos", proceedButtonHitbox.y);
+                    optionJson.addProperty("height", proceedButtonHitbox.height);
+                    optionJson.addProperty("width", proceedButtonHitbox.width);
+                } else if (message.equals("cancel")) {
+                    Hitbox cancelButtonHitbox =ReflectionHacks
+                            .getPrivate(AbstractDungeon.overlayMenu.cancelButton, CancelButton.class, "hb");
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", cancelButtonHitbox.x);
+                    optionJson.addProperty("y_pos", cancelButtonHitbox.y);
+                    optionJson.addProperty("height", cancelButtonHitbox.height);
+                    optionJson.addProperty("width", cancelButtonHitbox.width);
+                } else if (voteStringToCombatRewardItem.containsKey(choice.voteString)) {
+                    RewardItem rewardItem = voteStringToCombatRewardItem.get(choice.voteString);
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", rewardItem.hb.x);
+                    optionJson.addProperty("y_pos", rewardItem.hb.y);
+                    optionJson.addProperty("height", rewardItem.hb.height);
+                    optionJson.addProperty("width", rewardItem.hb.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
+    }
+
+    @Override
     public void render(SpriteBatch spriteBatch) {
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        Set<String> winningResults = TwitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
             if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {

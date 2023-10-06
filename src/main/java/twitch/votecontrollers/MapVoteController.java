@@ -1,14 +1,17 @@
 package twitch.votecontrollers;
 
+import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.gikk.twirk.Twirk;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.map.MapRoomNode;
 import com.megacrit.cardcrawl.relics.WingBoots;
 import com.megacrit.cardcrawl.rooms.*;
+import com.megacrit.cardcrawl.screens.DungeonMapScreen;
 import communicationmod.ChoiceScreenUtils;
 import twitch.*;
 
@@ -70,6 +73,41 @@ public class MapVoteController extends VoteController {
     @Override
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        float targetOffsetY = ReflectionHacks
+                .getPrivate(AbstractDungeon.dungeonMapScreen, DungeonMapScreen.class, "targetOffsetY");
+
+        if(AbstractDungeon.dungeonMapScreen.offsetY != targetOffsetY) {
+            System.err.println("animating map, not starting vote yet.");
+        }
+
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+
+                String message = choice.choiceName;
+                if (messageToRoomNodeMap.containsKey(message)) {
+                    MapRoomNode mapRoomNode = messageToRoomNodeMap.get(message);
+                    Hitbox roomHitbox = mapRoomNode.hb;
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", roomHitbox.x);
+                    optionJson.addProperty("y_pos", roomHitbox.y);
+                    optionJson.addProperty("height", roomHitbox.height);
+                    optionJson.addProperty("width", roomHitbox.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
     }
 
     @Override

@@ -3,6 +3,7 @@ package twitch.votecontrollers;
 import basemod.ReflectionHacks;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.Settings;
@@ -67,9 +68,70 @@ public class ShopScreenVoteController extends VoteController {
     }
 
     @Override
+    public JsonArray getVoteChoicesJson() {
+
+        float rugY = ReflectionHacks
+                .getPrivate(AbstractDungeon.shopScreen, ShopScreen.class, "rugY");
+        if (Math.abs(rugY) > .25) {
+            System.err.println("animating rug, not starting bote yet");
+            return new JsonArray();
+        }
+
+
+        JsonArray result = new JsonArray();
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+
+                String message = choice.choiceName;
+                String voteString = choice.voteString;
+
+                if (message.equals("leave")) {
+                    Hitbox hitbox = AbstractDungeon.overlayMenu.cancelButton.hb;
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", hitbox.x);
+                    optionJson.addProperty("y_pos", hitbox.y);
+                    optionJson.addProperty("height", hitbox.height);
+                    optionJson.addProperty("width", hitbox.width);
+                } else if (message.equals("purge")) {
+                    Hitbox hitbox = getShopPurgeHitbox();
+
+                    optionJson.addProperty("value", choice.voteString);
+                    optionJson.addProperty("x_pos", hitbox.x);
+                    optionJson.addProperty("y_pos", hitbox.y);
+                    optionJson.addProperty("height", hitbox.height);
+                    optionJson.addProperty("width", hitbox.width);
+                } else if (voteStringToShopItemMap.containsKey(voteString)) {
+                    Hitbox shopItemHitbox = getJsonShopItemHitbox(voteStringToShopItemMap
+                            .get(voteString));
+
+                    if (shopItemHitbox != null) {
+                        optionJson.addProperty("value", choice.voteString);
+                        optionJson.addProperty("x_pos", shopItemHitbox.x);
+                        optionJson.addProperty("y_pos", shopItemHitbox.y);
+                        optionJson.addProperty("height", shopItemHitbox.height);
+                        optionJson.addProperty("width", shopItemHitbox.width);
+                    } else {
+                        System.err.println("no hitbox for" + choice.choiceName);
+                    }
+                } else {
+                    System.err.println("no shop button for " + choice.choiceName);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
+    }
+
+    @Override
     public void render(SpriteBatch spriteBatch) {
-        HashMap<String, Integer> voteFrequencies = twitchController.getVoteFrequencies();
-        Set<String> winningResults = twitchController.getBestVoteResultKeys();
+        HashMap<String, Integer> voteFrequencies = TwitchController.getVoteFrequencies();
+        Set<String> winningResults = TwitchController.getBestVoteResultKeys();
 
         for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
             if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
@@ -176,6 +238,25 @@ public class ShopScreenVoteController extends VoteController {
         }
 
         System.err.println("no string can be made for " + item);
+
+        return null;
+    }
+
+    private static Hitbox getJsonShopItemHitbox(Object item) {
+        if (item instanceof String) {
+            System.err.println("no hitbox for string " + item);
+            return null;
+        } else if (item instanceof AbstractCard) {
+            return ((AbstractCard) item).hb;
+        } else if (item instanceof StoreRelic) {
+            StoreRelic storeRelic = (StoreRelic) item;
+            return storeRelic.relic.hb;
+        } else if (item instanceof StorePotion) {
+            StorePotion storePotion = (StorePotion) item;
+            return storePotion.potion.hb;
+        } else if (item instanceof DiceOfFate.RerollStoreChoice) {
+            return DiceOfFate.rerollChoice.hb;
+        }
 
         return null;
     }

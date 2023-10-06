@@ -59,7 +59,7 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
     /**
      * Used to count user votes during
      */
-    private static HashMap<String, String> voteByUsernameMap = null;
+    public static HashMap<String, String> voteByUsernameMap = null;
 
     /**
      * Tallies the votes by user for a given run. Increments at the end of each vote and gets
@@ -607,6 +607,10 @@ public class TwitchController implements PostUpdateSubscriber, PostRenderSubscri
             FontHelper
                     .renderFont(spriteBatch, font, topMessage, 15, Settings.HEIGHT * 7 / 8, Color.RED);
         }
+    }
+
+    public static long getRemainingVoteTime() {
+        return voteEndTimeMillis - System.currentTimeMillis();
     }
 
     /**

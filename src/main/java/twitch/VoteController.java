@@ -2,6 +2,7 @@ package twitch;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.gikk.twirk.Twirk;
+import com.google.gson.JsonArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,8 @@ public abstract class VoteController {
     public final TwitchController twitchController;
 
     public abstract void setUpChoices();
+
+    public abstract JsonArray getVoteChoicesJson();
 
     public abstract void render(SpriteBatch spriteBatch);
 

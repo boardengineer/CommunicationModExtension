@@ -11,6 +11,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.characters.Defect;
 import com.megacrit.cardcrawl.characters.Ironclad;
 import com.megacrit.cardcrawl.characters.TheSilent;
@@ -120,6 +122,41 @@ public class CharacterVoteController extends VoteController {
         HashMap<String, Integer> optionsMap = TwitchController.optionsMap;
 
         optionsMap.putIfAbsent(VOTE_TIME_KEY, DEFAULT_VOTE_TIME);
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        int numCharacters = TwitchController.viableChoices.size();
+
+
+        int requiredRows = ((numCharacters - 1) / 8) + 1;
+        int mostColumns = (numCharacters - 1) / requiredRows + 1;
+
+        int step = Math.max(225, 3 * Settings.WIDTH / (mostColumns * 4));
+        int taken = step * (mostColumns - 1) + 150;
+        int startX = (Settings.WIDTH - taken) / 2;
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            JsonObject optionJson = new JsonObject();
+            CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+            Texture charButton = ImageMaster.CHAR_SELECT_IRONCLAD;
+
+            int xpos = startX + step * (i % mostColumns);
+            int rowIndex = requiredRows - (i / mostColumns) - 1;
+            int ypos = 50 + 200 * rowIndex;
+
+            optionJson.addProperty("value", choice.voteString);
+            optionJson.addProperty("x_pos", xpos);
+            optionJson.addProperty("y_pos", ypos);
+            optionJson.addProperty("height", charButton.getHeight());
+            optionJson.addProperty("width", charButton.getWidth());
+
+            result.add(optionJson);
+        }
+
+        return result;
     }
 
     @Override

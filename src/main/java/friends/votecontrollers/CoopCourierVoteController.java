@@ -5,6 +5,7 @@ import chronoMods.coop.CoopCourierRecipient;
 import chronoMods.coop.CoopCourierScreen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -42,6 +43,11 @@ public class CoopCourierVoteController extends VoteController {
     @Override
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        return null;
     }
 
     @Override

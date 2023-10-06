@@ -4,6 +4,7 @@ import ThMod.event.Mushrooms_MRS;
 import basemod.BaseMod;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -12,6 +13,7 @@ import com.megacrit.cardcrawl.events.beyond.MysteriousSphere;
 import com.megacrit.cardcrawl.events.city.MaskedBandits;
 import com.megacrit.cardcrawl.events.exordium.DeadAdventurer;
 import com.megacrit.cardcrawl.events.exordium.Mushrooms;
+import com.megacrit.cardcrawl.helpers.Hitbox;
 import com.megacrit.cardcrawl.neow.NeowEvent;
 import com.megacrit.cardcrawl.ui.buttons.LargeDialogOptionButton;
 import communicationmod.ChoiceScreenUtils;
@@ -64,6 +66,32 @@ public class EventVoteController extends VoteController {
     @Override
     public void setUpChoices() {
         twitchController.setUpDefaultVoteOptions(stateJson);
+    }
+
+    @Override
+    public JsonArray getVoteChoicesJson() {
+        JsonArray result = new JsonArray();
+
+        for (int i = 0; i < TwitchController.viableChoices.size(); i++) {
+            if (TwitchController.viableChoices.get(i) instanceof CommandChoice) {
+                JsonObject optionJson = new JsonObject();
+                CommandChoice choice = (CommandChoice) TwitchController.viableChoices.get(i);
+                String message = choice.voteString;
+                if (voteStringToEventButtonMap.containsKey(message)) {
+                    Hitbox buttonHitbox = voteStringToEventButtonMap.get(message).hb;
+
+                    optionJson.addProperty("value", message);
+                    optionJson.addProperty("x_pos", buttonHitbox.x);
+                    optionJson.addProperty("y_pos", buttonHitbox.y);
+                    optionJson.addProperty("height", buttonHitbox.height);
+                    optionJson.addProperty("width", buttonHitbox.width);
+                }
+
+                result.add(optionJson);
+            }
+        }
+
+        return result;
     }
 
     @Override
