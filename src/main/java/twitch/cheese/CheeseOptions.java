@@ -182,6 +182,16 @@ public class CheeseOptions {
             addRelic(new PrismaticShard().makeCopy());
         }, true));
 
+        put("monsterhunter", new CheeseController.CheeseConfig("monsterhunter", () -> {
+            removeStartRelic();
+
+            addRelic(new BlackStar().makeCopy());
+            addRelic(new WingBoots().makeCopy());
+
+            addRelic(new PreservedAmber().makeCopy());
+            addRelic(new PreservedInsect().makeCopy());
+        }, true));
+
         put("kafkaesque", new CheeseController.CheeseConfig("kafkaesque", () -> {
             addCard(new Metamorphosis().makeCopy());
             addCard(new Chrysalis().makeCopy());
