@@ -2,6 +2,7 @@ package twitch.cheese;
 
 import basemod.BaseMod;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.blue.MeteorStrike;
 import com.megacrit.cardcrawl.cards.colorless.Chrysalis;
 import com.megacrit.cardcrawl.cards.colorless.HandOfGreed;
 import com.megacrit.cardcrawl.cards.colorless.Metamorphosis;
@@ -170,6 +171,15 @@ public class CheeseOptions {
             addRelic(new Mango().makeCopy());
 
             addRelic(new MarkOfTheBloom().makeCopy());
+        }, true));
+
+        put("giftsfromabove", new CheeseController.CheeseConfig("giftsfromabove", () -> {
+            removeStartRelic();
+
+            addRelic(new HornOfPlenty().makeCopy());
+            addCard(new Pride().makeCopy());
+            addCard(new MeteorStrike().makeCopy());
+            addRelic(new PrismaticShard().makeCopy());
         }, true));
 
         put("kafkaesque", new CheeseController.CheeseConfig("kafkaesque", () -> {
