@@ -149,6 +149,29 @@ public class CheeseOptions {
             addCard(new HandOfGreed().makeCopy());
         }, true));
 
+        put("toofattofail", new CheeseController.CheeseConfig("toofattofail", () -> {
+            removeStartRelic();
+
+            addRelic(new CoffeeDripper().makeCopy());
+
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+            addRelic(new Mango().makeCopy());
+
+            addRelic(new MarkOfTheBloom().makeCopy());
+        }, true));
+
         put("kafkaesque", new CheeseController.CheeseConfig("kafkaesque", () -> {
             addCard(new Metamorphosis().makeCopy());
             addCard(new Chrysalis().makeCopy());
