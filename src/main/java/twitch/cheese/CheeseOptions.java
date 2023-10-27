@@ -2,13 +2,15 @@ package twitch.cheese;
 
 import basemod.BaseMod;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.blue.Amplify;
+import com.megacrit.cardcrawl.cards.blue.CreativeAI;
 import com.megacrit.cardcrawl.cards.blue.MeteorStrike;
-import com.megacrit.cardcrawl.cards.colorless.Chrysalis;
-import com.megacrit.cardcrawl.cards.colorless.HandOfGreed;
-import com.megacrit.cardcrawl.cards.colorless.Metamorphosis;
-import com.megacrit.cardcrawl.cards.colorless.RitualDagger;
+import com.megacrit.cardcrawl.cards.colorless.*;
 import com.megacrit.cardcrawl.cards.curses.Pride;
+import com.megacrit.cardcrawl.cards.green.Burst;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
+import com.megacrit.cardcrawl.cards.purple.MasterReality;
+import com.megacrit.cardcrawl.cards.red.DoubleTap;
 import com.megacrit.cardcrawl.cards.red.DualWield;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -180,6 +182,24 @@ public class CheeseOptions {
             addCard(new Pride().makeCopy());
             addCard(new MeteorStrike().makeCopy());
             addRelic(new PrismaticShard().makeCopy());
+        }, true));
+
+        put("toilandtrouble", new CheeseController.CheeseConfig("toilandtrouble", () -> {
+            addCard(new DoubleTap().makeCopy());
+            addCard(new Amplify().makeCopy());
+            addCard(new Burst().makeCopy());
+        }, true));
+
+        put("powerfulpowers", new CheeseController.CheeseConfig("powerfulpowers", () -> {
+            addCard(new MasterReality().makeCopy());
+            addCard(new CreativeAI().makeCopy());
+            addCard(new Amplify().makeCopy());
+        }, true));
+
+        put("bedbugs", new CheeseController.CheeseConfig("bedbugs", () -> {
+            addCard(new Madness().makeCopy());
+            addCard(new Madness().makeCopy());
+            addCard(new Nightmare().makeCopy());
         }, true));
 
         put("monsterhunter", new CheeseController.CheeseConfig("monsterhunter", () -> {
