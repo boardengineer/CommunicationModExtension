@@ -223,8 +223,6 @@ public class CheeseOptions {
             AbstractDungeon.player.masterDeck.clear();
 
             addCard(new Anger().makeCopy());
-            addCard(new Anger().makeCopy());
-            addCard(new Anger().makeCopy());
 
             addCard(new Rage().makeCopy());
             addCard(new Rage().makeCopy());
