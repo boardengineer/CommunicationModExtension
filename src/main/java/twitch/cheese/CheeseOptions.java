@@ -10,8 +10,10 @@ import com.megacrit.cardcrawl.cards.curses.Pride;
 import com.megacrit.cardcrawl.cards.green.Burst;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
 import com.megacrit.cardcrawl.cards.purple.MasterReality;
+import com.megacrit.cardcrawl.cards.red.Anger;
 import com.megacrit.cardcrawl.cards.red.DoubleTap;
 import com.megacrit.cardcrawl.cards.red.DualWield;
+import com.megacrit.cardcrawl.cards.red.Rage;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.*;
@@ -215,6 +217,21 @@ public class CheeseOptions {
         put("kafkaesque", new CheeseController.CheeseConfig("kafkaesque", () -> {
             addCard(new Metamorphosis().makeCopy());
             addCard(new Chrysalis().makeCopy());
+        }, true));
+
+        put("seething", new CheeseController.CheeseConfig("seething", () -> {
+            AbstractDungeon.player.masterDeck.clear();
+
+            addCard(new Anger().makeCopy());
+            addCard(new Anger().makeCopy());
+            addCard(new Anger().makeCopy());
+
+            addCard(new Rage().makeCopy());
+            addCard(new Rage().makeCopy());
+            addCard(new Rage().makeCopy());
+
+            addRelic(new TopMask().makeCopy());
+            removeRelic(new UnceasingTop().makeCopy());
         }, true));
     }};
 
