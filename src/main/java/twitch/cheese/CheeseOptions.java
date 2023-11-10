@@ -7,6 +7,7 @@ import com.megacrit.cardcrawl.cards.blue.CreativeAI;
 import com.megacrit.cardcrawl.cards.blue.MeteorStrike;
 import com.megacrit.cardcrawl.cards.colorless.*;
 import com.megacrit.cardcrawl.cards.curses.Pride;
+import com.megacrit.cardcrawl.cards.green.Alchemize;
 import com.megacrit.cardcrawl.cards.green.Burst;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
 import com.megacrit.cardcrawl.cards.purple.MasterReality;
@@ -244,6 +245,14 @@ public class CheeseOptions {
             addRelic(new PrayerWheel().makeCopy());
             addRelic(new QuestionCard().makeCopy());
             addRelic(new PrismaticShard().makeCopy());
+        }, true));
+
+        put("icanquitanytimeiwant", new CheeseController.CheeseConfig("icanquitanytimeiwant", () -> {
+            addRelic(new ToyOrnithopter().makeCopy());
+            addRelic(new PotionBelt().makeCopy());
+            addRelic(new WhiteBeast().makeCopy());
+
+            addCard(new Alchemize().makeCopy());
         }, true));
     }};
 
