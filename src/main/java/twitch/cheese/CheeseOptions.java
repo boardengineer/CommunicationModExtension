@@ -231,6 +231,20 @@ public class CheeseOptions {
             addRelic(new TopMask().makeCopy());
             removeRelic(new UnceasingTop().makeCopy());
         }, true));
+
+        put("stophittingyourself", new CheeseController.CheeseConfig("stophittingyourself", () -> {
+            addRelic(new VenomousScales().makeCopy());
+            addRelic(new BronzeScales().makeCopy());
+
+            addCard(new SadisticNature().makeCopy());
+        }, true));
+
+        put("ilovecards", new CheeseController.CheeseConfig("ilovecards", () -> {
+            addRelic(new SingingBowl().makeCopy());
+            addRelic(new PrayerWheel().makeCopy());
+            addRelic(new QuestionCard().makeCopy());
+            addRelic(new PrismaticShard().makeCopy());
+        }, true));
     }};
 
     private static void addRelic(AbstractRelic relic) {
