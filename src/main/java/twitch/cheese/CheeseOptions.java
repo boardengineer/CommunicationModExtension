@@ -11,6 +11,7 @@ import com.megacrit.cardcrawl.cards.green.Alchemize;
 import com.megacrit.cardcrawl.cards.green.Burst;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
 import com.megacrit.cardcrawl.cards.purple.MasterReality;
+import com.megacrit.cardcrawl.cards.purple.Vault;
 import com.megacrit.cardcrawl.cards.red.Anger;
 import com.megacrit.cardcrawl.cards.red.DoubleTap;
 import com.megacrit.cardcrawl.cards.red.DualWield;
@@ -49,10 +50,18 @@ public class CheeseOptions {
         if (BaseMod.hasModID("TSSRelics:")) {
             put("alltiedup", new CheeseController.CheeseConfig("alltiedup", () ->
                     addRelic(new JadeMysticKnot().makeCopy()), true));
+
             put("serenity", new CheeseController.CheeseConfig("serenity", () ->
                     addRelic(new FestivuePole().makeCopy()), true));
+
             put("riskandreward", new CheeseController.CheeseConfig("riskandreward", () ->
                     addRelic(new SneckoCharm().makeCopy()), false));
+
+            put("tightdeadlines", new CheeseController.CheeseConfig("tightdeadlines", () -> {
+                addRelic(new FiliformNeedle().makeCopy());
+
+                addCard(new Vault().makeCopy());
+            }, true));
         }
 
         put("likeasensei", new CheeseController.CheeseConfig("likeasensei", () ->
@@ -145,7 +154,7 @@ public class CheeseOptions {
         put("myfriendthemerchant", new CheeseController.CheeseConfig("myfriendthemerchant", () -> {
             addRelic(new WingBoots().makeCopy());
             addRelic(new Courier().makeCopy());
-            addRelic(new MembershipCard().makeCopy() );
+            addRelic(new MembershipCard().makeCopy());
         }, true));
 
         put("sinsinprogress", new CheeseController.CheeseConfig("sinsinprogress", () -> {
