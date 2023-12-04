@@ -197,6 +197,13 @@ public class CheeseOptions {
         put("forscience", new CheeseController.CheeseConfig("forscience", () -> {
             addCard(new LessonLearned().makeCopy());
             addCard(new SearingBlow().makeCopy());
+
+            for(int i = 0; i < 50; i++) {
+                AbstractDungeon.rareRelicPool.add(0, Whetstone.ID);
+                AbstractDungeon.uncommonRelicPool.add(0, Whetstone.ID);
+                AbstractDungeon.commonRelicPool.add(0, Whetstone.ID);
+                AbstractDungeon.shopRelicPool.add(0, Whetstone.ID);
+            }
         }, true));
 
         put("toilandtrouble", new CheeseController.CheeseConfig("toilandtrouble", () -> {
