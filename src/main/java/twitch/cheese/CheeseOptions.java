@@ -10,12 +10,10 @@ import com.megacrit.cardcrawl.cards.curses.Pride;
 import com.megacrit.cardcrawl.cards.green.Alchemize;
 import com.megacrit.cardcrawl.cards.green.Burst;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
+import com.megacrit.cardcrawl.cards.purple.LessonLearned;
 import com.megacrit.cardcrawl.cards.purple.MasterReality;
 import com.megacrit.cardcrawl.cards.purple.Vault;
-import com.megacrit.cardcrawl.cards.red.Anger;
-import com.megacrit.cardcrawl.cards.red.DoubleTap;
-import com.megacrit.cardcrawl.cards.red.DualWield;
-import com.megacrit.cardcrawl.cards.red.Rage;
+import com.megacrit.cardcrawl.cards.red.*;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.relics.*;
@@ -194,6 +192,11 @@ public class CheeseOptions {
             addCard(new Pride().makeCopy());
             addCard(new MeteorStrike().makeCopy());
             addRelic(new PrismaticShard().makeCopy());
+        }, true));
+
+        put("forscience", new CheeseController.CheeseConfig("forscience", () -> {
+            addCard(new LessonLearned().makeCopy());
+            addCard(new SearingBlow().makeCopy());
         }, true));
 
         put("toilandtrouble", new CheeseController.CheeseConfig("toilandtrouble", () -> {
