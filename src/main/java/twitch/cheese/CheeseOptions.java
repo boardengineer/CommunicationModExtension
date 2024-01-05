@@ -8,6 +8,7 @@ import com.megacrit.cardcrawl.cards.blue.MeteorStrike;
 import com.megacrit.cardcrawl.cards.colorless.*;
 import com.megacrit.cardcrawl.cards.curses.Pride;
 import com.megacrit.cardcrawl.cards.green.Alchemize;
+import com.megacrit.cardcrawl.cards.green.BladeDance;
 import com.megacrit.cardcrawl.cards.green.Burst;
 import com.megacrit.cardcrawl.cards.green.Nightmare;
 import com.megacrit.cardcrawl.cards.purple.LessonLearned;
@@ -194,7 +195,7 @@ public class CheeseOptions {
             addRelic(new PrismaticShard().makeCopy());
         }, true));
 
-        put("forscience", new CheeseController.CheeseConfig("forscience", () -> {
+        put("forsciencetwo", new CheeseController.CheeseConfig("forsciencetwo", () -> {
             addCard(new LessonLearned().makeCopy());
             addCard(new SearingBlow().makeCopy());
 
@@ -272,6 +273,13 @@ public class CheeseOptions {
             addRelic(new WhiteBeast().makeCopy());
 
             addCard(new Alchemize().makeCopy());
+        }, true));
+
+
+        put("styxandstones", new CheeseController.CheeseConfig("styxandstones", () -> {
+            addRelic(new CharonsAshes().makeCopy());
+            addRelic(new Kunai().makeCopy());
+            addCard(new BladeDance().makeCopy());
         }, true));
     }};
 
