@@ -67,109 +67,11 @@
             <systemPath>${basedir}/../_ModTheSpire/mods/CommunicationMod.jar</systemPath>
         </dependency>
         <dependency>
-            <groupId>autoplay</groupId>
-            <artifactId>TSSRelics</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/TSSRelics.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>marisa</groupId>
-            <artifactId>marisa</artifactId>
-            <version>0.15.4</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/TS05_Marisa.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>marisa</groupId>
-            <artifactId>MarisaState</artifactId>
-            <version>0.15.4</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/MarisaState.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>hermit</groupId>
-            <artifactId>hermit</artifactId>
-            <version>1.43</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/Hermit.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>marisa</groupId>
-            <artifactId>HermitState</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/HermitState.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>mintyspire</groupId>
-            <artifactId>MintySpire</artifactId>
-            <version>2.5.3</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/mintySpire.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>theVacant</groupId>
-            <artifactId>theVacant</artifactId>
-            <version>v0.18.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/theVacant.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>thecursedmod</groupId>
-            <artifactId>thecursedmod</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/TheCursedMod.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>UnimportantInfo</groupId>
-            <artifactId>TheAdventurer</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/TheAdventurer.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>autoplay</groupId>
-            <artifactId>AdventurerState</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/AdventurerState.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>chronoMods</groupId>
-            <artifactId>TogetherManager</artifactId>
-            <version>3.1.2</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/Spire with Friends.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>RobotSpaceExplorer</groupId>
-            <artifactId>RobotSpaceExplorer</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/RobotSpaceExplorer.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>autoplay</groupId>
-            <artifactId>RobotSpaceExplorerState</artifactId>
-            <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/RobotSpaceExplorerState.jar</systemPath>
-        </dependency>
-        <dependency>
             <groupId>com.evacipated.cardcrawl.mod</groupId>
             <artifactId>StSLib</artifactId>
             <version>1.3.2</version>
             <scope>system</scope>
             <systemPath>${basedir}/../_ModTheSpire/mods/StSLib.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>fightpredictor</groupId>
-            <artifactId>FightPredictor</artifactId>
-            <version>1.0.4</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/../_ModTheSpire/mods/FightPredictor.jar</systemPath>
         </dependency>
     </dependencies>
 
