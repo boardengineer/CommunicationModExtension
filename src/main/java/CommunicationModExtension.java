@@ -1,4 +1,8 @@
+import basemod.BaseMod;
 import basemod.ReflectionHacks;
+import basemod.interfaces.PostUpdateSubscriber;
+import battleaimod.BattleAiMod;
+import battleaimod.networking.AiClient;
 import com.evacipated.cardcrawl.modthespire.lib.SpireInitializer;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
@@ -12,6 +16,7 @@ import communicationmod.CommunicationMod;
 import communicationmod.GameStateConverter;
 import communicationmod.InvalidCommandException;
 import ludicrousspeed.Controller;
+import ludicrousspeed.LudicrousSpeedMod;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -24,9 +29,56 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @SpireInitializer
-public class CommunicationModExtension {
+public class CommunicationModExtension implements PostUpdateSubscriber {
     public static CommunicationMethod communicationMethod = CommunicationMethod.SOCKET;
     private static final int PORT = 8080;
+
+    static boolean inBattle = false;
+    static boolean shouldStartClientOnUpdate = false;
+
+
+    public static void initialize() {
+        BaseMod.subscribe(new CommunicationModExtension());
+    }
+
+    @Override
+    public void receivePostUpdate() {
+        if (shouldStartClientOnUpdate) {
+            shouldStartClientOnUpdate = false;
+            inBattle = true;
+            System.err.println("requesting start ai client");
+            startAiClient();
+        }
+
+        // The Ai Client has stopped simulation.  Hand control back to the Twitch interface.
+        if (BattleAiMod.rerunController != null || LudicrousSpeedMod.mustRestart) {
+            if (BattleAiMod.rerunController.isDone || LudicrousSpeedMod.mustRestart) {
+                LudicrousSpeedMod.controller = BattleAiMod.rerunController = null;
+                inBattle = false;
+
+                if (LudicrousSpeedMod.mustRestart) {
+                    System.err.println("Desync detected, rerunning simluation");
+                    LudicrousSpeedMod.mustRestart = false;
+//                    startAiClient();
+                }
+            }
+        }
+    }
+
+    private void startAiClient() {
+        if (BattleAiMod.aiClient == null) {
+            try {
+                BattleAiMod.aiClient = new AiClient();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        if (BattleAiMod.aiClient != null) {
+            BattleAiMod.aiClient.sendState();
+        }
+    }
 
     enum CommunicationMethod {
         SOCKET,
@@ -68,21 +120,30 @@ public class CommunicationModExtension {
                                 String stateString = GameStateConverter.getCommunicationState();
                                 JsonObject state =
                                         new JsonParser().parse(stateString).getAsJsonObject();
-                                if(state.has("available_commands")) {
+                                if (state.has("available_commands")) {
                                     System.err.println("State has available commands \n \n \n");
                                     JsonArray commands =
                                             state.get("available_commands").getAsJsonArray();
 
-                                    for(JsonElement command : commands) {
-                                        if(command.getAsString().equals("play")) {
+                                    boolean addAutoplay = false;
+                                    for (JsonElement command : commands) {
+                                        if (command.getAsString().equals("play") && !inBattle) {
                                             System.err.println("play command available \n \n \n");
+                                            addAutoplay = true;
+                                            break;
                                         }
                                     }
 
+                                    if (addAutoplay) {
+                                        commands.add("autoplay");
+                                    }
                                     System.err.println(commands);
+                                    state.add("available_commands", commands);
                                 }
 
-                                out.writeUTF(GameStateConverter.getCommunicationState());
+                                if(!inBattle) {
+                                    out.writeUTF(state.toString());
+                                }
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -99,7 +160,13 @@ public class CommunicationModExtension {
                                 .getInputStream()));
 
                         while (true) {
-                            CommunicationMod.queueCommand(in.readUTF());
+                            String command = in.readUTF();
+
+                            if(command.equals("autoplay")) {
+                                shouldStartClientOnUpdate = true;
+                            } else {
+                                CommunicationMod.queueCommand(command);
+                            }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
