@@ -1,10 +1,12 @@
-import basemod.BaseMod;
 import basemod.ReflectionHacks;
-import basemod.interfaces.PostInitializeSubscriber;
 import com.evacipated.cardcrawl.modthespire.lib.SpireInitializer;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePrefixPatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireReturn;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import communicationmod.CommandExecutor;
 import communicationmod.CommunicationMod;
 import communicationmod.GameStateConverter;
@@ -63,6 +65,23 @@ public class CommunicationModExtension {
 
                         CommunicationMod.subscribe(() -> {
                             try {
+                                String stateString = GameStateConverter.getCommunicationState();
+                                JsonObject state =
+                                        new JsonParser().parse(stateString).getAsJsonObject();
+                                if(state.has("available_commands")) {
+                                    System.err.println("State has available commands \n \n \n");
+                                    JsonArray commands =
+                                            state.get("available_commands").getAsJsonArray();
+
+                                    for(JsonElement command : commands) {
+                                        if(command.getAsString().equals("play")) {
+                                            System.err.println("play command available \n \n \n");
+                                        }
+                                    }
+
+                                    System.err.println(commands);
+                                }
+
                                 out.writeUTF(GameStateConverter.getCommunicationState());
                             } catch (IOException e) {
                                 e.printStackTrace();
