@@ -11,12 +11,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import communicationmod.CommandExecutor;
 import communicationmod.CommunicationMod;
 import communicationmod.GameStateConverter;
 import communicationmod.InvalidCommandException;
 import ludicrousspeed.Controller;
 import ludicrousspeed.LudicrousSpeedMod;
+import savestate.patches.SavesPatches;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -137,11 +139,13 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
                                     if (addAutoplay) {
                                         commands.add("autoplay");
                                     }
+                                    commands.add("load");
+
                                     System.err.println(commands);
                                     state.add("available_commands", commands);
                                 }
 
-                                if(!inBattle) {
+                                if (!inBattle) {
                                     out.writeUTF(state.toString());
                                 }
                             } catch (IOException e) {
@@ -162,8 +166,14 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
                         while (true) {
                             String command = in.readUTF();
 
-                            if(command.equals("autoplay")) {
+                            if (command.equals("autoplay")) {
                                 shouldStartClientOnUpdate = true;
+                            } else if (command.contains("load")) {
+                                System.err.println("loading game...?");
+                                String[] tokens = command.split("\\s+");
+                                if (tokens.length >= 2) {
+                                    SavesPatches.load(tokens[1], AbstractPlayer.PlayerClass.IRONCLAD);
+                                }
                             } else {
                                 CommunicationMod.queueCommand(command);
                             }
