@@ -1,5 +1,6 @@
 import basemod.BaseMod;
 import basemod.ReflectionHacks;
+import basemod.interfaces.PostInitializeSubscriber;
 import basemod.interfaces.PostUpdateSubscriber;
 import battleaimod.BattleAiMod;
 import battleaimod.networking.AiClient;
@@ -31,7 +32,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @SpireInitializer
-public class CommunicationModExtension implements PostUpdateSubscriber {
+public class CommunicationModExtension implements PostUpdateSubscriber, PostInitializeSubscriber {
     public static CommunicationMethod communicationMethod = CommunicationMethod.SOCKET;
     private static final int PORT = 8080;
 
@@ -123,7 +124,6 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
                                 JsonObject state =
                                         new JsonParser().parse(stateString).getAsJsonObject();
                                 if (state.has("available_commands")) {
-                                    System.err.println("State has available commands \n \n \n");
                                     JsonArray commands =
                                             state.get("available_commands").getAsJsonArray();
 
@@ -141,7 +141,6 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
                                     }
                                     commands.add("load");
 
-                                    System.err.println(commands);
                                     state.add("available_commands", commands);
                                 }
 
@@ -155,7 +154,7 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                });
+                }, "output_thread");
                 writeThread.start();
 
                 Thread readThread = new Thread(() -> {
@@ -181,7 +180,7 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                });
+                }, "input_thread");
                 readThread.start();
 
             } catch (IOException e) {
@@ -222,6 +221,16 @@ public class CommunicationModExtension implements PostUpdateSubscriber {
         @Override
         public boolean isDone() {
             return false;
+        }
+    }
+
+    @Override
+    public void receivePostInitialize() {
+        String connectOnStartupFlag = System.getProperty("connectOnStartup");
+        if (connectOnStartupFlag != null) {
+            if(Boolean.parseBoolean(connectOnStartupFlag)) {
+                setSocketThreads();
+            }
         }
     }
 }
